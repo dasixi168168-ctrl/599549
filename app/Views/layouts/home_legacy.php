@@ -16,7 +16,7 @@
     $frontHomeCriticalStyleUrl = '/public/styles/home-critical.css?v=20260703-home-critical-02';
     $frontForecastCriticalStyleUrl = '/public/styles/forecast-critical.css?v=20260705-float-contract-clean-01';
     $frontServiceStyleUrl = '/public/styles/front-service.css?v=20260705-service-agent-manage-payment-contract-19';
-    $frontFloatingStyleUrl = '/public/styles/front-floating.css?v=20260705-service-agent-mobile-contract-02';
+    $frontFloatingStyleUrl = '/public/styles/front-floating.css?v=20260705-top-card-public-contract-04';
     $fontAwesomeCssUrl = asset('vendor/fontawesome/css/all.min.css?v=20260621-front-fa-sync-01');
     $homeLegacyScriptUrl = asset('home-legacy.js?v=20260705-auth-modal-contract-01');
     $frontAppScriptUrl = asset('app.js?v=20260705-service-agent-desktop-split-08');
