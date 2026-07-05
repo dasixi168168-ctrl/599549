@@ -2972,7 +2972,7 @@
         var log = chat.querySelector('[data-customer-service-log]');
 
         return (chat.getAttribute('data-customer-service-role') || '') === 'agent'
-            && (chat.getAttribute('data-agent-active-view') || '') === 'chat'
+            && serviceAgentChatPanelIsReadable(chat)
             && serviceAgentHasActiveSession(chat)
             && customerServiceLogNearBottom(log);
     }
@@ -2992,12 +2992,21 @@
         }
     }
 
+    function serviceAgentUsesDesktopSplit() {
+        return !!(window.matchMedia && window.matchMedia('(min-width: 721px)').matches);
+    }
+
+    function serviceAgentChatPanelIsReadable(chat) {
+        return serviceAgentUsesDesktopSplit() || (chat.getAttribute('data-agent-active-view') || '') === 'chat';
+    }
+
     function setServiceAgentView(chat, view, persist) {
         var role = chat.getAttribute('data-customer-service-role') || 'member';
         var hasSession = serviceAgentHasActiveSession(chat);
         var previousView = chat.getAttribute('data-agent-active-view') || 'queue';
         var targetView = view === 'chat' && hasSession ? 'chat' : 'queue';
         var switchedToChat = targetView === 'chat' && previousView !== 'chat';
+        var desktopSplit = serviceAgentUsesDesktopSplit();
         var log;
 
         if (role !== 'agent') {
@@ -3005,6 +3014,7 @@
         }
 
         chat.setAttribute('data-agent-active-view', targetView);
+        chat.setAttribute('data-service-agent-layout', desktopSplit ? 'split' : 'single');
         chat.classList.toggle('is-queue-view', targetView === 'queue');
         chat.classList.toggle('is-chat-view', targetView === 'chat');
         if (persist) {
@@ -3027,7 +3037,10 @@
         });
 
         Array.prototype.forEach.call(chat.querySelectorAll('[data-service-agent-panel]'), function (panel) {
-            panel.hidden = (panel.getAttribute('data-service-agent-panel') || 'queue') !== targetView;
+            var panelHidden = !desktopSplit && (panel.getAttribute('data-service-agent-panel') || 'queue') !== targetView;
+
+            panel.hidden = panelHidden;
+            panel.setAttribute('aria-hidden', panelHidden ? 'true' : 'false');
         });
 
         if (targetView === 'chat') {
@@ -3038,6 +3051,27 @@
             if (log && switchedToChat) {
                 customerServiceScrollToBottomSoon(log);
             }
+        }
+    }
+
+    function bindServiceAgentDesktopSplitWatcher(chat) {
+        var media;
+        var updateLayout;
+
+        if (!chat || !window.matchMedia || chat.getAttribute('data-service-agent-layout-watch-ready') === '1') {
+            return;
+        }
+
+        media = window.matchMedia('(min-width: 721px)');
+        updateLayout = function () {
+            setServiceAgentView(chat, chat.getAttribute('data-agent-active-view') || 'queue');
+        };
+
+        chat.setAttribute('data-service-agent-layout-watch-ready', '1');
+        if (media.addEventListener) {
+            media.addEventListener('change', updateLayout);
+        } else if (media.addListener) {
+            media.addListener(updateLayout);
         }
     }
 
@@ -4749,7 +4783,6 @@
         var lastIncomingMessageId;
         var latestIncomingMessageId;
         var newIncomingCount;
-        var agentView;
         var log;
         var chatIsReadingLatest;
         var chatUnread;
@@ -4804,10 +4837,9 @@
         newIncomingCount = countCustomerServiceIncomingMessagesAfter(chat, activeMessages, lastIncomingMessageId);
         forceLatestScroll = payloadMatchesActiveSession && newIncomingCount > 0;
         baselineReady = chat.getAttribute('data-incoming-message-baseline-ready') === '1';
-        agentView = chat.getAttribute('data-agent-active-view') || '';
         log = chat.querySelector('[data-customer-service-log]');
         agentSilentPoll = role === 'agent' && !renderOptions.forceScroll && currentSessionId === previousSessionId;
-        chatIsReadingLatest = role === 'agent' && agentView === 'chat' && (customerServiceLogNearBottom(log) || forceLatestScroll);
+        chatIsReadingLatest = role === 'agent' && serviceAgentChatPanelIsReadable(chat) && (customerServiceLogNearBottom(log) || forceLatestScroll);
         shouldPlayIncomingSound = currentSessionId === previousSessionId
             && baselineReady
             && latestIncomingMessageId > lastIncomingMessageId;
@@ -4867,7 +4899,7 @@
                     !!renderOptions.forceScroll
                     || forceLatestScroll
                     || role === 'member'
-                    || (role === 'agent' && agentView === 'chat')
+                    || (role === 'agent' && serviceAgentChatPanelIsReadable(chat))
                 ),
                 preserveScroll: agentSilentPoll && !forceLatestScroll
             });
@@ -5197,7 +5229,7 @@
                 customerServiceScrollToBottomSoon(log);
                 if (role === 'agent') {
                     log.addEventListener('scroll', function () {
-                        if ((chat.getAttribute('data-agent-active-view') || '') === 'chat' && customerServiceLogNearBottom(log)) {
+                        if (serviceAgentChatPanelIsReadable(chat) && customerServiceLogNearBottom(log)) {
                             setServiceAgentChatUnread(chat, 0);
                         }
                     }, { passive: true });
@@ -5399,6 +5431,7 @@
                     });
                 }
                 setServiceAgentView(chat, chat.getAttribute('data-agent-active-view') || 'queue');
+                bindServiceAgentDesktopSplitWatcher(chat);
                 Array.prototype.forEach.call(agentViewButtons, function (button) {
                     button.addEventListener('click', function (event) {
                         event.preventDefault();
@@ -5676,7 +5709,7 @@
                 }
 
                 if (role === 'agent') {
-                    return (chat.getAttribute('data-agent-active-view') || '') === 'chat';
+                    return serviceAgentChatPanelIsReadable(chat);
                 }
 
                 return role === 'member';
@@ -6190,7 +6223,7 @@
                     status: currentStatus(),
                     read: serviceAgentCanMarkRead(chat) ? '1' : '0'
                 };
-                if (role === 'agent' && (chat.getAttribute('data-agent-active-view') || '') === 'chat' && pollPayload.session_id !== '0') {
+                if (role === 'agent' && serviceAgentChatPanelIsReadable(chat) && pollPayload.session_id !== '0') {
                     pollPayload.light = '1';
                     pollPayload.slim = '1';
                     if (lightPollSlimCount < 6 && (chat.getAttribute('data-customer-service-sessions-stamp') || '') !== '') {
@@ -6230,7 +6263,7 @@
                 }
 
                 if (role === 'agent') {
-                    return (chat.getAttribute('data-agent-active-view') || '') === 'chat';
+                    return serviceAgentChatPanelIsReadable(chat);
                 }
 
                 return role === 'member';
