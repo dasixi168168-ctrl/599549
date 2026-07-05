@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Crawl-delay: 10
+Sitemap: https://599549.com/sitemap.xml

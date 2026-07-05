@@ -1,0 +1,62 @@
+/* ================================
+   CSS GOVERNANCE SYSTEM
+   UI SYSTEM OVERRIDE LAYER
+================================= */
+
+/* 1. UI system namespace priority */
+.ui-front-page,
+.ui-admin-page {
+  font-family: inherit;
+  color: var(--ui-color-text);
+  background: var(--ui-color-bg);
+}
+
+.ui-front-page *,
+.ui-front-page *::before,
+.ui-front-page *::after,
+.ui-admin-page *,
+.ui-admin-page *::before,
+.ui-admin-page *::after {
+  box-sizing: border-box;
+}
+
+/* 2. Keep legacy layout classes from escaping their box model */
+.box,
+.panel,
+.container,
+.content,
+.main,
+.wrapper {
+  position: relative;
+  box-sizing: border-box;
+}
+
+/* 3. Limit front-service and legacy list/notice pollution */
+[class*="service"],
+[class*="front-"],
+[class*="list"],
+[class*="notice"] {
+  box-sizing: border-box;
+}
+
+/* 4. UI system components stay above legacy decorative layers */
+.ui-front-card,
+.ui-admin-card {
+  position: relative;
+  z-index: 10;
+}
+
+/* 5. Preserve UI token colors after legacy CSS loads */
+body.ui-front-page,
+body.ui-admin-page {
+  color: var(--ui-color-text) !important;
+  background: var(--ui-color-bg) !important;
+}
+
+/* 6. Mobile overflow guard */
+@media (max-width: 768px) {
+  .ui-front-page,
+  .ui-admin-page {
+    overflow-x: hidden;
+  }
+}

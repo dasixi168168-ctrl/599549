@@ -1,0 +1,3 @@
+This directory is a sanitized first-upload export generated from /www/wwwroot/599549.com.
+Excluded live environment files, runtime storage, logs, cache, sessions, screenshots, uploads, and editor metadata.
+Review the committed file list before pushing to GitHub.

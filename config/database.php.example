@@ -1,0 +1,17 @@
+<?php
+declare(strict_types=1);
+
+$env = static function ($key, $default = '') {
+    $value = getenv($key);
+
+    return $value === false ? $default : $value;
+};
+
+return array(
+    'host' => (string) $env('DB_HOST', '127.0.0.1'),
+    'port' => (int) $env('DB_PORT', '3306'),
+    'database' => (string) $env('DB_DATABASE', ''),
+    'username' => (string) $env('DB_USERNAME', ''),
+    'password' => (string) $env('DB_PASSWORD', ''),
+    'charset' => (string) $env('DB_CHARSET', 'utf8mb4'),
+);

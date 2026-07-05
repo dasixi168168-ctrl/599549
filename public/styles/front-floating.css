@@ -1,0 +1,570 @@
+/* Shared front floating bars: top and bottom use one public geometry contract. */
+:root {
+    --front-public-edge-bg: #f3f4f6;
+    --front-public-center: 50%;
+    --front-shell-width: min(var(--page-max-width, 720px), calc(100vw - (var(--page-side-gap, 6px) * 2)));
+    --front-inner-width: min(var(--page-inner-width, 708px), calc(100vw - (var(--page-side-gap, 6px) * 2)));
+    --front-floating-card-height: 64px;
+    --front-floating-card-radius: 16px;
+    --front-float-shell-width: min(calc(var(--page-max-width, 720px) + 24px), calc(100vw - 16px));
+    --front-bottom-float-shell-width: var(--front-float-shell-width);
+    --front-top-card-height: var(--front-floating-card-height);
+    --front-bottom-nav-height: var(--front-floating-card-height);
+    --front-top-spacer-gap: 6px;
+    --front-top-spacer: calc(var(--front-top-card-height) + var(--front-top-spacer-gap));
+    --front-bottom-nav-bottom: 2px;
+    --front-unified-bottom-gap: 8px;
+    --front-bottom-nav-gap: 8px;
+    --front-unified-bottom-reserve: calc(var(--front-bottom-nav-height) + var(--front-bottom-nav-bottom) + var(--front-unified-bottom-gap) + env(safe-area-inset-bottom));
+    --front-float-inner-pad-x: 12px;
+    --front-float-inner-pad-y: 6px;
+    --front-float-inner-gap: 10px;
+    --front-float-content-height: calc(var(--front-floating-card-height) - (var(--front-float-inner-pad-y) * 2));
+    --front-bottom-inner-pad-x: var(--front-float-inner-pad-x);
+    --front-bottom-inner-pad-y: var(--front-float-inner-pad-y);
+    --front-top-action-height: 38px;
+    --front-top-action-radius: 12px;
+    --front-top-action-pad-x: 13px;
+    --front-top-action-gap: 6px;
+    --front-top-action-font-size: 14px;
+    --front-top-action-icon-size: 20px;
+    --front-top-brand-mark-size: 46px;
+    --front-top-brand-copy-gap: 4px;
+    --front-top-brand-title-offset-y: 1px;
+    --front-bottom-link-height: var(--front-float-content-height);
+    --front-bottom-link-gap: 3px;
+    --front-bottom-link-padding: 4px 2px;
+    --front-bottom-link-font-size: 11.5px;
+    --front-bottom-icon-size: 30px;
+    --front-bottom-icon-radius: 10px;
+    --front-bottom-icon-font-size: 16px;
+}
+
+.front-public-browser-edge {
+    display: none;
+}
+
+body:not(.standalone-modal-post):not(.customer-service-embed-body) {
+    background: var(--front-public-edge-bg) !important;
+}
+
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .page-frame {
+    padding-bottom: var(--front-unified-bottom-reserve) !important;
+}
+
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-bar,
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .bottom-float-nav {
+    box-sizing: border-box !important;
+    right: auto !important;
+    left: var(--front-public-center) !important;
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+    transform: translate3d(-50%, 0, 0) !important;
+}
+
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-bar {
+    top: 0 !important;
+    width: var(--front-float-shell-width) !important;
+    max-width: var(--front-float-shell-width) !important;
+    height: var(--front-top-card-height) !important;
+    min-height: var(--front-top-card-height) !important;
+    max-height: var(--front-top-card-height) !important;
+    border-radius: 0 0 var(--front-floating-card-radius) var(--front-floating-card-radius) !important;
+    z-index: 10080 !important;
+}
+
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-bar-inner {
+    box-sizing: border-box !important;
+    display: grid !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: var(--front-top-card-height) !important;
+    min-height: var(--front-top-card-height) !important;
+    max-height: var(--front-top-card-height) !important;
+    grid-template-columns: minmax(0, 1fr) max-content !important;
+    align-items: center !important;
+    justify-content: normal !important;
+    gap: var(--front-float-inner-gap) !important;
+    padding: var(--front-float-inner-pad-y) var(--front-float-inner-pad-x) !important;
+}
+
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-bar-spacer {
+    height: var(--front-top-spacer) !important;
+    flex: 0 0 var(--front-top-spacer) !important;
+}
+
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-brand {
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: var(--front-float-content-height) !important;
+    align-items: center !important;
+    gap: 10px !important;
+    overflow: hidden !important;
+}
+
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-brand-mark {
+    width: var(--front-top-brand-mark-size) !important;
+    height: var(--front-top-brand-mark-size) !important;
+    flex: 0 0 var(--front-top-brand-mark-size) !important;
+}
+
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-brand-copy {
+    display: flex !important;
+    min-width: 0 !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    gap: var(--front-top-brand-copy-gap) !important;
+    overflow: hidden !important;
+}
+
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-brand-title,
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-brand-domain {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: clip !important;
+}
+
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-brand-title {
+    align-items: center !important;
+    line-height: 1.04 !important;
+    transform: translateY(var(--front-top-brand-title-offset-y)) !important;
+}
+
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-bar-actions {
+    display: flex !important;
+    width: auto !important;
+    min-width: 0 !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+}
+
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-agent-logout-form {
+    display: flex !important;
+    margin: 0 !important;
+}
+
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-action-btn {
+    width: auto !important;
+    min-width: 0 !important;
+    height: var(--front-top-action-height) !important;
+    min-height: var(--front-top-action-height) !important;
+    padding: 0 var(--front-top-action-pad-x) !important;
+    border-radius: var(--front-top-action-radius) !important;
+    justify-content: center !important;
+    gap: var(--front-top-action-gap) !important;
+    font-size: var(--front-top-action-font-size) !important;
+    line-height: 1 !important;
+}
+
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-action-btn i {
+    width: var(--front-top-action-icon-size) !important;
+    height: var(--front-top-action-icon-size) !important;
+    flex: 0 0 var(--front-top-action-icon-size) !important;
+    font-size: calc(var(--front-top-action-icon-size) - 7px) !important;
+}
+
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .bottom-float-nav {
+    display: grid !important;
+    width: var(--front-bottom-float-shell-width) !important;
+    max-width: var(--front-bottom-float-shell-width) !important;
+    height: var(--front-bottom-nav-height) !important;
+    min-height: var(--front-bottom-nav-height) !important;
+    max-height: var(--front-bottom-nav-height) !important;
+    bottom: calc(var(--front-bottom-nav-bottom) + env(safe-area-inset-bottom)) !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    align-items: stretch !important;
+    justify-items: stretch !important;
+    gap: var(--front-bottom-nav-gap) !important;
+    padding: var(--front-bottom-inner-pad-y) var(--front-bottom-inner-pad-x) !important;
+    border-radius: var(--front-floating-card-radius) !important;
+    z-index: 10070 !important;
+}
+
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .bottom-nav-link,
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .bottom-nav-link:hover,
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .bottom-nav-link.is-active {
+    position: relative !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: var(--front-bottom-link-height) !important;
+    min-height: var(--front-bottom-link-height) !important;
+    max-height: var(--front-bottom-link-height) !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: var(--front-bottom-link-gap) !important;
+    padding: var(--front-bottom-link-padding) !important;
+    border-radius: 10px !important;
+    font-size: var(--front-bottom-link-font-size) !important;
+    line-height: 1 !important;
+}
+
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .bottom-nav-link i {
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    width: var(--front-bottom-icon-size) !important;
+    height: var(--front-bottom-icon-size) !important;
+    min-width: var(--front-bottom-icon-size) !important;
+    min-height: var(--front-bottom-icon-size) !important;
+    flex: 0 0 var(--front-bottom-icon-size) !important;
+    flex-basis: var(--front-bottom-icon-size) !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: var(--front-bottom-icon-radius) !important;
+    font-size: var(--front-bottom-icon-font-size) !important;
+    line-height: 1 !important;
+}
+
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .bottom-nav-link i::before,
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .bottom-nav-link i svg {
+    display: block !important;
+    width: 1em !important;
+    height: 1em !important;
+    line-height: 1 !important;
+}
+
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .bottom-nav-link span:not(.bottom-nav-unread),
+body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-action-btn span {
+    min-height: 12px !important;
+    line-height: 1 !important;
+}
+
+@media (max-width: 720px), (hover: none) and (pointer: coarse) {
+    :root {
+        --front-floating-card-height: 60px;
+        --front-floating-card-radius: 14px;
+        --front-float-shell-width: 100vw;
+        --front-bottom-float-shell-width: calc(100vw - 16px);
+        --front-public-top-edge-cover: 0px;
+        --front-public-bottom-edge-gap: 2px;
+        --front-bottom-nav-bottom: var(--front-public-bottom-edge-gap);
+        --front-top-spacer-gap: 6px;
+        --front-float-inner-pad-x: 8px;
+        --front-float-inner-pad-y: 5px;
+        --front-float-inner-gap: 8px;
+        --front-bottom-inner-pad-x: 7px;
+        --front-bottom-inner-pad-y: 5px;
+        --front-float-content-height: calc(var(--front-floating-card-height) - (var(--front-float-inner-pad-y) * 2));
+        --front-bottom-link-height: var(--front-float-content-height);
+        --front-top-action-height: 40px;
+        --front-top-action-pad-x: 8px;
+        --front-top-action-font-size: 13px;
+        --front-top-action-icon-size: 18px;
+        --front-top-brand-mark-size: 42px;
+        --front-bottom-icon-size: 28px;
+        --front-bottom-icon-font-size: 15px;
+        --front-bottom-link-font-size: 11px;
+        --front-bottom-link-gap: 2px;
+        --front-mobile-card-height: var(--front-floating-card-height);
+        --front-mobile-link-height: var(--front-bottom-link-height);
+        --front-mobile-top-height: var(--front-top-card-height);
+        --front-mobile-top-gap: var(--front-top-spacer-gap);
+        --front-mobile-bottom-gap: var(--front-unified-bottom-gap);
+        --front-top-spacer: calc(var(--front-public-top-edge-cover) + var(--front-top-card-height) + var(--front-top-spacer-gap));
+        --front-mobile-top-spacer: var(--front-top-spacer);
+        --front-mobile-bottom-reserve: calc(var(--front-bottom-nav-height) + var(--front-bottom-nav-bottom) + var(--front-unified-bottom-gap) + env(safe-area-inset-bottom));
+        --front-unified-bottom-reserve: var(--front-mobile-bottom-reserve);
+    }
+
+    .front-public-browser-edge {
+        position: fixed;
+        right: 0;
+        left: 0;
+        display: block;
+        background: var(--front-public-edge-bg);
+        pointer-events: none;
+        z-index: 10060;
+    }
+
+    .front-public-browser-edge-top {
+        top: 0;
+        height: var(--front-public-top-edge-cover);
+    }
+
+    .front-public-browser-edge-bottom {
+        bottom: 0;
+        height: calc(var(--front-public-bottom-edge-gap) + env(safe-area-inset-bottom));
+    }
+
+    body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-bar {
+        top: var(--front-public-top-edge-cover) !important;
+        width: var(--front-float-shell-width) !important;
+        max-width: var(--front-float-shell-width) !important;
+        border-top: 0 !important;
+        border-radius: 0 0 var(--front-floating-card-radius) var(--front-floating-card-radius) !important;
+    }
+
+    body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-bar-inner {
+        grid-template-columns: minmax(0, 1fr) 98px !important;
+    }
+
+    body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-bar-actions {
+        width: 98px !important;
+        min-width: 98px !important;
+        max-width: 98px !important;
+        justify-self: end !important;
+    }
+
+    body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-brand {
+        gap: 8px !important;
+    }
+
+    body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-brand-mark {
+        border-radius: 12px !important;
+    }
+
+    body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-brand-name-main,
+    body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-brand-name-accent {
+        font-size: clamp(1.18rem, 5.2vw, 1.42rem) !important;
+    }
+
+    body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-brand-domain {
+        margin-top: 2px !important;
+        font-size: 10px !important;
+        letter-spacing: 0 !important;
+    }
+
+    body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-action-btn {
+        width: 100% !important;
+        border-radius: 14px !important;
+    }
+}
+
+@media (max-width: 390px) {
+    :root {
+        --front-top-action-font-size: 12.5px;
+        --front-top-brand-mark-size: 40px;
+    }
+
+    body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-bar-inner {
+        grid-template-columns: minmax(0, 1fr) 94px !important;
+    }
+
+    body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-bar-actions {
+        width: 94px !important;
+        min-width: 94px !important;
+        max-width: 94px !important;
+    }
+}
+
+/* Shared front panel pages: forecast, history, member and service use this
+   shell contract; page-specific files only style the content inside it. */
+html:has(body.front-unified-panel-page:not(.customer-service-embed-body):not(.customer-service-compose-keyboard-active)) {
+    height: 100% !important;
+    overflow-x: hidden !important;
+    overflow-y: hidden !important;
+    scrollbar-gutter: auto !important;
+}
+
+body.front-unified-panel-page:not(.customer-service-embed-body):not(.customer-service-compose-keyboard-active) {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+    scrollbar-gutter: auto !important;
+}
+
+body.front-unified-panel-page:not(.customer-service-embed-body):not(.customer-service-compose-keyboard-active) .page-frame {
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: var(--front-shell-width) !important;
+    max-width: var(--page-max-width, 720px) !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    max-height: 100vh !important;
+    flex-direction: column !important;
+    margin-right: auto !important;
+    margin-left: auto !important;
+    padding-top: 0 !important;
+    padding-bottom: var(--front-unified-bottom-reserve) !important;
+    overflow: hidden !important;
+    background: var(--front-public-edge-bg) !important;
+}
+
+body.front-unified-panel-page:not(.customer-service-embed-body):not(.customer-service-compose-keyboard-active) .top-bar-spacer {
+    height: var(--front-top-spacer) !important;
+    flex: 0 0 var(--front-top-spacer) !important;
+}
+
+body.front-unified-panel-page:not(.customer-service-embed-body):not(.customer-service-compose-keyboard-active) .front-unified-page {
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: var(--front-inner-width) !important;
+    max-width: var(--page-inner-width, 708px) !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    flex-direction: column !important;
+    align-self: center !important;
+    margin-right: auto !important;
+    margin-left: auto !important;
+    padding-top: var(--front-switch-top-gap, 10px) !important;
+    padding-bottom: 0 !important;
+    overflow: hidden !important;
+}
+
+body.front-unified-panel-page:not(.customer-service-embed-body):not(.customer-service-compose-keyboard-active)
+.front-unified-page > .section-title {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 auto !important;
+}
+
+body.front-unified-panel-page:not(.customer-service-embed-body):not(.customer-service-compose-keyboard-active) .front-unified-frame {
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    flex-direction: column !important;
+    align-self: stretch !important;
+    margin-top: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+}
+
+body.front-unified-panel-page.forecast-panel-page:not(.customer-service-embed-body):not(.customer-service-compose-keyboard-active) .front-unified-frame,
+body.front-unified-panel-page.customer-service-body:not(.customer-service-embed-body):not(.customer-service-compose-keyboard-active) .front-unified-frame,
+body.front-unified-panel-page.member-auth-page:not(.customer-service-embed-body):not(.customer-service-compose-keyboard-active) .front-unified-frame {
+    overflow: hidden !important;
+}
+
+body.front-unified-panel-page:not(.customer-service-embed-body):not(.customer-service-compose-keyboard-active) .front-unified-content {
+    box-sizing: border-box !important;
+    display: flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+}
+
+body.front-unified-panel-page.history-panel-page:not(.customer-service-embed-body):not(.customer-service-compose-keyboard-active) .history-section-title {
+    position: relative !important;
+    top: auto !important;
+    flex: 0 0 44px !important;
+}
+
+body.front-unified-panel-page.history-panel-page:not(.customer-service-embed-body):not(.customer-service-compose-keyboard-active) .history-frame {
+    overflow-y: auto !important;
+}
+
+body.front-unified-panel-page.history-panel-page:not(.customer-service-embed-body):not(.customer-service-compose-keyboard-active) .history-list-stack {
+    padding-bottom: 8px !important;
+}
+
+@supports (height: 100dvh) {
+    body.front-unified-panel-page:not(.customer-service-embed-body):not(.customer-service-compose-keyboard-active),
+    body.front-unified-panel-page:not(.customer-service-embed-body):not(.customer-service-compose-keyboard-active) .page-frame {
+        height: 100dvh !important;
+        min-height: 100dvh !important;
+        max-height: 100dvh !important;
+    }
+}
+
+@media (max-width: 720px), (hover: none) and (pointer: coarse) {
+    body.front-unified-panel-page:not(.customer-service-embed-body):not(.customer-service-compose-keyboard-active) .page-frame,
+    body.front-unified-panel-page:not(.customer-service-embed-body):not(.customer-service-compose-keyboard-active) .front-unified-page {
+        width: var(--front-inner-width) !important;
+        max-width: var(--page-inner-width, 708px) !important;
+    }
+}
+
+/* Member auth pages use the public shell, but must stay scrollable during input. */
+body.front-unified-panel-page.member-auth-page:not(.customer-service-embed-body) .member-section-title {
+    position: relative !important;
+    z-index: 2 !important;
+    flex: 0 0 auto !important;
+}
+
+body.front-unified-panel-page.member-auth-page:not(.customer-service-embed-body) .member-auth-frame.front-unified-frame {
+    position: relative !important;
+    z-index: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+body.front-unified-panel-page.member-auth-page:not(.customer-service-embed-body) .member-auth-card {
+    flex: 0 0 auto !important;
+    align-self: stretch !important;
+}
+
+@media (max-width: 720px), (hover: none) and (pointer: coarse) {
+    html:has(body.front-unified-panel-page.member-auth-page.front-input-focus-active),
+    body.front-unified-panel-page.member-auth-page.front-input-focus-active {
+        height: auto !important;
+        min-height: var(--form-modal-viewport-height, 100dvh) !important;
+        max-height: none !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        overscroll-behavior-y: auto !important;
+    }
+
+    body.front-unified-panel-page.member-auth-page.front-input-focus-active:not(.customer-service-embed-body):not(.customer-service-compose-keyboard-active) .page-frame {
+        height: auto !important;
+        min-height: var(--form-modal-viewport-height, 100dvh) !important;
+        max-height: none !important;
+        padding-bottom: max(0px, env(safe-area-inset-bottom)) !important;
+        overflow: visible !important;
+    }
+
+    body.front-unified-panel-page.member-auth-page.front-input-focus-active:not(.customer-service-embed-body):not(.customer-service-compose-keyboard-active) .member-page.front-unified-page {
+        flex: 0 0 auto !important;
+        min-height: 0 !important;
+        padding-bottom: 0 !important;
+        overflow: visible !important;
+    }
+
+    body.front-unified-panel-page.member-auth-page.front-input-focus-active:not(.customer-service-embed-body):not(.customer-service-compose-keyboard-active) .member-auth-frame.front-unified-frame {
+        flex: 0 0 auto !important;
+        max-height: none !important;
+        padding-bottom: 8px !important;
+        overflow: visible !important;
+    }
+
+    body.front-unified-panel-page.member-auth-page.front-input-focus-active:not(.customer-service-embed-body):not(.customer-service-compose-keyboard-active) .member-auth-card {
+        margin-bottom: 0 !important;
+    }
+
+    body.front-unified-panel-page.front-input-focus-active:not(.standalone-modal-post) .bottom-float-nav {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        max-height: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+}
+
+/* Customer service agent console keeps the public floating top bar, so it owns a top reserve here. */
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body):not(.front-input-focus-active):not(.customer-service-compose-keyboard-active) .page-frame {
+    padding-top: calc(var(--front-top-spacer, 70px) + 8px) !important;
+}
+
+@media (max-width: 720px), (hover: none) and (pointer: coarse) {
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body):not(.front-input-focus-active):not(.customer-service-compose-keyboard-active) .page-frame {
+        padding-top: var(--front-top-spacer, 70px) !important;
+    }
+}

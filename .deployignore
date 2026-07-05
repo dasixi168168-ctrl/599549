@@ -1,0 +1,28 @@
+# Release package exclusions for 599549.com.
+# Keep this in sync with any tar/rsync based deployment command.
+.git/
+.env
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+vendor/
+node_modules/
+deploy_packages/
+storage/logs/
+storage/cache/
+storage/sessions/
+storage/screenshots/
+./storage/screenshots
+./storage/screenshots/
+storage/backups/
+storage/*.html
+storage/sess_*
+storage/locks/*.lock
+public/uploads/
+storage/uploads/
+database/*.sql
+tools/create_baseline.sh
