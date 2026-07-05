@@ -558,13 +558,13 @@ body.front-unified-panel-page.member-auth-page:not(.customer-service-embed-body)
     }
 }
 
-/* Customer service agent console keeps the public floating top bar, so it owns a top reserve here. */
+/* Agent service pages already carry the shared top spacer in their content. */
 body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body):not(.front-input-focus-active):not(.customer-service-compose-keyboard-active) .page-frame {
-    padding-top: calc(var(--front-top-spacer, 70px) + 8px) !important;
+    padding-top: 0 !important;
 }
 
 @media (max-width: 720px), (hover: none) and (pointer: coarse) {
     body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body):not(.front-input-focus-active):not(.customer-service-compose-keyboard-active) .page-frame {
-        padding-top: var(--front-top-spacer, 70px) !important;
+        padding-top: 0 !important;
     }
 }

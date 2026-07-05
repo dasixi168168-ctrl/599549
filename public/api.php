@@ -61,6 +61,16 @@ try {
 
         return in_array($view, array('manage', 'compose', 'published', 'recycle'), true) ? $view : $default;
     };
+    $isAjaxRequest = static function () {
+        $requestedWith = isset($_SERVER['HTTP_X_REQUESTED_WITH']) ? strtolower((string) $_SERVER['HTTP_X_REQUESTED_WITH']) : '';
+        if ($requestedWith === 'xmlhttprequest') {
+            return true;
+        }
+
+        $accept = isset($_SERVER['HTTP_ACCEPT']) ? strtolower((string) $_SERVER['HTTP_ACCEPT']) : '';
+
+        return strpos($accept, 'application/json') !== false;
+    };
     $insufficientPointsResponse = static function () {
         json_response(array(
             'success' => false,
@@ -472,6 +482,9 @@ try {
 
         case 'customer_service.agent.logout':
             app()->support()->logoutAgent(true);
+            if (!$isAjaxRequest()) {
+                redirect(public_url('admin.php'));
+            }
             json_response(array(
                 'success' => true,
                 'message' => '已退出客服接待。',

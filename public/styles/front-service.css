@@ -6194,3 +6194,1180 @@ body.customer-service-agent-body.customer-service-body:not(.customer-service-emb
         padding-top: 0 !important;
     }
 }
+
+/* Final service input-state contract for the rebuilt thread DOM. */
+body.customer-service-body textarea.service-thread-input,
+body.customer-service-body .service-thread-composer textarea.service-thread-input {
+    resize: none !important;
+}
+
+body.customer-service-body textarea.service-thread-input::-webkit-resizer {
+    display: none !important;
+}
+
+@media (min-width: 721px), (hover: hover) and (pointer: fine) {
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) {
+        height: auto !important;
+        min-height: 100vh !important;
+        max-height: none !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+    }
+
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .page-frame,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .page-frame,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .page-frame {
+        position: relative !important;
+        inset: auto !important;
+        display: flex !important;
+        width: var(--front-inner-width, min(var(--page-inner-width, 708px), calc(100vw - (var(--page-side-gap, 6px) * 2)))) !important;
+        max-width: var(--page-inner-width, 708px) !important;
+        height: 100vh !important;
+        min-height: 100vh !important;
+        max-height: 100vh !important;
+        margin: 0 auto !important;
+        padding: calc(var(--front-top-spacer, 70px) + 8px) 0 calc(var(--front-bottom-nav-height, 64px) + var(--front-bottom-nav-bottom, 2px) + env(safe-area-inset-bottom)) !important;
+        overflow: hidden !important;
+        transform: none !important;
+    }
+
+    @supports (height: 100dvh) {
+        body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .page-frame,
+        body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .page-frame,
+        body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .page-frame {
+            height: 100dvh !important;
+            min-height: 100dvh !important;
+            max-height: 100dvh !important;
+        }
+    }
+
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .customer-service-page,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .customer-service-page,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .customer-service-page,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .customer-service-frame,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .customer-service-frame,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .customer-service-frame {
+        display: flex !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        max-height: 100% !important;
+        flex: 1 1 auto !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+    }
+
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .service-thread--member,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .service-thread--member,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .service-thread--member {
+        display: grid !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        max-height: 100% !important;
+        grid-template-rows: auto auto minmax(0, 1fr) auto !important;
+        overflow: hidden !important;
+        border-radius: 13px !important;
+    }
+
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .service-thread--member > .service-thread-head,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .service-thread--member > .service-thread-head,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .service-thread--member > .service-thread-head {
+        display: grid !important;
+        grid-row: 1 !important;
+    }
+
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .service-thread--member > .service-thread-notice,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .service-thread--member > .service-thread-notice,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .service-thread--member > .service-thread-notice {
+        grid-row: 2 !important;
+    }
+
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .service-thread--member > .service-thread-notice:not([hidden]),
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .service-thread--member > .service-thread-notice:not([hidden]),
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .service-thread--member > .service-thread-notice:not([hidden]) {
+        display: flex !important;
+    }
+
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .service-thread--member > .service-thread-log,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .service-thread--member > .service-thread-log,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .service-thread--member > .service-thread-log {
+        grid-row: 3 !important;
+        min-height: 0 !important;
+        padding-bottom: 12px !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+    }
+
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .service-thread--member > .service-thread-composer--member,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .service-thread--member > .service-thread-composer--member,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .service-thread--member > .service-thread-composer--member {
+        position: relative !important;
+        top: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        left: auto !important;
+        grid-row: 4 !important;
+        grid-template-columns: max-content minmax(0, 1fr) var(--service-thread-send-size) !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: 58px !important;
+        margin: 0 !important;
+        transform: none !important;
+        border-radius: 0 0 13px 13px !important;
+        box-shadow: 0 -1px 0 rgba(203, 213, 225, .92) !important;
+    }
+
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .service-thread-composer--member .service-thread-tools,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .service-thread-composer--member .service-thread-tools,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .service-thread-composer--member .service-thread-tools {
+        display: inline-grid !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+    }
+
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .bottom-float-nav,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .bottom-float-nav,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .bottom-float-nav {
+        display: grid !important;
+        width: var(--front-inner-width, min(var(--page-inner-width, 708px), calc(100vw - (var(--page-side-gap, 6px) * 2)))) !important;
+        min-width: 0 !important;
+        max-width: var(--page-inner-width, 708px) !important;
+        height: var(--front-bottom-nav-height, 64px) !important;
+        min-height: var(--front-bottom-nav-height, 64px) !important;
+        max-height: var(--front-bottom-nav-height, 64px) !important;
+        padding: 6px 8px calc(6px + env(safe-area-inset-bottom)) !important;
+        border: 1px solid rgba(96, 165, 250, .42) !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        transform: translate3d(-50%, 0, 0) !important;
+    }
+}
+
+@media (max-width: 720px), (hover: none) and (pointer: coarse) {
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .bottom-float-nav,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .bottom-float-nav,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .bottom-float-nav {
+        display: none !important;
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        max-height: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .page-frame,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .page-frame,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .page-frame {
+        position: fixed !important;
+        top: var(--customer-service-viewport-top, 0px) !important;
+        right: 0 !important;
+        bottom: auto !important;
+        left: 0 !important;
+        display: flex !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: var(--customer-service-viewport-height, 100dvh) !important;
+        min-height: var(--customer-service-viewport-height, 100dvh) !important;
+        max-height: var(--customer-service-viewport-height, 100dvh) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        transform: none !important;
+    }
+
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .customer-service-page,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .customer-service-page,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .customer-service-page,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .customer-service-frame,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .customer-service-frame,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .customer-service-frame,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .service-thread--member,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .service-thread--member,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .service-thread--member {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        max-height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+    }
+
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .service-thread--member,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .service-thread--member,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .service-thread--member {
+        display: grid !important;
+        grid-template-rows: auto auto minmax(0, 1fr) auto !important;
+        border-radius: 0 !important;
+    }
+
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .service-thread--member > .service-thread-head,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .service-thread--member > .service-thread-head,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .service-thread--member > .service-thread-head {
+        display: grid !important;
+        grid-row: 1 !important;
+    }
+
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .service-thread--member > .service-thread-notice,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .service-thread--member > .service-thread-notice,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .service-thread--member > .service-thread-notice {
+        grid-row: 2 !important;
+    }
+
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .service-thread--member > .service-thread-notice:not([hidden]),
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .service-thread--member > .service-thread-notice:not([hidden]),
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .service-thread--member > .service-thread-notice:not([hidden]) {
+        display: flex !important;
+    }
+
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .service-thread--member > .service-thread-log,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .service-thread--member > .service-thread-log,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .service-thread--member > .service-thread-log {
+        grid-row: 3 !important;
+        min-height: 0 !important;
+        padding-bottom: 8px !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .service-thread--member > .service-thread-composer--member,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .service-thread--member > .service-thread-composer--member,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .service-thread--member > .service-thread-composer--member {
+        position: relative !important;
+        top: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        left: auto !important;
+        grid-row: 4 !important;
+        grid-template-columns: max-content minmax(0, 1fr) var(--service-thread-send-size) !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: 58px !important;
+        margin: 0 !important;
+        transform: none !important;
+        border-radius: 0 !important;
+        box-shadow: 0 -1px 0 rgba(203, 213, 225, .92) !important;
+    }
+
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).front-input-focus-active .service-thread-composer--member .service-thread-tools,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body).customer-service-compose-keyboard-active .service-thread-composer--member .service-thread-tools,
+    body.standalone-panel.front-unified-panel-page.customer-service-body:not(.customer-service-agent-body):not(.customer-service-embed-body):has(.service-thread-composer--member:focus-within) .service-thread-composer--member .service-thread-tools {
+        display: inline-grid !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+    }
+}
+
+/* Final mobile agent console contract: no duplicate top reserve and no side clipping. */
+@media (max-width: 720px), (hover: none) and (pointer: coarse) {
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) {
+        --service-agent-public-width: min(var(--page-inner-width, 708px), calc(100vw - (var(--page-side-gap, 6px) * 2)));
+        --service-thread-tool-size: 34px;
+        --service-thread-send-size: 42px;
+        overflow-x: hidden !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .page-frame {
+        position: relative !important;
+        inset: auto !important;
+        display: flex !important;
+        width: var(--service-agent-public-width) !important;
+        max-width: var(--service-agent-public-width) !important;
+        height: 100vh !important;
+        min-height: 100vh !important;
+        max-height: 100vh !important;
+        margin: 0 auto !important;
+        padding-top: 0 !important;
+        padding-right: 0 !important;
+        padding-left: 0 !important;
+        overflow: hidden !important;
+        transform: none !important;
+    }
+
+    @supports (height: 100dvh) {
+        body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .page-frame {
+            height: 100dvh !important;
+            min-height: 100dvh !important;
+            max-height: 100dvh !important;
+        }
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .customer-service-agent-page,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .customer-service-agent-frame,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .customer-service-agent-shell,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .customer-service-agent-console,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-grid,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-queue,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) #service-agent-chat {
+        box-sizing: border-box !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin-right: auto !important;
+        margin-left: auto !important;
+        overflow-x: hidden !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .customer-service-agent-page {
+        padding-top: var(--front-switch-top-gap, 10px) !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .customer-service-agent-frame,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .customer-service-agent-shell {
+        padding-right: 0 !important;
+        padding-left: 0 !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-top,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-top-main,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-view-switch,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-view-switch button,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-thread--agent > .service-thread-head,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-thread-peer,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-thread-actions--agent,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-thread-composer--agent {
+        min-width: 0 !important;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-thread--agent > .service-thread-head {
+        grid-template-columns: minmax(0, 1fr) minmax(0, auto) !important;
+        gap: 5px !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-thread-actions--agent {
+        flex: 0 1 auto !important;
+        flex-wrap: nowrap !important;
+        justify-content: flex-end !important;
+        gap: 5px !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-thread-actions--agent .service-thread-action--score {
+        width: 86px !important;
+        min-width: 86px !important;
+        max-width: 86px !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-thread-block-controls select {
+        width: 92px !important;
+        min-width: 92px !important;
+        max-width: 92px !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-thread-action--danger {
+        width: 32px !important;
+        min-width: 32px !important;
+        max-width: 32px !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-thread-composer--agent {
+        grid-template-columns: max-content minmax(0, 1fr) var(--service-thread-send-size) !important;
+        padding-right: 8px !important;
+        padding-left: 8px !important;
+        overflow: visible !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-thread-composer--agent .service-thread-input {
+        min-width: 0 !important;
+        max-width: 100% !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-thread-composer--agent .service-thread-emoji-panel {
+        right: 8px !important;
+        left: auto !important;
+        width: min(310px, calc(100vw - 28px)) !important;
+        max-width: calc(100vw - 28px) !important;
+        grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    }
+}
+
+/* Final agent titlebar contract: no wrapper card, one shared size system. */
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) {
+    --service-agent-top-row-height: 32px;
+    --service-agent-switch-height: 34px;
+    --service-agent-titlebar-gap: 4px;
+    --service-agent-titlebar-pad-y: 5px;
+    --service-agent-titlebar-pad-x: 8px;
+    --service-agent-panel-head-height: 44px;
+    --service-agent-panel-control-height: 30px;
+    --service-agent-panel-head-pad-y: 6px;
+    --service-agent-panel-head-pad-x: 10px;
+    --service-agent-session-card-min-height: 70px;
+    --service-agent-session-card-pad-y: 7px;
+    --service-agent-session-card-pad-x: 9px;
+    --service-agent-session-card-gap: 5px;
+    --service-agent-session-top-height: 22px;
+    --service-agent-session-preview-height: 30px;
+    --service-agent-session-check-size: 16px;
+    --service-agent-session-delete-size: 30px;
+    --service-agent-session-presence-height: 18px;
+    --service-agent-session-unread-height: 16px;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body):not(.front-input-focus-active):not(.customer-service-compose-keyboard-active):not(.customer-service-agent-compose-active):not(.customer-service-ios-keyboard-active) .service-agent-top {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: var(--service-agent-titlebar-pad-y) var(--service-agent-titlebar-pad-x) !important;
+    grid-template-rows: var(--service-agent-top-row-height) var(--service-agent-switch-height) !important;
+    gap: var(--service-agent-titlebar-gap) !important;
+    min-height: calc((var(--service-agent-titlebar-pad-y) * 2) + var(--service-agent-top-row-height) + var(--service-agent-titlebar-gap) + var(--service-agent-switch-height)) !important;
+    border: 0 !important;
+    border-bottom: 1px solid #dbe5ef !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+    overflow: hidden !important;
+    box-shadow: none !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body):not(.front-input-focus-active):not(.customer-service-compose-keyboard-active):not(.customer-service-agent-compose-active):not(.customer-service-ios-keyboard-active) .service-agent-top-main {
+    grid-template-columns: minmax(0, 1fr) 92px 98px !important;
+    align-items: center !important;
+    gap: 8px !important;
+    height: var(--service-agent-top-row-height) !important;
+    min-height: var(--service-agent-top-row-height) !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body):not(.front-input-focus-active):not(.customer-service-compose-keyboard-active):not(.customer-service-agent-compose-active):not(.customer-service-ios-keyboard-active) .service-agent-title-name {
+    display: flex !important;
+    height: var(--service-agent-top-row-height) !important;
+    align-items: center !important;
+    padding: 0 !important;
+    font-size: 16px !important;
+    line-height: 1 !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body):not(.front-input-focus-active):not(.customer-service-compose-keyboard-active):not(.customer-service-agent-compose-active):not(.customer-service-ios-keyboard-active) .service-agent-presence-pill,
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body):not(.front-input-focus-active):not(.customer-service-compose-keyboard-active):not(.customer-service-agent-compose-active):not(.customer-service-ios-keyboard-active) .service-agent-settings-toggle {
+    height: var(--service-agent-top-row-height) !important;
+    min-height: var(--service-agent-top-row-height) !important;
+    border-radius: 10px !important;
+    font-size: 14px !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body):not(.front-input-focus-active):not(.customer-service-compose-keyboard-active):not(.customer-service-agent-compose-active):not(.customer-service-ios-keyboard-active) .service-agent-view-switch {
+    min-height: var(--service-agent-switch-height) !important;
+    border-radius: 10px !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body):not(.front-input-focus-active):not(.customer-service-compose-keyboard-active):not(.customer-service-agent-compose-active):not(.customer-service-ios-keyboard-active) .service-agent-view-switch button {
+    min-height: calc(var(--service-agent-switch-height) - 2px) !important;
+    gap: 6px !important;
+    padding: 4px 8px !important;
+    font-size: 14px !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-panel-head,
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-thread--agent > .service-thread-head {
+    box-sizing: border-box !important;
+    height: var(--service-agent-panel-head-height) !important;
+    min-height: var(--service-agent-panel-head-height) !important;
+    max-height: var(--service-agent-panel-head-height) !important;
+    padding: var(--service-agent-panel-head-pad-y) var(--service-agent-panel-head-pad-x) !important;
+    overflow: hidden !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-panel-head > div:first-child,
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-queue-actions,
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-thread-peer,
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-thread-actions--agent {
+    min-height: 0 !important;
+    max-height: calc(var(--service-agent-panel-head-height) - (var(--service-agent-panel-head-pad-y) * 2)) !important;
+    overflow: hidden !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-panel-head [data-service-agent-queue-count] {
+    display: inline-flex !important;
+    min-height: 0 !important;
+    align-items: center !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-queue-select,
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-queue-delete,
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-thread-action,
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-thread-block-controls select {
+    height: var(--service-agent-panel-control-height) !important;
+    min-height: var(--service-agent-panel-control-height) !important;
+    max-height: var(--service-agent-panel-control-height) !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-queue-delete,
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-thread-action--danger {
+    width: var(--service-agent-panel-control-height) !important;
+    min-width: var(--service-agent-panel-control-height) !important;
+    max-width: var(--service-agent-panel-control-height) !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-list {
+    gap: 7px !important;
+    padding: 7px !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session {
+    display: grid !important;
+    box-sizing: border-box !important;
+    min-height: var(--service-agent-session-card-min-height) !important;
+    padding: var(--service-agent-session-card-pad-y) var(--service-agent-session-card-pad-x) !important;
+    align-items: center !important;
+    border-radius: 10px !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-main {
+    display: grid !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    grid-template-rows: var(--service-agent-session-top-height) var(--service-agent-session-preview-height) !important;
+    gap: var(--service-agent-session-card-gap) !important;
+    align-items: center !important;
+    padding: 0 !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-top {
+    display: grid !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: var(--service-agent-session-top-height) !important;
+    grid-template-columns: minmax(0, 1fr) minmax(94px, auto) !important;
+    align-items: center !important;
+    gap: 8px !important;
+    overflow: hidden !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-meta {
+    display: grid !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    grid-template-columns: var(--service-agent-session-check-size) minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    align-self: center !important;
+    gap: 6px !important;
+    overflow: hidden !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-check {
+    display: inline-flex !important;
+    width: var(--service-agent-session-check-size) !important;
+    min-width: var(--service-agent-session-check-size) !important;
+    max-width: var(--service-agent-session-check-size) !important;
+    height: var(--service-agent-session-check-size) !important;
+    min-height: var(--service-agent-session-check-size) !important;
+    max-height: var(--service-agent-session-check-size) !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-check input,
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-check span {
+    width: var(--service-agent-session-check-size) !important;
+    height: var(--service-agent-session-check-size) !important;
+    margin: 0 !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-meta strong {
+    min-width: 0 !important;
+    max-width: none !important;
+    overflow: hidden !important;
+    color: #0f172a !important;
+    font-size: 13.5px !important;
+    font-weight: 900 !important;
+    line-height: var(--service-agent-session-top-height) !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-meta .customer-service-session-presence {
+    display: inline-flex !important;
+    height: var(--service-agent-session-presence-height) !important;
+    min-height: var(--service-agent-session-presence-height) !important;
+    max-height: var(--service-agent-session-presence-height) !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 6px !important;
+    border-radius: 999px !important;
+    font-size: 11px !important;
+    font-weight: 850 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-side {
+    display: inline-flex !important;
+    min-width: 0 !important;
+    max-width: 122px !important;
+    height: var(--service-agent-session-top-height) !important;
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    align-items: center !important;
+    align-self: center !important;
+    justify-content: flex-end !important;
+    gap: 4px !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-top .service-agent-session-side .service-agent-session-time {
+    display: inline-block !important;
+    min-width: 0 !important;
+    max-width: 104px !important;
+    height: var(--service-agent-session-top-height) !important;
+    overflow: hidden !important;
+    color: #94a3b8 !important;
+    font-size: 10.5px !important;
+    font-weight: 750 !important;
+    line-height: var(--service-agent-session-top-height) !important;
+    text-align: right !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-unread {
+    display: inline-flex !important;
+    height: var(--service-agent-session-unread-height) !important;
+    min-width: var(--service-agent-session-unread-height) !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 4px !important;
+    border-radius: 999px !important;
+    font-size: 9px !important;
+    font-weight: 950 !important;
+    line-height: 1 !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-unread[hidden] {
+    display: none !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-preview-row {
+    display: grid !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: var(--service-agent-session-preview-height) !important;
+    grid-template-columns: minmax(0, 1fr) var(--service-agent-session-delete-size) !important;
+    align-items: center !important;
+    gap: 8px !important;
+    overflow: hidden !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-preview {
+    display: block !important;
+    min-width: 0 !important;
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    align-self: center !important;
+    overflow: hidden !important;
+    color: #64748b !important;
+    font-size: 12px !important;
+    font-weight: 650 !important;
+    line-height: var(--service-agent-session-preview-height) !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-delete {
+    display: inline-flex !important;
+    width: var(--service-agent-session-delete-size) !important;
+    min-width: var(--service-agent-session-delete-size) !important;
+    max-width: var(--service-agent-session-delete-size) !important;
+    height: var(--service-agent-session-delete-size) !important;
+    min-height: var(--service-agent-session-delete-size) !important;
+    max-height: var(--service-agent-session-delete-size) !important;
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    align-items: center !important;
+    align-self: center !important;
+    justify-content: center !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+@media (max-width: 720px), (hover: none) and (pointer: coarse) {
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) {
+        --service-agent-top-row-height: 32px;
+        --service-agent-switch-height: 34px;
+        --service-agent-titlebar-gap: 4px;
+        --service-agent-titlebar-pad-y: 5px;
+        --service-agent-titlebar-pad-x: 6px;
+        --service-agent-panel-head-height: 48px;
+        --service-agent-panel-control-height: 36px;
+        --service-agent-panel-head-pad-y: 6px;
+        --service-agent-panel-head-pad-x: 10px;
+        --service-agent-session-card-min-height: 76px;
+        --service-agent-session-card-pad-y: 9px;
+        --service-agent-session-card-pad-x: 10px;
+        --service-agent-session-card-gap: 5px;
+        --service-agent-session-top-height: 24px;
+        --service-agent-session-preview-height: 32px;
+        --service-agent-session-check-size: 18px;
+        --service-agent-session-delete-size: 32px;
+        --service-agent-session-presence-height: 20px;
+        --service-agent-session-unread-height: 17px;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body):not(.front-input-focus-active):not(.customer-service-compose-keyboard-active):not(.customer-service-agent-compose-active):not(.customer-service-ios-keyboard-active) .service-agent-top {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: var(--service-agent-titlebar-pad-y) var(--service-agent-titlebar-pad-x) !important;
+        grid-template-rows: var(--service-agent-top-row-height) var(--service-agent-switch-height) !important;
+        gap: var(--service-agent-titlebar-gap) !important;
+        min-height: calc((var(--service-agent-titlebar-pad-y) * 2) + var(--service-agent-top-row-height) + var(--service-agent-titlebar-gap) + var(--service-agent-switch-height)) !important;
+        border-radius: 0 !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body):not(.front-input-focus-active):not(.customer-service-compose-keyboard-active):not(.customer-service-agent-compose-active):not(.customer-service-ios-keyboard-active) .service-agent-top-main {
+        grid-template-columns: minmax(0, 1fr) 84px 92px !important;
+        gap: 5px !important;
+        height: var(--service-agent-top-row-height) !important;
+        min-height: var(--service-agent-top-row-height) !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body):not(.front-input-focus-active):not(.customer-service-compose-keyboard-active):not(.customer-service-agent-compose-active):not(.customer-service-ios-keyboard-active) .service-agent-title-name {
+        font-size: 16px !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body):not(.front-input-focus-active):not(.customer-service-compose-keyboard-active):not(.customer-service-agent-compose-active):not(.customer-service-ios-keyboard-active) .service-agent-presence-pill,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body):not(.front-input-focus-active):not(.customer-service-compose-keyboard-active):not(.customer-service-agent-compose-active):not(.customer-service-ios-keyboard-active) .service-agent-settings-toggle {
+        height: var(--service-agent-top-row-height) !important;
+        min-height: var(--service-agent-top-row-height) !important;
+        padding: 0 6px !important;
+        font-size: 14px !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body):not(.front-input-focus-active):not(.customer-service-compose-keyboard-active):not(.customer-service-agent-compose-active):not(.customer-service-ios-keyboard-active) .service-agent-view-switch {
+        min-height: var(--service-agent-switch-height) !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body):not(.front-input-focus-active):not(.customer-service-compose-keyboard-active):not(.customer-service-agent-compose-active):not(.customer-service-ios-keyboard-active) .service-agent-view-switch button {
+        min-height: calc(var(--service-agent-switch-height) - 2px) !important;
+        padding: 3px 6px !important;
+        font-size: 13px !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-list {
+        gap: 6px !important;
+        padding: 6px !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session {
+        border-radius: 10px !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-top {
+        grid-template-columns: minmax(0, 1fr) minmax(112px, auto) !important;
+        gap: 6px !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-meta {
+        gap: 6px !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-meta strong {
+        font-size: 14px !important;
+        line-height: var(--service-agent-session-top-height) !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-meta .customer-service-session-presence {
+        font-size: 11.5px !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-side {
+        max-width: 136px !important;
+        gap: 4px !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-top .service-agent-session-side .service-agent-session-time {
+        max-width: 116px !important;
+        font-size: 11px !important;
+        line-height: var(--service-agent-session-top-height) !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-preview-row {
+        gap: 8px !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:not(.customer-service-embed-body) .service-agent-session-preview {
+        font-size: 12.5px !important;
+        line-height: var(--service-agent-session-preview-height) !important;
+    }
+}
+
+/* Final iOS agent keyboard contract: crop the console to visualViewport height. */
+@media (max-width: 720px), (hover: none) and (pointer: coarse) {
+    html.customer-service-ios-keyboard-active-root {
+        height: var(--customer-service-viewport-height, 100dvh) !important;
+        min-height: var(--customer-service-viewport-height, 100dvh) !important;
+        max-height: var(--customer-service-viewport-height, 100dvh) !important;
+        overflow: hidden !important;
+        overscroll-behavior: none !important;
+    }
+
+    html.customer-service-ios-keyboard-active-root body.front-unified-panel-page.customer-service-agent-body.customer-service-body.customer-service-ios-keyboard-active:not(.customer-service-embed-body),
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body.customer-service-ios-keyboard-active:not(.customer-service-embed-body) {
+        height: var(--customer-service-viewport-height, 100dvh) !important;
+        min-height: var(--customer-service-viewport-height, 100dvh) !important;
+        max-height: var(--customer-service-viewport-height, 100dvh) !important;
+        overflow: hidden !important;
+        overscroll-behavior: none !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body.customer-service-ios-keyboard-active:not(.customer-service-embed-body) .page-frame {
+        position: fixed !important;
+        top: var(--customer-service-viewport-top, 0px) !important;
+        right: auto !important;
+        bottom: auto !important;
+        left: 50% !important;
+        width: var(--service-agent-public-width, min(var(--page-inner-width, 708px), calc(100vw - (var(--page-side-gap, 6px) * 2)))) !important;
+        max-width: var(--service-agent-public-width, min(var(--page-inner-width, 708px), calc(100vw - (var(--page-side-gap, 6px) * 2)))) !important;
+        height: var(--customer-service-viewport-height, 100dvh) !important;
+        min-height: var(--customer-service-viewport-height, 100dvh) !important;
+        max-height: var(--customer-service-viewport-height, 100dvh) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        transform: translate3d(-50%, 0, 0) !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body.customer-service-ios-keyboard-active:not(.customer-service-embed-body) .bottom-float-nav,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body.customer-service-ios-keyboard-active:not(.customer-service-embed-body) .service-agent-top {
+        display: none !important;
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        max-height: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body.customer-service-ios-keyboard-active:not(.customer-service-embed-body) .customer-service-agent-page,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body.customer-service-ios-keyboard-active:not(.customer-service-embed-body) .customer-service-agent-frame,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body.customer-service-ios-keyboard-active:not(.customer-service-embed-body) .customer-service-agent-shell,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body.customer-service-ios-keyboard-active:not(.customer-service-embed-body) .customer-service-agent-console,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body.customer-service-ios-keyboard-active:not(.customer-service-embed-body) .service-agent-grid,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body.customer-service-ios-keyboard-active:not(.customer-service-embed-body) #service-agent-chat.service-thread--agent {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        max-height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body.customer-service-ios-keyboard-active:not(.customer-service-embed-body) .customer-service-agent-page,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body.customer-service-ios-keyboard-active:not(.customer-service-embed-body) .customer-service-agent-frame,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body.customer-service-ios-keyboard-active:not(.customer-service-embed-body) .customer-service-agent-shell,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body.customer-service-ios-keyboard-active:not(.customer-service-embed-body) .customer-service-agent-console {
+        display: flex !important;
+        flex: 1 1 auto !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body.customer-service-ios-keyboard-active:not(.customer-service-embed-body) .service-agent-grid {
+        display: grid !important;
+        flex: 1 1 auto !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-template-rows: minmax(0, 1fr) !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body.customer-service-ios-keyboard-active:not(.customer-service-embed-body) #service-agent-chat.service-thread--agent:not([hidden]) {
+        display: grid !important;
+        grid-template-rows: auto minmax(0, 1fr) auto !important;
+        border-radius: 12px !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body.customer-service-ios-keyboard-active:not(.customer-service-embed-body) #service-agent-chat.service-thread--agent > .service-thread-head {
+        grid-row: 1 !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body.customer-service-ios-keyboard-active:not(.customer-service-embed-body) #service-agent-chat.service-thread--agent > .service-thread-log {
+        grid-row: 2 !important;
+        min-height: 0 !important;
+        padding-bottom: 8px !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body.customer-service-ios-keyboard-active:not(.customer-service-embed-body) #service-agent-chat.service-thread--agent > .service-thread-composer--agent {
+        position: relative !important;
+        top: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        left: auto !important;
+        grid-row: 3 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: 58px !important;
+        margin: 0 !important;
+        padding: 8px 8px max(8px, env(safe-area-inset-bottom)) !important;
+        transform: none !important;
+        border-radius: 0 0 12px 12px !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body.customer-service-ios-keyboard-active:not(.customer-service-embed-body) #service-agent-chat.service-thread--agent > .service-thread-locked[hidden] {
+        display: none !important;
+    }
+}
+
+/* Agent compose active fallback for mobile Safari when the iOS class is delayed. */
+@media (max-width: 720px), (hover: none) and (pointer: coarse) {
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:is(.customer-service-agent-compose-active, .customer-service-ios-keyboard-active):not(.customer-service-embed-body) {
+        height: var(--customer-service-viewport-height, 100dvh) !important;
+        min-height: var(--customer-service-viewport-height, 100dvh) !important;
+        max-height: var(--customer-service-viewport-height, 100dvh) !important;
+        overflow: hidden !important;
+        overscroll-behavior: none !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:is(.customer-service-agent-compose-active, .customer-service-ios-keyboard-active):not(.customer-service-embed-body) .page-frame {
+        position: fixed !important;
+        top: var(--customer-service-viewport-top, 0px) !important;
+        right: auto !important;
+        bottom: auto !important;
+        left: 50% !important;
+        width: var(--service-agent-public-width, min(var(--page-inner-width, 708px), calc(100vw - (var(--page-side-gap, 6px) * 2)))) !important;
+        max-width: var(--service-agent-public-width, min(var(--page-inner-width, 708px), calc(100vw - (var(--page-side-gap, 6px) * 2)))) !important;
+        height: var(--customer-service-viewport-height, 100dvh) !important;
+        min-height: var(--customer-service-viewport-height, 100dvh) !important;
+        max-height: var(--customer-service-viewport-height, 100dvh) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        transform: translate3d(-50%, 0, 0) !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:is(.customer-service-agent-compose-active, .customer-service-ios-keyboard-active):not(.customer-service-embed-body) .bottom-float-nav,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:is(.customer-service-agent-compose-active, .customer-service-ios-keyboard-active):not(.customer-service-embed-body) .service-agent-top {
+        display: none !important;
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        max-height: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:is(.customer-service-agent-compose-active, .customer-service-ios-keyboard-active):not(.customer-service-embed-body) .customer-service-agent-page,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:is(.customer-service-agent-compose-active, .customer-service-ios-keyboard-active):not(.customer-service-embed-body) .customer-service-agent-frame,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:is(.customer-service-agent-compose-active, .customer-service-ios-keyboard-active):not(.customer-service-embed-body) .customer-service-agent-shell,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:is(.customer-service-agent-compose-active, .customer-service-ios-keyboard-active):not(.customer-service-embed-body) .customer-service-agent-console,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:is(.customer-service-agent-compose-active, .customer-service-ios-keyboard-active):not(.customer-service-embed-body) .service-agent-grid,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:is(.customer-service-agent-compose-active, .customer-service-ios-keyboard-active):not(.customer-service-embed-body) #service-agent-chat.service-thread--agent {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        max-height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:is(.customer-service-agent-compose-active, .customer-service-ios-keyboard-active):not(.customer-service-embed-body) .customer-service-agent-page,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:is(.customer-service-agent-compose-active, .customer-service-ios-keyboard-active):not(.customer-service-embed-body) .customer-service-agent-frame,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:is(.customer-service-agent-compose-active, .customer-service-ios-keyboard-active):not(.customer-service-embed-body) .customer-service-agent-shell,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:is(.customer-service-agent-compose-active, .customer-service-ios-keyboard-active):not(.customer-service-embed-body) .customer-service-agent-console {
+        display: flex !important;
+        flex: 1 1 auto !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:is(.customer-service-agent-compose-active, .customer-service-ios-keyboard-active):not(.customer-service-embed-body) .service-agent-grid {
+        display: grid !important;
+        flex: 1 1 auto !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-template-rows: minmax(0, 1fr) !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:is(.customer-service-agent-compose-active, .customer-service-ios-keyboard-active):not(.customer-service-embed-body) #service-agent-chat.service-thread--agent:not([hidden]) {
+        display: grid !important;
+        grid-template-rows: auto minmax(0, 1fr) auto !important;
+        border-radius: 12px !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:is(.customer-service-agent-compose-active, .customer-service-ios-keyboard-active):not(.customer-service-embed-body) #service-agent-chat.service-thread--agent > .service-thread-head {
+        grid-row: 1 !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:is(.customer-service-agent-compose-active, .customer-service-ios-keyboard-active):not(.customer-service-embed-body) #service-agent-chat.service-thread--agent > .service-thread-log {
+        grid-row: 2 !important;
+        min-height: 0 !important;
+        padding-bottom: 8px !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:is(.customer-service-agent-compose-active, .customer-service-ios-keyboard-active):not(.customer-service-embed-body) #service-agent-chat.service-thread--agent > .service-thread-composer--agent {
+        position: relative !important;
+        top: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        left: auto !important;
+        grid-row: 3 !important;
+        display: grid !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: 58px !important;
+        margin: 0 !important;
+        padding: 8px 8px max(8px, env(safe-area-inset-bottom)) !important;
+        transform: none !important;
+        border-radius: 0 0 12px 12px !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:is(.customer-service-agent-compose-active, .customer-service-ios-keyboard-active):not(.customer-service-embed-body) #service-agent-chat.service-thread--agent > .service-thread-locked[hidden] {
+        display: none !important;
+    }
+}
+
+/* Agent focus-within fallback: keep the real composer above the mobile keyboard. */
+@media (max-width: 720px), (hover: none) and (pointer: coarse) {
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:has(.service-thread-composer--agent:focus-within):not(.customer-service-embed-body) {
+        height: var(--customer-service-viewport-height, 100dvh) !important;
+        min-height: var(--customer-service-viewport-height, 100dvh) !important;
+        max-height: var(--customer-service-viewport-height, 100dvh) !important;
+        overflow: hidden !important;
+        overscroll-behavior: none !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:has(.service-thread-composer--agent:focus-within):not(.customer-service-embed-body) .page-frame {
+        position: fixed !important;
+        top: var(--customer-service-viewport-top, 0px) !important;
+        right: auto !important;
+        bottom: auto !important;
+        left: 50% !important;
+        width: var(--service-agent-public-width, min(var(--page-inner-width, 708px), calc(100vw - (var(--page-side-gap, 6px) * 2)))) !important;
+        max-width: var(--service-agent-public-width, min(var(--page-inner-width, 708px), calc(100vw - (var(--page-side-gap, 6px) * 2)))) !important;
+        height: var(--customer-service-viewport-height, 100dvh) !important;
+        min-height: var(--customer-service-viewport-height, 100dvh) !important;
+        max-height: var(--customer-service-viewport-height, 100dvh) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        transform: translate3d(-50%, 0, 0) !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:has(.service-thread-composer--agent:focus-within):not(.customer-service-embed-body) .bottom-float-nav,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:has(.service-thread-composer--agent:focus-within):not(.customer-service-embed-body) .service-agent-top {
+        display: none !important;
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        max-height: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:has(.service-thread-composer--agent:focus-within):not(.customer-service-embed-body) .customer-service-agent-page,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:has(.service-thread-composer--agent:focus-within):not(.customer-service-embed-body) .customer-service-agent-frame,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:has(.service-thread-composer--agent:focus-within):not(.customer-service-embed-body) .customer-service-agent-shell,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:has(.service-thread-composer--agent:focus-within):not(.customer-service-embed-body) .customer-service-agent-console,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:has(.service-thread-composer--agent:focus-within):not(.customer-service-embed-body) .service-agent-grid,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:has(.service-thread-composer--agent:focus-within):not(.customer-service-embed-body) #service-agent-chat.service-thread--agent {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        max-height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:has(.service-thread-composer--agent:focus-within):not(.customer-service-embed-body) .customer-service-agent-page,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:has(.service-thread-composer--agent:focus-within):not(.customer-service-embed-body) .customer-service-agent-frame,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:has(.service-thread-composer--agent:focus-within):not(.customer-service-embed-body) .customer-service-agent-shell,
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:has(.service-thread-composer--agent:focus-within):not(.customer-service-embed-body) .customer-service-agent-console {
+        display: flex !important;
+        flex: 1 1 auto !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:has(.service-thread-composer--agent:focus-within):not(.customer-service-embed-body) .service-agent-grid {
+        display: grid !important;
+        flex: 1 1 auto !important;
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-template-rows: minmax(0, 1fr) !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:has(.service-thread-composer--agent:focus-within):not(.customer-service-embed-body) #service-agent-chat.service-thread--agent:not([hidden]) {
+        display: grid !important;
+        grid-template-rows: auto minmax(0, 1fr) auto !important;
+        border-radius: 12px !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:has(.service-thread-composer--agent:focus-within):not(.customer-service-embed-body) #service-agent-chat.service-thread--agent > .service-thread-head {
+        grid-row: 1 !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:has(.service-thread-composer--agent:focus-within):not(.customer-service-embed-body) #service-agent-chat.service-thread--agent > .service-thread-log {
+        grid-row: 2 !important;
+        min-height: 0 !important;
+        padding-bottom: 8px !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:has(.service-thread-composer--agent:focus-within):not(.customer-service-embed-body) #service-agent-chat.service-thread--agent > .service-thread-composer--agent {
+        position: relative !important;
+        top: auto !important;
+        right: auto !important;
+        bottom: auto !important;
+        left: auto !important;
+        grid-row: 3 !important;
+        display: grid !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-height: 58px !important;
+        margin: 0 !important;
+        padding: 8px 8px max(8px, env(safe-area-inset-bottom)) !important;
+        transform: none !important;
+        border-radius: 0 0 12px 12px !important;
+    }
+
+    body.front-unified-panel-page.customer-service-agent-body.customer-service-body:has(.service-thread-composer--agent:focus-within):not(.customer-service-embed-body) #service-agent-chat.service-thread--agent > .service-thread-locked[hidden] {
+        display: none !important;
+    }
+}

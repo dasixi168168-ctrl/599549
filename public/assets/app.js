@@ -4898,6 +4898,9 @@
         var root = document.documentElement;
         var rebuiltThread = !!(chat && chat.querySelector && chat.querySelector('.service-thread-composer'));
         var appleThreadKeyboardActive = keyboardActive && rebuiltThread && isAppleTouchDevice();
+        var agentThreadKeyboardActive = keyboardActive
+            && rebuiltThread
+            && !!(chat && chat.getAttribute && chat.getAttribute('data-customer-service-role') === 'agent');
 
         if (!chat || !document.body || !document.body.classList) {
             return;
@@ -4910,6 +4913,7 @@
         chat.classList.toggle('is-compose-keyboard-active', keyboardActive);
         document.body.classList.toggle('customer-service-compose-keyboard-active', keyboardActive);
         document.body.classList.toggle('customer-service-ios-keyboard-active', appleThreadKeyboardActive);
+        document.body.classList.toggle('customer-service-agent-compose-active', agentThreadKeyboardActive);
 
         if (keyboardActive) {
             updateCustomerServiceViewport();
@@ -5203,13 +5207,25 @@
                 voiceButton.setAttribute('data-voice-default-html', voiceButton.innerHTML);
             }
             if (input) {
-                input.addEventListener('focusin', function () {
+                var activateCustomerServiceCompose = function () {
                     chat.setAttribute('data-compose-focused', '1');
                     setCustomerServiceComposeKeyboardActive(chat, true);
                     updateCustomerServiceKeyboardDebug(chat);
-                    window.setTimeout(function () {
-                        syncCustomerServiceComposeKeyboardActive(chat);
-                    }, 180);
+                };
+                var prepareCustomerServiceComposeTap = function () {
+                    updateCustomerServiceViewport();
+                    updateCustomerServiceKeyboardDebug(chat);
+                };
+                input.addEventListener('pointerdown', prepareCustomerServiceComposeTap, { passive: true });
+                input.addEventListener('touchstart', prepareCustomerServiceComposeTap, { passive: true });
+                input.addEventListener('focusin', function () {
+                    activateCustomerServiceCompose();
+                    [80, 180, 320, 560].forEach(function (delay) {
+                        window.setTimeout(function () {
+                            syncCustomerServiceComposeKeyboardActive(chat);
+                            lockCustomerServiceKeyboardScroll();
+                        }, delay);
+                    });
                 });
                 input.addEventListener('input', function () {
                     lockCustomerServiceKeyboardScroll();

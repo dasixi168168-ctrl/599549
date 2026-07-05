@@ -33,7 +33,7 @@ if ($managedTopHtml !== '') {
     $managedTopHtml = str_replace('./member.php"', $memberUrl . '"', $managedTopHtml);
 
     if ($showAgentLogoutAction) {
-        $agentLogoutHtml = '<form class="top-agent-logout-form" method="post" action="' . e(public_url('api.php')) . '" data-ajax-form>'
+        $agentLogoutHtml = '<form class="top-agent-logout-form" method="post" action="' . e(public_url('api.php')) . '" data-ajax-form data-immediate-redirect="1">'
             . '<input type="hidden" name="action" value="customer_service.agent.logout">'
             . '<input type="hidden" name="_token" value="' . e(csrf_token('api')) . '">'
             . '<input type="hidden" name="region" value="' . e($currentRegion) . '">'
@@ -65,7 +65,7 @@ if ($managedTopHtml !== '') {
         </div>
         <div class="top-bar-actions flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <?php if ($showAgentLogoutAction): ?>
-                <form class="top-agent-logout-form" method="post" action="<?php echo e(public_url('api.php')); ?>" data-ajax-form>
+                <form class="top-agent-logout-form" method="post" action="<?php echo e(public_url('api.php')); ?>" data-ajax-form data-immediate-redirect="1">
                     <input type="hidden" name="action" value="customer_service.agent.logout">
                     <input type="hidden" name="_token" value="<?php echo e(csrf_token('api')); ?>">
                     <input type="hidden" name="region" value="<?php echo e($currentRegion); ?>">
