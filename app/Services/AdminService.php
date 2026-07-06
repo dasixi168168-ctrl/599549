@@ -13865,6 +13865,7 @@ class AdminService extends Service
             $itemNode->removeAttribute('rel');
             $itemNode->setAttribute('data-front-ad-link', '1');
             $itemNode->setAttribute('data-front-flood-bypass', '1');
+            $itemNode->setAttribute('data-no-prefetch', '1');
 
             return $itemNode;
         }
@@ -13888,6 +13889,7 @@ class AdminService extends Service
         $linkNode->removeAttribute('rel');
         $linkNode->setAttribute('data-front-ad-link', '1');
         $linkNode->setAttribute('data-front-flood-bypass', '1');
+        $linkNode->setAttribute('data-no-prefetch', '1');
 
         return $linkNode;
     }
@@ -14687,6 +14689,7 @@ class AdminService extends Service
             $linkNode->setAttribute('href', $linkUrl);
             $linkNode->setAttribute('data-front-ad-link', '1');
             $linkNode->setAttribute('data-front-flood-bypass', '1');
+            $linkNode->setAttribute('data-no-prefetch', '1');
         } else {
             $linkNode = $document->createElement('span');
         }

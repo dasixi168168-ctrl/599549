@@ -859,7 +859,6 @@
             if (!modal || modal.querySelector('.expert-post-modal-frame') !== frame) {
                 return;
             }
-            modal.classList.remove('is-loading');
             scheduleMemberPurchasePostModalFrameSync();
             restoreMemberPurchasePostFrameScroll(frame);
         });
@@ -1426,11 +1425,19 @@
         }
     }
 
+    var memberPurchasePostModalFreshCounter = 0;
+
+    function nextMemberPurchasePostModalFreshToken() {
+        memberPurchasePostModalFreshCounter += 1;
+        return String(Date.now ? Date.now() : (new Date()).getTime()) + '-' + String(memberPurchasePostModalFreshCounter);
+    }
+
     function openMemberPurchasePostModal(rawUrl, titleText) {
         var state = ensureMemberPurchasePostModal();
         var frameUrl = String(rawUrl || '').trim();
         var currentFrameUrl = '';
         var nextPostId = '';
+        var freshToken = nextMemberPurchasePostModalFreshToken();
 
         if (!state.modal || !state.frame || !frameUrl) {
             return false;
@@ -1439,15 +1446,15 @@
         try {
             frameUrl = new URL(frameUrl, window.location.href);
             frameUrl.searchParams.set('modal', '1');
-            frameUrl.searchParams.set('_fresh', String(Date.now()));
+            frameUrl.searchParams.set('_fresh', freshToken);
             nextPostId = String(frameUrl.searchParams.get('id') || '').trim();
             frameUrl = frameUrl.href;
         } catch (error) {
-            frameUrl += (frameUrl.indexOf('?') === -1 ? '?' : '&') + 'modal=1&_fresh=' + encodeURIComponent(String(Date.now()));
+            frameUrl += (frameUrl.indexOf('?') === -1 ? '?' : '&') + 'modal=1&_fresh=' + encodeURIComponent(freshToken);
         }
 
         if (state.title) {
-            state.title.textContent = String(titleText || '帖子阅读').trim() || '帖子阅读';
+            state.title.textContent = '帖子阅读';
         }
         setMemberPurchasePostModalMeta([]);
 
@@ -1458,9 +1465,9 @@
         } else {
             state.modal.removeAttribute('data-expert-post-id');
         }
+        state.modal.classList.add('is-loading');
         currentFrameUrl = String(state.frame.getAttribute('src') || '').trim();
         if (currentFrameUrl !== frameUrl) {
-            state.modal.classList.add('is-loading');
             state.frame = replaceMemberPurchasePostModalFrame(state.modal);
             currentFrameUrl = '';
         } else {

@@ -18,8 +18,8 @@
     $frontServiceStyleUrl = '/public/styles/front-service.css?v=20260706-front-float-contract-clean-02';
     $frontFloatingStyleUrl = '/public/styles/front-floating.css?v=20260706-front-float-contract-clean-02';
     $fontAwesomeCssUrl = asset('vendor/fontawesome/css/all.min.css?v=20260621-front-fa-sync-01');
-    $homeLegacyScriptUrl = asset('home-legacy.js?v=20260705-ad-link-native-contract-06');
-    $frontAppScriptUrl = asset('app.js?v=20260705-post-modal-fresh-frame-03');
+    $homeLegacyScriptUrl = asset('home-legacy.js?v=20260706-post-modal-ad-title-contract-01');
+    $frontAppScriptUrl = asset('app.js?v=20260706-post-modal-ad-title-contract-01');
     $needsFrontServiceStyle = !empty($needsFrontServiceStyle);
     $frontContent = isset($content) ? (string) $content : '';
     $layoutBodyClass = isset($bodyClass) ? (string) $bodyClass : '';

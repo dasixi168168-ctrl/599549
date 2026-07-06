@@ -578,6 +578,7 @@
                 node.removeAttribute('data-ad-link-bound');
                 node.removeAttribute('data-front-ad-link');
                 node.removeAttribute('data-front-flood-bypass');
+                node.removeAttribute('data-no-prefetch');
                 return;
             }
 
@@ -585,6 +586,7 @@
             linkNode.setAttribute('href', normalizedUrl);
             linkNode.setAttribute('data-front-ad-link', '1');
             linkNode.setAttribute('data-front-flood-bypass', '1');
+            linkNode.setAttribute('data-no-prefetch', '1');
             linkNode.style.textDecoration = 'none';
             linkNode.style.color = 'inherit';
             linkNode.removeAttribute('tabindex');
@@ -1616,7 +1618,6 @@
             if (!modal || modal.querySelector('.expert-post-modal-frame') !== frame) {
                 return;
             }
-            modal.classList.remove('is-loading');
             scheduleExpertPostModalFrameSync();
         });
         frame.setAttribute('data-expert-post-frame-ready', '1');
@@ -2418,18 +2419,26 @@
         }, 180);
     }
 
+    var expertPostModalFreshCounter = 0;
+
+    function nextExpertPostModalFreshToken() {
+        expertPostModalFreshCounter += 1;
+        return String(Date.now ? Date.now() : (new Date()).getTime()) + '-' + String(expertPostModalFreshCounter);
+    }
+
     function openExpertPostModal(url, titleText) {
         var state = ensureExpertPostModal();
         var frameUrl = String(url || '').trim();
         var currentFrameUrl = '';
         var nextPostId = '';
+        var freshToken = nextExpertPostModalFreshToken();
 
         if (!state.modal || !state.frame) {
             return;
         }
 
         if (state.title) {
-            state.title.textContent = String(titleText || '帖子阅读').trim() || '帖子阅读';
+            state.title.textContent = '帖子阅读';
         }
 
         setExpertPostModalMeta([]);
@@ -2437,12 +2446,12 @@
         try {
             frameUrl = new URL(frameUrl, window.location.href);
             frameUrl.searchParams.set('modal', '1');
-            frameUrl.searchParams.set('_fresh', String(Date.now()));
+            frameUrl.searchParams.set('_fresh', freshToken);
             nextPostId = String(frameUrl.searchParams.get('id') || '').trim();
             frameUrl = frameUrl.href;
         } catch (error) {
             if (frameUrl) {
-                frameUrl += (frameUrl.indexOf('?') === -1 ? '?' : '&') + 'modal=1&_fresh=' + encodeURIComponent(String(Date.now()));
+                frameUrl += (frameUrl.indexOf('?') === -1 ? '?' : '&') + 'modal=1&_fresh=' + encodeURIComponent(freshToken);
             }
         }
 
@@ -2453,9 +2462,9 @@
         } else {
             state.modal.removeAttribute('data-expert-post-id');
         }
+        state.modal.classList.add('is-loading');
         currentFrameUrl = String(state.frame.getAttribute('src') || '').trim();
         if (currentFrameUrl !== frameUrl) {
-            state.modal.classList.add('is-loading');
             state.frame = replaceExpertPostModalFrame(state.modal);
             currentFrameUrl = '';
         }
