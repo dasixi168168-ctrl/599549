@@ -886,11 +886,8 @@ body.customer-service-image-preview-modal-open {
     }
 }
 
-body.customer-service-body:not(.customer-service-compose-keyboard-active):not(.member-recharge-modal-open):not(.service-agent-score-modal-open) .bottom-float-nav {
-    display: grid !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-}
+/* Public floating card geometry is owned by front-floating.css. This file only
+   overrides service-specific states such as keyboard and modal overlays. */
 
 @media (min-width: 721px) {
     body.customer-service-agent-body.customer-service-body {
@@ -924,13 +921,6 @@ body.customer-service-body:not(.customer-service-compose-keyboard-active):not(.m
         padding-bottom: 0 !important;
     }
 
-    body.customer-service-agent-body.customer-service-body .bottom-float-nav {
-        display: grid !important;
-        opacity: 1 !important;
-        visibility: visible !important;
-        pointer-events: auto !important;
-    }
-
     body.customer-service-agent-body.customer-service-body .customer-service-agent-shell .customer-service-agent-console,
     body.customer-service-agent-body.customer-service-body .service-agent-grid,
     body.customer-service-agent-body.customer-service-body .service-agent-chat {
@@ -950,10 +940,6 @@ body.customer-service-body:not(.customer-service-compose-keyboard-active):not(.m
         margin-bottom: 0 !important;
         padding-bottom: 7px !important;
     }
-}
-
-body.customer-service-body:not(.customer-service-compose-keyboard-active):not(.service-agent-settings-open) .bottom-float-nav {
-    pointer-events: auto !important;
 }
 
 body.customer-service-body.service-agent-settings-open:not(.customer-service-compose-keyboard-active) .bottom-float-nav {
