@@ -428,6 +428,20 @@ body.standalone-modal-post .bottom-float-nav {
     display: none !important;
 }
 
+body.front-post-customer-service-edit-modal-open .bottom-float-nav,
+body.member-recharge-modal-open .bottom-float-nav {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
 @keyframes top-bar-sheen {
     0% {
         left: -26%;

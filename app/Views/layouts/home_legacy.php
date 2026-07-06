@@ -12,11 +12,11 @@
     <title><?php echo e(isset($pageTitle) ? $pageTitle : browser_title_setting(app()->config('app', 'site_name', '六合彩票论坛首页'))); ?></title>
     <meta name="description" content="<?php echo e(isset($pageDescription) ? $pageDescription : '澳门与香港六合彩论坛网站'); ?>">
     <?php
-    $frontStyleUrl = '/public/styles/style.css?v=20260706-front-float-contract-clean-01';
-    $frontHomeCriticalStyleUrl = '/public/styles/home-critical.css?v=20260706-front-float-contract-clean-01';
-    $frontForecastCriticalStyleUrl = '/public/styles/forecast-critical.css?v=20260706-float-contract-converge-01';
-    $frontServiceStyleUrl = '/public/styles/front-service.css?v=20260706-pc-member-input-nav-01';
-    $frontFloatingStyleUrl = '/public/styles/front-floating.css?v=20260706-pc-member-input-nav-02';
+    $frontStyleUrl = '/public/styles/style.css?v=20260706-front-float-contract-clean-02';
+    $frontHomeCriticalStyleUrl = '/public/styles/home-critical.css?v=20260706-front-float-contract-clean-02';
+    $frontForecastCriticalStyleUrl = '/public/styles/forecast-critical.css?v=20260706-front-float-contract-clean-02';
+    $frontServiceStyleUrl = '/public/styles/front-service.css?v=20260706-front-float-contract-clean-02';
+    $frontFloatingStyleUrl = '/public/styles/front-floating.css?v=20260706-front-float-contract-clean-02';
     $fontAwesomeCssUrl = asset('vendor/fontawesome/css/all.min.css?v=20260621-front-fa-sync-01');
     $homeLegacyScriptUrl = asset('home-legacy.js?v=20260705-ad-link-native-contract-06');
     $frontAppScriptUrl = asset('app.js?v=20260705-post-modal-fresh-frame-03');

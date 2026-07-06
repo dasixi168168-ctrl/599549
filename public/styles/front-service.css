@@ -947,6 +947,12 @@ body.customer-service-body.service-agent-settings-open:not(.customer-service-com
     pointer-events: none !important;
 }
 
+body.customer-service-body.service-agent-score-modal-open .bottom-float-nav {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
 body.customer-service-body:has(.service-agent-settings-modal.is-keyboard-active) .page-frame {
     padding-bottom: max(0px, env(safe-area-inset-bottom)) !important;
 }
