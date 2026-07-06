@@ -13861,6 +13861,10 @@ class AdminService extends Service
         if (strcasecmp($itemNode->tagName, 'a') === 0) {
             $itemNode->setAttribute('href', $href);
             $itemNode->setAttribute('style', $this->managedDrawEditorExpertLinkStyle((string) $itemNode->getAttribute('style')));
+            $itemNode->removeAttribute('target');
+            $itemNode->removeAttribute('rel');
+            $itemNode->setAttribute('data-front-ad-link', '1');
+            $itemNode->setAttribute('data-front-flood-bypass', '1');
 
             return $itemNode;
         }
@@ -13880,6 +13884,10 @@ class AdminService extends Service
 
         $linkNode->setAttribute('href', $href);
         $linkNode->setAttribute('style', $this->managedDrawEditorExpertLinkStyle((string) $linkNode->getAttribute('style')));
+        $linkNode->removeAttribute('target');
+        $linkNode->removeAttribute('rel');
+        $linkNode->setAttribute('data-front-ad-link', '1');
+        $linkNode->setAttribute('data-front-flood-bypass', '1');
 
         return $linkNode;
     }
@@ -14677,8 +14685,8 @@ class AdminService extends Service
         if ($linkUrl !== '') {
             $linkNode = $document->createElement('a');
             $linkNode->setAttribute('href', $linkUrl);
-            $linkNode->setAttribute('target', '_blank');
-            $linkNode->setAttribute('rel', 'noopener noreferrer');
+            $linkNode->setAttribute('data-front-ad-link', '1');
+            $linkNode->setAttribute('data-front-flood-bypass', '1');
         } else {
             $linkNode = $document->createElement('span');
         }
@@ -15079,7 +15087,7 @@ class AdminService extends Service
             $snapshot = $this->managedIssuePrefixSnapshotByRegion($region);
             $issueTail = trim((string) ($snapshot['issue_prefix_tail'] ?? ''));
             if ($issueTail !== '') {
-                $adIssuePrefixText = $issueTail . '期';
+                $adIssuePrefixText = $issueTail . '期：';
             }
         }
 

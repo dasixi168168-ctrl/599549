@@ -517,11 +517,17 @@ body.expert-post-modal-open {
 }
 
 .expert-post-modal-header {
+    --expert-post-modal-id-width: 74px;
+    --expert-post-modal-close-size: 36px;
+    --expert-post-modal-header-gap: 10px;
+    --expert-post-modal-title-row-height: 20px;
+    --expert-post-modal-meta-row-height: 24px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 10px;
+    justify-content: stretch;
+    gap: var(--expert-post-modal-header-gap);
     box-sizing: border-box;
+    width: 100%;
     min-height: 62px;
     padding: 4px 10px;
     border-bottom: 1px solid #e2e8f0;
@@ -530,9 +536,9 @@ body.expert-post-modal-open {
 
 .expert-post-modal-heading {
     min-width: 0;
-    flex: 1 1 auto;
+    flex: 1 1 0;
     display: grid;
-    grid-template-columns: max-content minmax(0, 1fr);
+    grid-template-columns: var(--expert-post-modal-id-width) minmax(0, 1fr);
     align-items: end;
     gap: 8px;
 }
@@ -542,8 +548,10 @@ body.expert-post-modal-open {
     justify-items: center;
     align-content: end;
     gap: 2px;
-    width: auto;
-    min-width: 50px;
+    width: var(--expert-post-modal-id-width);
+    min-width: var(--expert-post-modal-id-width);
+    max-width: var(--expert-post-modal-id-width);
+    overflow: visible;
 }
 
 .expert-post-modal-avatar {
@@ -583,17 +591,27 @@ body.expert-post-modal-open {
 .expert-post-modal-copy {
     display: grid;
     flex: 1 1 auto;
+    grid-template-rows: var(--expert-post-modal-title-row-height, 20px) var(--expert-post-modal-meta-row-height, 24px);
+    width: 100%;
+    max-width: 100%;
     min-width: 0;
     gap: 6px;
     align-content: center;
+    min-height: calc(var(--expert-post-modal-title-row-height, 20px) + var(--expert-post-modal-meta-row-height, 24px) + 6px);
+    overflow: hidden;
 }
 
 .expert-post-modal-title {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    height: var(--expert-post-modal-title-row-height, 20px);
     min-width: 0;
     color: #0f172a;
     font-size: 16px;
     font-weight: 900;
-    line-height: 1.24;
+    line-height: var(--expert-post-modal-title-row-height, 20px);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -605,7 +623,11 @@ body.expert-post-modal-open {
     align-items: center;
     justify-content: center;
     flex-wrap: nowrap;
-    gap: 34px;
+    gap: 10px;
+    box-sizing: border-box;
+    width: 100%;
+    height: var(--expert-post-modal-meta-row-height, 24px);
+    min-height: var(--expert-post-modal-meta-row-height, 24px);
     min-width: 0;
     max-width: 100%;
     white-space: nowrap;
@@ -656,8 +678,9 @@ body.expert-post-modal-open {
 .expert-post-modal-author {
     display: flex;
     justify-content: center;
-    width: 100%;
+    width: var(--expert-post-modal-id-width);
     min-width: 0;
+    max-width: var(--expert-post-modal-id-width);
 }
 
 .expert-post-modal-author[hidden] {
@@ -665,9 +688,10 @@ body.expert-post-modal-open {
 }
 
 .expert-post-modal-author .expert-post-modal-meta-item {
-    flex: 0 0 auto;
-    width: max-content;
-    max-width: none;
+    flex: 0 0 var(--expert-post-modal-id-width);
+    box-sizing: border-box;
+    width: var(--expert-post-modal-id-width);
+    max-width: var(--expert-post-modal-id-width);
     min-height: 17px;
     padding: 0 7px;
     border: 1px solid #fde68a;
@@ -677,14 +701,17 @@ body.expert-post-modal-open {
     font-size: 11px;
     font-weight: 500;
     line-height: 15px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .expert-post-modal-author .expert-post-modal-meta-label,
 .expert-post-modal-author .expert-post-modal-meta-value {
-    flex: 0 0 auto;
-    max-width: none;
-    overflow: visible;
-    text-overflow: clip;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
     font-size: 11px;
     font-weight: 500;
     line-height: 1;
@@ -697,6 +724,7 @@ body.expert-post-modal-open {
     justify-content: center;
     box-sizing: border-box;
     width: max-content;
+    min-width: 74px;
     height: 22px;
     min-height: 22px;
     gap: 4px;
@@ -711,6 +739,13 @@ body.expert-post-modal-open {
     line-height: 1;
     cursor: pointer;
     transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease, opacity 0.18s ease, transform 0.18s ease;
+}
+
+.expert-post-modal-meta-item.is-placeholder,
+.expert-post-modal-meta-like.is-placeholder {
+    color: #94a3b8;
+    cursor: default;
+    pointer-events: none;
 }
 
 .expert-post-modal-meta-like:hover,
@@ -771,8 +806,9 @@ body.expert-post-modal-open {
 }
 
 .expert-post-modal-meta .expert-post-modal-meta-item:nth-child(1) {
-    flex: 0 0 auto;
+    flex: 1 1 0;
     margin-left: 0;
+    min-width: 0;
     color: #4338ca;
     font-size: 16px;
     font-weight: 500;
@@ -784,8 +820,8 @@ body.expert-post-modal-open .expert-post-modal-meta-item:nth-child(2) {
 
 .expert-post-modal-close {
     flex: 0 0 auto;
-    width: 36px;
-    height: 36px;
+    width: var(--expert-post-modal-close-size);
+    height: var(--expert-post-modal-close-size);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -4133,18 +4169,24 @@ body.standalone-modal-post .page-frame::-webkit-scrollbar {
     }
 
     .expert-post-modal-header {
+        --expert-post-modal-id-width: 58px;
+        --expert-post-modal-close-size: 32px;
+        --expert-post-modal-header-gap: 7px;
+        --expert-post-modal-title-row-height: 17px;
+        --expert-post-modal-meta-row-height: 22px;
         min-height: 54px;
         padding: 3px 8px;
-        gap: 7px;
     }
 
     .expert-post-modal-heading {
-        grid-template-columns: max-content minmax(0, 1fr);
+        grid-template-columns: var(--expert-post-modal-id-width) minmax(0, 1fr);
         gap: 7px;
     }
 
     .expert-post-modal-identity {
-        min-width: 42px;
+        width: var(--expert-post-modal-id-width);
+        min-width: var(--expert-post-modal-id-width);
+        max-width: var(--expert-post-modal-id-width);
         gap: 2px;
     }
 
@@ -4154,13 +4196,13 @@ body.standalone-modal-post .page-frame::-webkit-scrollbar {
 
     .expert-post-modal-title {
         font-size: 14px;
-        line-height: 1.2;
+        line-height: var(--expert-post-modal-title-row-height);
     }
 
     .expert-post-modal-meta {
-        gap: 18px;
+        gap: 8px;
         font-size: 12px;
-        line-height: 1.18;
+        line-height: 1;
     }
 
     .expert-post-modal-meta .expert-post-modal-meta-item:nth-child(1) {
@@ -4181,10 +4223,17 @@ body.standalone-modal-post .page-frame::-webkit-scrollbar {
     }
 
     .expert-post-modal-author .expert-post-modal-meta-item {
+        flex-basis: var(--expert-post-modal-id-width);
+        width: var(--expert-post-modal-id-width);
+        max-width: var(--expert-post-modal-id-width);
         min-height: 15px;
         padding: 0 5px;
         font-size: 10px;
         line-height: 13px;
+    }
+
+    .expert-post-modal-meta-like {
+        min-width: 60px;
     }
 
     body.standalone-modal-post .front-post-modal-composer-card .front-post-reply-login-tip {
@@ -4214,8 +4263,8 @@ body.standalone-modal-post .page-frame::-webkit-scrollbar {
     }
 
     .expert-post-modal-close {
-        width: 32px;
-        height: 32px;
+        width: var(--expert-post-modal-close-size);
+        height: var(--expert-post-modal-close-size);
     }
 
     .expert-post-modal-close::before,

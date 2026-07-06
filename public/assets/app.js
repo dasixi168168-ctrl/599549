@@ -850,6 +850,47 @@
         return modal;
     }
 
+    function bindMemberPurchasePostModalFrame(modal, frame) {
+        if (!modal || !frame || frame.getAttribute('data-member-purchase-frame-ready') === '1') {
+            return;
+        }
+
+        frame.addEventListener('load', function () {
+            if (!modal || modal.querySelector('.expert-post-modal-frame') !== frame) {
+                return;
+            }
+            modal.classList.remove('is-loading');
+            scheduleMemberPurchasePostModalFrameSync();
+            restoreMemberPurchasePostFrameScroll(frame);
+        });
+        frame.setAttribute('data-member-purchase-frame-ready', '1');
+    }
+
+    function replaceMemberPurchasePostModalFrame(modal) {
+        var body = modal ? modal.querySelector('.expert-post-modal-body') : null;
+        var oldFrame = body ? body.querySelector('.expert-post-modal-frame') : null;
+        var frame;
+
+        if (!body) {
+            return oldFrame;
+        }
+
+        frame = document.createElement('iframe');
+        frame.className = 'expert-post-modal-frame';
+        frame.title = '帖子阅读窗口';
+        frame.loading = 'eager';
+        frame.referrerPolicy = 'same-origin';
+        bindMemberPurchasePostModalFrame(modal, frame);
+
+        if (oldFrame && oldFrame.parentNode === body) {
+            body.replaceChild(frame, oldFrame);
+        } else {
+            body.appendChild(frame);
+        }
+
+        return frame;
+    }
+
 
     function ensureMemberPurchasePostModal() {
         var modal = document.getElementById('expert-post-modal');
@@ -880,7 +921,7 @@
                 + '<button type="button" class="expert-post-modal-close" data-expert-post-close="1" aria-label="关闭">×</button>'
                 + '</div>'
                 + '<div class="expert-post-modal-body front-standard-modal-body">'
-                + '<iframe class="expert-post-modal-frame" title="帖子阅读窗口" loading="lazy" referrerpolicy="same-origin"></iframe>'
+                + '<iframe class="expert-post-modal-frame" title="帖子阅读窗口" loading="eager" referrerpolicy="same-origin"></iframe>'
                 + '</div>'
                 + '</div>';
             document.body.appendChild(modal);
@@ -907,14 +948,7 @@
         title = modal.querySelector('.expert-post-modal-title');
         meta = modal.querySelector('.expert-post-modal-meta');
         author = modal.querySelector('.expert-post-modal-author');
-        if (frame && frame.getAttribute('data-member-purchase-frame-ready') !== '1') {
-            frame.addEventListener('load', function () {
-                modal.classList.remove('is-loading');
-                scheduleMemberPurchasePostModalFrameSync();
-                restoreMemberPurchasePostFrameScroll(frame);
-            });
-            frame.setAttribute('data-member-purchase-frame-ready', '1');
-        }
+        bindMemberPurchasePostModalFrame(modal, frame);
 
         return {
             modal: modal,
@@ -1044,7 +1078,44 @@
         }
 
         if (!items || !items.length) {
-            state.meta.hidden = true;
+            if (state.author) {
+                var authorNode = document.createElement('span');
+                var authorValueNode = document.createElement('span');
+                authorNode.className = 'expert-post-modal-meta-item is-placeholder';
+                authorValueNode.className = 'expert-post-modal-meta-value';
+                authorValueNode.textContent = '--';
+                authorNode.appendChild(authorValueNode);
+                state.author.appendChild(authorNode);
+                state.author.hidden = false;
+            }
+
+            var viewNode = document.createElement('span');
+            var viewLabelNode = document.createElement('span');
+            var viewValueNode = document.createElement('span');
+            var likeNode = document.createElement('span');
+            var likeIconNode = document.createElement('i');
+            var likeValueNode = document.createElement('span');
+
+            viewNode.className = 'expert-post-modal-meta-item is-placeholder';
+            viewLabelNode.className = 'expert-post-modal-meta-label';
+            viewLabelNode.textContent = '浏览：';
+            viewValueNode.className = 'expert-post-modal-meta-value';
+            viewValueNode.textContent = '--';
+            viewNode.appendChild(viewLabelNode);
+            viewNode.appendChild(viewValueNode);
+
+            likeNode.className = 'expert-post-modal-meta-item expert-post-modal-meta-like is-placeholder';
+            likeIconNode.className = 'fa-solid fa-thumbs-up expert-post-modal-like-icon';
+            likeIconNode.setAttribute('aria-hidden', 'true');
+            likeValueNode.className = 'expert-post-modal-meta-value';
+            likeValueNode.textContent = '0';
+            likeNode.appendChild(likeIconNode);
+            likeNode.appendChild(document.createTextNode(memberPurchaseTextFromCharCodes([65306])));
+            likeNode.appendChild(likeValueNode);
+
+            state.meta.appendChild(viewNode);
+            state.meta.appendChild(likeNode);
+            state.meta.hidden = false;
             return;
         }
 
@@ -1214,6 +1285,9 @@
     function syncMemberPurchasePostModalFrame() {
         var state = ensureMemberPurchasePostModal();
         var frameDocument;
+        var expectedPostId = '';
+        var framePostNode;
+        var framePostId = '';
         var titleNode;
         var metaItems = [];
         var likeButton;
@@ -1234,7 +1308,18 @@
             return;
         }
 
-        titleNode = frameDocument.querySelector('.front-panel-card h1');
+        expectedPostId = state.modal ? String(state.modal.getAttribute('data-expert-post-id') || '').trim() : '';
+        framePostNode = frameDocument.querySelector('[data-comment-thread][data-post-id], [data-post-like][data-post-id]');
+        framePostId = framePostNode ? String(framePostNode.getAttribute('data-post-id') || '').trim() : '';
+        if (expectedPostId && framePostId && framePostId !== expectedPostId) {
+            return;
+        }
+
+        if (state.modal && frameDocument.querySelector('.front-post-main-content, .front-forecast-card, .front-post-detail-stack, .front-post-buy-actions')) {
+            state.modal.classList.remove('is-loading');
+        }
+
+        titleNode = frameDocument.querySelector('.front-post-modal-sync-source h1, .front-panel-card h1');
         metaItems = Array.prototype.map.call(frameDocument.querySelectorAll('.front-inline-meta > span'), function (node) {
             return String(node.textContent || '').replace(/\s+/g, ' ').trim();
         }).filter(function (text) {
@@ -1288,11 +1373,18 @@
         }
 
         modal = document.getElementById('expert-post-modal');
+        if (!modal) {
+            return;
+        }
         frame = modal ? modal.querySelector('.expert-post-modal-frame') : null;
         if (frame && event.source && event.source !== frame.contentWindow) {
             return;
         }
+        if (modal && modal.getAttribute('data-expert-post-id') && String(data.postId || '') !== String(modal.getAttribute('data-expert-post-id') || '')) {
+            return;
+        }
 
+        modal.classList.remove('is-loading');
         scheduleMemberPurchasePostModalFrameSync();
     });
 
@@ -1310,6 +1402,9 @@
         window.setTimeout(function () {
             if (!document.body || !document.body.classList.contains('expert-post-modal-open')) {
                 state.modal.hidden = true;
+                state.modal.removeAttribute('data-expert-post-frame-url');
+                state.modal.removeAttribute('data-expert-post-id');
+                replaceMemberPurchasePostModalFrame(state.modal);
                 if (frontPostAuthSyncPending) {
                     window.location.reload();
                 }
@@ -1335,6 +1430,7 @@
         var state = ensureMemberPurchasePostModal();
         var frameUrl = String(rawUrl || '').trim();
         var currentFrameUrl = '';
+        var nextPostId = '';
 
         if (!state.modal || !state.frame || !frameUrl) {
             return false;
@@ -1344,6 +1440,7 @@
             frameUrl = new URL(frameUrl, window.location.href);
             frameUrl.searchParams.set('modal', '1');
             frameUrl.searchParams.set('_fresh', String(Date.now()));
+            nextPostId = String(frameUrl.searchParams.get('id') || '').trim();
             frameUrl = frameUrl.href;
         } catch (error) {
             frameUrl += (frameUrl.indexOf('?') === -1 ? '?' : '&') + 'modal=1&_fresh=' + encodeURIComponent(String(Date.now()));
@@ -1355,16 +1452,26 @@
         setMemberPurchasePostModalMeta([]);
 
         state.modal.hidden = false;
+        state.modal.setAttribute('data-expert-post-frame-url', frameUrl);
+        if (nextPostId) {
+            state.modal.setAttribute('data-expert-post-id', nextPostId);
+        } else {
+            state.modal.removeAttribute('data-expert-post-id');
+        }
         currentFrameUrl = String(state.frame.getAttribute('src') || '').trim();
         if (currentFrameUrl !== frameUrl) {
             state.modal.classList.add('is-loading');
-            state.frame.setAttribute('src', frameUrl);
+            state.frame = replaceMemberPurchasePostModalFrame(state.modal);
+            currentFrameUrl = '';
         } else {
             syncMemberPurchasePostModalFrame();
         }
         scheduleMemberPurchasePostModalFrameSync();
         window.requestAnimationFrame(function () {
             state.modal.classList.add('is-visible');
+            if (currentFrameUrl !== frameUrl) {
+                state.frame.setAttribute('src', frameUrl);
+            }
         });
         if (document.body) {
             document.body.classList.add('expert-post-modal-open');

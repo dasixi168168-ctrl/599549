@@ -2935,8 +2935,8 @@ if ($latestRegionBallsHtml === '') {
         linkNode = linkUrl !== '' ? doc.createElement('a') : doc.createElement('span');
         if (linkUrl !== '') {
             linkNode.setAttribute('href', linkUrl);
-            linkNode.setAttribute('target', '_blank');
-            linkNode.setAttribute('rel', 'noopener');
+            linkNode.setAttribute('data-front-ad-link', '1');
+            linkNode.setAttribute('data-front-flood-bypass', '1');
         }
         linkNode.className = 'expert-item-link';
         linkNode.setAttribute('style', 'text-decoration: none; color: inherit');
@@ -5445,7 +5445,7 @@ if ($latestRegionBallsHtml === '') {
     var formatAdminPreviewAdIssuePrefixText = function () {
         var issueTail = resolveAdminPreviewCurrentIssueTail();
 
-        return issueTail ? issueTail + '期' : '';
+        return issueTail ? issueTail + '期：' : '';
     };
 
     var formatAdminPreviewPostIssuePrefixText = function () {

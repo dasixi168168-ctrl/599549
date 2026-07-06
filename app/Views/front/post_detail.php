@@ -1,34 +1,52 @@
 <?php $isModalPost = strpos((string) ($bodyClass ?? ''), 'standalone-modal-post') !== false; ?>
 <?php $frontCustomerServiceAgentViewer = !empty($customerServiceAgentViewer); ?>
-<?php echo \App\Core\View::make(app(), 'partials/front_top_bar', array('region' => $region)); ?>
+<?php if (!$isModalPost): ?>
+    <?php echo \App\Core\View::make(app(), 'partials/front_top_bar', array('region' => $region)); ?>
+<?php endif; ?>
 <section class="front-page-shell" data-comment-thread data-api-url="<?php echo e($commentThreadApiUrl); ?>" data-token="<?php echo e(csrf_token('api')); ?>" data-post-id="<?php echo e((string) $post['id']); ?>" data-login-url="<?php echo e($commentThreadLoginUrl); ?>">
-    <div class="front-detail-actions">
-        <?php if (!$isModalPost): ?>
+    <?php if (!$isModalPost): ?>
+        <div class="front-detail-actions">
             <a href="<?php echo e($backUrl); ?>" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50">
                 <i class="fa-solid fa-angle-left"></i>
                 返回列表
             </a>
-        <?php endif; ?>
-        <a href="<?php echo e(public_url('service.php') . '?region=' . urlencode($region)); ?>" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50">
-            <i class="fa-solid fa-headset"></i>
-            在线客服
-        </a>
-    </div>
+            <a href="<?php echo e(public_url('service.php') . '?region=' . urlencode($region)); ?>" class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50">
+                <i class="fa-solid fa-headset"></i>
+                在线客服
+            </a>
+        </div>
+    <?php endif; ?>
 
     <div class="data-frame front-panel-stack front-post-detail-stack mt-4">
-        <div class="front-panel-card">
-            <h1 class="text-[28px] font-black leading-tight text-slate-900"><?php echo isset($displayTitleHtml) && $displayTitleHtml !== '' ? $displayTitleHtml : e(isset($displayTitle) ? $displayTitle : $post['title']); ?></h1>
-            <div class="front-inline-meta mt-4">
-                <span>作者：<?php echo e($post['author_name']); ?></span>
-                <button class="front-post-like-button <?php echo !empty($postLikedByViewer) ? 'is-liked' : ''; ?>" type="button" data-post-like data-post-id="<?php echo e((string) $post['id']); ?>" data-token="<?php echo e((string) ($postViewApiToken ?? '')); ?>" data-api-url="<?php echo e(public_url('api.php')); ?>" aria-pressed="<?php echo !empty($postLikedByViewer) ? 'true' : 'false'; ?>">
-                    <i class="fa-solid fa-thumbs-up" aria-hidden="true"></i>
-                    <strong data-post-like-count><?php echo e((string) ($postLikeCount ?? 0)); ?></strong>
-                </button>
-                <span>发布时间：<?php echo e(format_datetime($post['created_at'])); ?></span>
-                <span>价格：<?php echo !empty($salePostOpenedForPublic) ? '已公开' : ((int) $post['price'] > 0 ? e($post['price'] . ' 积分') : '免费'); ?></span>
-                <span class="front-post-view-text">浏览：<span data-post-view-count><?php echo e((string) ($displayViewCount ?? 0)); ?></span></span>
+        <?php if ($isModalPost): ?>
+            <div class="front-post-modal-sync-source" hidden aria-hidden="true">
+                <h1><?php echo e(isset($displayModalTitle) && $displayModalTitle !== '' ? $displayModalTitle : (isset($displayTitle) ? $displayTitle : $post['title'])); ?></h1>
+                <div class="front-inline-meta">
+                    <span>作者：<?php echo e($post['author_name']); ?></span>
+                    <button class="front-post-like-button <?php echo !empty($postLikedByViewer) ? 'is-liked' : ''; ?>" type="button" data-post-like data-post-id="<?php echo e((string) $post['id']); ?>" data-token="<?php echo e((string) ($postViewApiToken ?? '')); ?>" data-api-url="<?php echo e(public_url('api.php')); ?>" aria-pressed="<?php echo !empty($postLikedByViewer) ? 'true' : 'false'; ?>">
+                        <i class="fa-solid fa-thumbs-up" aria-hidden="true"></i>
+                        <strong data-post-like-count><?php echo e((string) ($postLikeCount ?? 0)); ?></strong>
+                    </button>
+                    <span>发布时间：<?php echo e(format_datetime($post['created_at'])); ?></span>
+                    <span>价格：<?php echo !empty($salePostOpenedForPublic) ? '已公开' : ((int) $post['price'] > 0 ? e($post['price'] . ' 积分') : '免费'); ?></span>
+                    <span class="front-post-view-text">浏览：<span data-post-view-count><?php echo e((string) ($displayViewCount ?? 0)); ?></span></span>
+                </div>
             </div>
-        </div>
+        <?php else: ?>
+            <div class="front-panel-card">
+                <h1 class="text-[28px] font-black leading-tight text-slate-900"><?php echo isset($displayTitleHtml) && $displayTitleHtml !== '' ? $displayTitleHtml : e(isset($displayTitle) ? $displayTitle : $post['title']); ?></h1>
+                <div class="front-inline-meta mt-4">
+                    <span>作者：<?php echo e($post['author_name']); ?></span>
+                    <button class="front-post-like-button <?php echo !empty($postLikedByViewer) ? 'is-liked' : ''; ?>" type="button" data-post-like data-post-id="<?php echo e((string) $post['id']); ?>" data-token="<?php echo e((string) ($postViewApiToken ?? '')); ?>" data-api-url="<?php echo e(public_url('api.php')); ?>" aria-pressed="<?php echo !empty($postLikedByViewer) ? 'true' : 'false'; ?>">
+                        <i class="fa-solid fa-thumbs-up" aria-hidden="true"></i>
+                        <strong data-post-like-count><?php echo e((string) ($postLikeCount ?? 0)); ?></strong>
+                    </button>
+                    <span>发布时间：<?php echo e(format_datetime($post['created_at'])); ?></span>
+                    <span>价格：<?php echo !empty($salePostOpenedForPublic) ? '已公开' : ((int) $post['price'] > 0 ? e($post['price'] . ' 积分') : '免费'); ?></span>
+                    <span class="front-post-view-text">浏览：<span data-post-view-count><?php echo e((string) ($displayViewCount ?? 0)); ?></span></span>
+                </div>
+            </div>
+        <?php endif; ?>
 
         <?php if ($postTopHtml !== ''): ?>
             <div class="front-panel-card"><?php echo $postTopHtml; ?></div>

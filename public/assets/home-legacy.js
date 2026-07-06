@@ -494,25 +494,13 @@
         return /^(http:|https:)$/i.test(parsed.protocol) && parsed.origin !== window.location.origin;
     }
 
-    function openAdItemUrl(value) {
-        var normalized = normalizeAdItemUrl(value);
-        var parsed;
-
-        if (!normalized) {
-            return;
+    function isAdNativeLink(node) {
+        if (!node || !node.matches) {
+            return false;
         }
 
-        if (isExternalAdItemUrl(normalized)) {
-            window.open(normalized, '_blank', 'noopener,noreferrer');
-            return;
-        }
-
-        try {
-            parsed = new URL(normalized, window.location.href);
-            window.location.href = parsed.href;
-        } catch (error) {
-            window.location.href = normalized;
-        }
+        return node.matches('a[href][data-front-ad-link], a[href].ad-item[data-ad-url]')
+            || !!(node.closest && node.closest('.expert-ad-slot-card, [data-expert-ad-slot="1"]'));
     }
 
     function applyAdItemExpiry(root) {
@@ -588,57 +576,24 @@
                 node.removeAttribute('tabindex');
                 node.removeAttribute('role');
                 node.removeAttribute('data-ad-link-bound');
+                node.removeAttribute('data-front-ad-link');
+                node.removeAttribute('data-front-flood-bypass');
                 return;
             }
 
             linkNode = ensureAdItemAnchorNode(node);
             linkNode.setAttribute('href', normalizedUrl);
+            linkNode.setAttribute('data-front-ad-link', '1');
+            linkNode.setAttribute('data-front-flood-bypass', '1');
             linkNode.style.textDecoration = 'none';
             linkNode.style.color = 'inherit';
             linkNode.removeAttribute('tabindex');
             linkNode.removeAttribute('role');
             linkNode.removeAttribute('data-ad-link-bound');
             linkNode.setAttribute('aria-label', text ? text + '，打开广告链接' : '打开广告链接');
-            linkNode.setAttribute('aria-label', text ? text + ' - open ad link' : 'Open ad link');
-
-            if (isExternalAdItemUrl(normalizedUrl)) {
-                linkNode.setAttribute('target', '_blank');
-                linkNode.setAttribute('rel', 'noopener noreferrer');
-                return;
-            }
 
             linkNode.removeAttribute('target');
             linkNode.removeAttribute('rel');
-            return;
-
-            if (normalizedUrl) {
-                node.setAttribute('tabindex', '0');
-                node.setAttribute('role', 'link');
-                node.setAttribute('aria-label', text ? text + '，打开广告链接' : '打开广告链接');
-            } else {
-                node.removeAttribute('tabindex');
-                node.removeAttribute('role');
-                node.removeAttribute('aria-label');
-            }
-
-            if (node.getAttribute('data-ad-link-bound') === '1') {
-                return;
-            }
-
-            node.addEventListener('click', function () {
-                openAdItemUrl(node.getAttribute('data-ad-url') || '');
-            });
-
-            node.addEventListener('keydown', function (event) {
-                if (event.key !== 'Enter' && event.key !== ' ') {
-                    return;
-                }
-
-                event.preventDefault();
-                openAdItemUrl(node.getAttribute('data-ad-url') || '');
-            });
-
-            node.setAttribute('data-ad-link-bound', '1');
         });
     }
 
@@ -763,7 +718,7 @@
         }
 
         if (region === 'macau' || region === 'hongkong') {
-            return normalizeIssueTail(text) + '期';
+            return normalizeIssueTail(text) + '期：';
         }
 
         return '';
@@ -1650,6 +1605,48 @@
         });
     }
 
+    function bindExpertPostModalFrame(modal, frame) {
+        if (!modal || !frame || frame.getAttribute('data-expert-post-frame-ready') === '1') {
+            return;
+        }
+
+        frame.width = '720';
+        frame.height = '760';
+        frame.addEventListener('load', function () {
+            if (!modal || modal.querySelector('.expert-post-modal-frame') !== frame) {
+                return;
+            }
+            modal.classList.remove('is-loading');
+            scheduleExpertPostModalFrameSync();
+        });
+        frame.setAttribute('data-expert-post-frame-ready', '1');
+    }
+
+    function replaceExpertPostModalFrame(modal) {
+        var body = modal ? modal.querySelector('.expert-post-modal-body') : null;
+        var oldFrame = body ? body.querySelector('.expert-post-modal-frame') : null;
+        var frame;
+
+        if (!body) {
+            return oldFrame;
+        }
+
+        frame = document.createElement('iframe');
+        frame.className = 'expert-post-modal-frame';
+        frame.title = '帖子阅读窗口';
+        frame.loading = 'eager';
+        frame.referrerPolicy = 'same-origin';
+        bindExpertPostModalFrame(modal, frame);
+
+        if (oldFrame && oldFrame.parentNode === body) {
+            body.replaceChild(frame, oldFrame);
+        } else {
+            body.appendChild(frame);
+        }
+
+        return frame;
+    }
+
     function ensureExpertPostModal() {
         var modal = byId('expert-post-modal');
         var frame;
@@ -1687,7 +1684,7 @@
                     '<button type="button" class="expert-post-modal-close" data-expert-post-close="1" aria-label="关闭">×</button>' +
                 '</div>' +
                 '<div class="expert-post-modal-body front-standard-modal-body">' +
-                    '<iframe class="expert-post-modal-frame" title="帖子阅读窗口" loading="lazy" referrerpolicy="same-origin"></iframe>' +
+                    '<iframe class="expert-post-modal-frame" title="帖子阅读窗口" loading="eager" referrerpolicy="same-origin"></iframe>' +
                 '</div>' +
             '</div>';
 
@@ -1717,14 +1714,7 @@
         title = modal.querySelector('.expert-post-modal-title');
         meta = modal.querySelector('.expert-post-modal-meta');
 
-        if (frame) {
-            frame.width = '720';
-            frame.height = '760';
-            frame.addEventListener('load', function () {
-                modal.classList.remove('is-loading');
-                scheduleExpertPostModalFrameSync();
-            });
-        }
+        bindExpertPostModalFrame(modal, frame);
 
         return {
             modal: modal,
@@ -1749,7 +1739,44 @@
         }
 
         if (!items || !items.length) {
-            state.meta.setAttribute('hidden', 'hidden');
+            if (state.author) {
+                var authorNode = document.createElement('span');
+                var authorValueNode = document.createElement('span');
+                authorNode.className = 'expert-post-modal-meta-item is-placeholder';
+                authorValueNode.className = 'expert-post-modal-meta-value';
+                authorValueNode.textContent = '--';
+                authorNode.appendChild(authorValueNode);
+                state.author.appendChild(authorNode);
+                state.author.removeAttribute('hidden');
+            }
+
+            var viewNode = document.createElement('span');
+            var viewLabelNode = document.createElement('span');
+            var viewValueNode = document.createElement('span');
+            var likeNode = document.createElement('span');
+            var likeIconNode = document.createElement('i');
+            var likeValueNode = document.createElement('span');
+
+            viewNode.className = 'expert-post-modal-meta-item is-placeholder';
+            viewLabelNode.className = 'expert-post-modal-meta-label';
+            viewLabelNode.textContent = '浏览：';
+            viewValueNode.className = 'expert-post-modal-meta-value';
+            viewValueNode.textContent = '--';
+            viewNode.appendChild(viewLabelNode);
+            viewNode.appendChild(viewValueNode);
+
+            likeNode.className = 'expert-post-modal-meta-item expert-post-modal-meta-like is-placeholder';
+            likeIconNode.className = 'fa-solid fa-thumbs-up expert-post-modal-like-icon';
+            likeIconNode.setAttribute('aria-hidden', 'true');
+            likeValueNode.className = 'expert-post-modal-meta-value';
+            likeValueNode.textContent = '0';
+            likeNode.appendChild(likeIconNode);
+            likeNode.appendChild(document.createTextNode(textFromCharCodes([65306])));
+            likeNode.appendChild(likeValueNode);
+
+            state.meta.appendChild(viewNode);
+            state.meta.appendChild(likeNode);
+            state.meta.removeAttribute('hidden');
             return;
         }
 
@@ -2273,6 +2300,9 @@
     function syncExpertPostModalFrame() {
         var state = ensureExpertPostModal();
         var frameDocument;
+        var expectedPostId = '';
+        var framePostNode;
+        var framePostId = '';
         var titleNode;
         var metaItems;
         var likeButton;
@@ -2293,9 +2323,20 @@
             return;
         }
 
+        expectedPostId = state.modal ? String(state.modal.getAttribute('data-expert-post-id') || '').trim() : '';
+        framePostNode = frameDocument.querySelector('[data-comment-thread][data-post-id], [data-post-like][data-post-id]');
+        framePostId = framePostNode ? String(framePostNode.getAttribute('data-post-id') || '').trim() : '';
+        if (expectedPostId && framePostId && framePostId !== expectedPostId) {
+            return;
+        }
+
+        if (state.modal && frameDocument.querySelector('.front-post-main-content, .front-forecast-card, .front-post-detail-stack, .front-post-buy-actions')) {
+            state.modal.classList.remove('is-loading');
+        }
+
         applyFrontPostViewDisplay(frameDocument, frameDocument.location ? frameDocument.location.href : state.frame.getAttribute('src') || '');
 
-        titleNode = frameDocument.querySelector('.front-panel-card h1');
+        titleNode = frameDocument.querySelector('.front-post-modal-sync-source h1, .front-panel-card h1');
         metaItems = qsa('.front-inline-meta > span', frameDocument).map(function (node) {
             return String(node.textContent || '').replace(/\s+/g, ' ').trim();
         }).filter(function (text) {
@@ -2341,11 +2382,18 @@
         }
 
         modal = byId('expert-post-modal');
+        if (!modal) {
+            return;
+        }
         frame = modal ? modal.querySelector('.expert-post-modal-frame') : null;
         if (frame && event.source && event.source !== frame.contentWindow) {
             return;
         }
+        if (modal && modal.getAttribute('data-expert-post-id') && String(data.postId || '') !== String(modal.getAttribute('data-expert-post-id') || '')) {
+            return;
+        }
 
+        modal.classList.remove('is-loading');
         scheduleExpertPostModalFrameSync();
     });
 
@@ -2363,6 +2411,9 @@
         window.setTimeout(function () {
             if (!document.body.classList.contains('expert-post-modal-open')) {
                 state.modal.setAttribute('hidden', 'hidden');
+                state.modal.removeAttribute('data-expert-post-frame-url');
+                state.modal.removeAttribute('data-expert-post-id');
+                replaceExpertPostModalFrame(state.modal);
             }
         }, 180);
     }
@@ -2371,6 +2422,7 @@
         var state = ensureExpertPostModal();
         var frameUrl = String(url || '').trim();
         var currentFrameUrl = '';
+        var nextPostId = '';
 
         if (!state.modal || !state.frame) {
             return;
@@ -2386,6 +2438,7 @@
             frameUrl = new URL(frameUrl, window.location.href);
             frameUrl.searchParams.set('modal', '1');
             frameUrl.searchParams.set('_fresh', String(Date.now()));
+            nextPostId = String(frameUrl.searchParams.get('id') || '').trim();
             frameUrl = frameUrl.href;
         } catch (error) {
             if (frameUrl) {
@@ -2394,16 +2447,25 @@
         }
 
         state.modal.removeAttribute('hidden');
+        state.modal.setAttribute('data-expert-post-frame-url', frameUrl);
+        if (nextPostId) {
+            state.modal.setAttribute('data-expert-post-id', nextPostId);
+        } else {
+            state.modal.removeAttribute('data-expert-post-id');
+        }
         currentFrameUrl = String(state.frame.getAttribute('src') || '').trim();
         if (currentFrameUrl !== frameUrl) {
             state.modal.classList.add('is-loading');
+            state.frame = replaceExpertPostModalFrame(state.modal);
+            currentFrameUrl = '';
         }
         window.requestAnimationFrame(function () {
             state.modal.classList.add('is-visible');
+            if (currentFrameUrl !== frameUrl) {
+                state.frame.setAttribute('src', frameUrl);
+            }
         });
-        if (currentFrameUrl !== frameUrl) {
-            state.frame.setAttribute('src', frameUrl);
-        } else {
+        if (currentFrameUrl === frameUrl) {
             syncExpertPostModalFrame();
         }
         scheduleExpertPostModalFrameSync();
@@ -2516,6 +2578,9 @@
             }
 
             if (link.closest('.expert-ad-slot-card, [data-expert-ad-slot="1"]')) {
+                return;
+            }
+            if (isAdNativeLink(link)) {
                 return;
             }
 

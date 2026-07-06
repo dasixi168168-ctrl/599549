@@ -2,14 +2,19 @@
 declare(strict_types=1);
 
 require_once dirname(__DIR__) . '/bootstrap/front_security.php';
-front_security_apply();
+$isModalRequest = (string) ($_GET['modal'] ?? '') === '1';
+front_security_apply($isModalRequest ? array(
+    'rate_limit' => false,
+    'cache_control' => 'no-store, no-cache, must-revalidate, max-age=0',
+    'legacy_no_cache_headers' => true,
+) : array());
 
 require dirname(__DIR__) . '/bootstrap/app.php';
 
 ensure_installed_or_redirect();
 
 $postId = (int) input('id', 0);
-$isModal = (string) input('modal', '') === '1';
+$isModal = $isModalRequest;
 if (!$isModal) {
     run_housekeeping();
 }
@@ -40,6 +45,7 @@ app()->posts()->registerRealView($postId, $viewer ?: array());
 $displayViewCount = app()->posts()->currentDisplayedViewCount($postId);
 $displayTitle = app()->posts()->displayTitle($post);
 $displayTitleHtml = app()->posts()->displayTitleHtml($post);
+$displayModalTitle = app()->posts()->displayModalTitle($post);
 $displayContent = app()->posts()->visibleContent($post, $viewer);
 $hasFullAccess = !$viewer ? false : (
     (int) $viewer['id'] === (int) $post['author_id']
@@ -148,6 +154,7 @@ view('front/post_detail', array(
     'post' => $post,
     'displayTitle' => $displayTitle,
     'displayTitleHtml' => is_array($displayTitleHtml) ? (string) ($displayTitleHtml['html'] ?? '') : '',
+    'displayModalTitle' => $displayModalTitle,
     'viewer' => $viewer,
     'displayContent' => $displayContent,
     'salePostOpenedForPublic' => $salePostOpenedForPublic,

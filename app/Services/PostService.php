@@ -25,6 +25,27 @@ class PostService extends Service
         return $issueText . ': ' . $titleBody;
     }
 
+    public function displayModalTitle(array $post)
+    {
+        $segments = $this->displayTitleSegments($post);
+        $titleBody = trim((string) (
+            ($segments['prefix'] ?? '')
+            . ($segments['middle'] ?? '')
+            . ($segments['author'] ?? '')
+        ));
+        $issuePrefixText = $this->displayIssuePrefixText($post);
+
+        if ($issuePrefixText !== '') {
+            return $issuePrefixText . $titleBody;
+        }
+
+        if ($titleBody !== '') {
+            return $titleBody;
+        }
+
+        return $this->displayTitle($post);
+    }
+
     public function displayTitleSegments(array $post)
     {
         $titleBody = $this->stripSyncedIssuePrefix((string) ($post['title'] ?? ''));
