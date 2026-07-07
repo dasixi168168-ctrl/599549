@@ -278,22 +278,6 @@ if ($latestRegionBallsHtml === '') {
                             <span>当前编辑：</span>
                             <span><?php echo e($currentEditorLabel); ?></span>
                         </div>
-                        <?php if (empty($pageTitleLiveSyncHtml)): ?>
-                        <div class="admin-editor-live-sync">
-                            <div class="admin-editor-live-sync-head">
-                                <div class="admin-editor-live-sync-left">
-                                    <span class="admin-editor-live-sync-badge"><?php echo e($latestRegionDrawLabel); ?></span>
-                                    <span class="admin-editor-live-sync-issue"><?php echo e($latestRegionIssueText); ?></span>
-                                </div>
-                            </div>
-                            <div class="admin-editor-live-sync-balls"><?php echo $latestRegionBallsHtml; ?></div>
-                            <div class="admin-editor-live-sync-meta">
-                                <span class="admin-editor-live-sync-meta-item">特码生肖:<strong><?php echo e($latestRegionMetaZodiac); ?></strong></span>
-                                <span class="admin-editor-live-sync-meta-item">合数单双:<strong><?php echo e($latestRegionMetaOddEven); ?></strong></span>
-                                <span class="admin-editor-live-sync-meta-item">五行:<strong><?php echo e($latestRegionMetaFivePhase); ?></strong></span>
-                            </div>
-                        </div>
-                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -572,7 +556,6 @@ if ($latestRegionBallsHtml === '') {
     var editorBootPlaceholder = document.querySelector('[data-draw-editor-placeholder]');
     var saveButton = form ? form.querySelector('.admin-editor-save-button') : null;
     var saveButtonSlot = form ? form.querySelector('[data-draw-save-slot]') : null;
-    var liveSyncBar = document.querySelector('[data-draws-live-sync]') || (form ? form.querySelector('.admin-editor-live-sync') : null);
     var csrfTokenInput = form ? form.querySelector('input[name="_token"]') : null;
     var normalizeDrawImageUploadUrl = function (url) {
         var target = (url || '').trim();
@@ -587,13 +570,11 @@ if ($latestRegionBallsHtml === '') {
     var drawImageAccept = '.jpg,.jpeg,.png,.gif,.webp,.bmp,image/jpeg,image/png,image/gif,image/webp,image/bmp,image/x-ms-bmp';
     var pageTitleShell = document.querySelector('.admin-page-title-shell');
     var pageTitleActionSlot = null;
-    var pageTitleLiveSyncSlot = null;
     var pageTitleTextSlot = null;
     var drawsSectionTitle = document.querySelector('.admin-draws-section-title');
     var drawsCard = document.querySelector('.admin-draws-card');
     var adminMain = document.querySelector('.admin-main');
     var drawStickyLayoutTimer = 0;
-    var liveSyncOriginalParent = liveSyncBar ? liveSyncBar.parentNode : null;
     var sectionEditorModal = document.querySelector('[data-section-editor-modal]');
     var sectionEditorForm = sectionEditorModal ? sectionEditorModal.querySelector('[data-section-editor-form]') : null;
     var sectionEditorTarget = sectionEditorModal ? sectionEditorModal.querySelector('[data-section-editor-target]') : null;
@@ -728,7 +709,6 @@ if ($latestRegionBallsHtml === '') {
         isRestoring: false,
         explicitToggle: false
     };
-    var fullscreenLiveSyncBar = null;
     var adminPreviewRegion = '<?php echo e($currentRegion); ?>';
     var adminPreviewDraw = <?php echo json_encode($latestRegionDrawPreviewPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
     var adminPreviewCurrentIssue = <?php echo json_encode($managedRegionIssuePreviewPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
@@ -915,29 +895,6 @@ if ($latestRegionBallsHtml === '') {
             saveButtonSlot.style.display = 'none';
         }
 
-        if (liveSyncBar) {
-                if (!pageTitleLiveSyncSlot && pageTitleShell) {
-                    pageTitleLiveSyncSlot = pageTitleShell.querySelector('.admin-page-title-live-sync-slot');
-                }
-            if (!pageTitleLiveSyncSlot) {
-                pageTitleLiveSyncSlot = document.createElement('div');
-                pageTitleLiveSyncSlot.className = 'admin-page-title-live-sync-slot';
-                pageTitleShell.appendChild(pageTitleLiveSyncSlot);
-            }
-
-            pageTitleShell.classList.add('admin-page-title-shell--draws-live-sync');
-            pageTitleShell.classList.add('admin-page-title-shell--with-live-sync');
-            liveSyncBar.hidden = false;
-            liveSyncBar.classList.add('is-in-page-title-shell');
-
-            if (liveSyncBar.parentNode !== pageTitleLiveSyncSlot) {
-                pageTitleLiveSyncSlot.appendChild(liveSyncBar);
-            }
-        } else {
-            pageTitleShell.classList.remove('admin-page-title-shell--draws-live-sync');
-            pageTitleShell.classList.remove('admin-page-title-shell--with-live-sync');
-        }
-
         if (!pageTitleActionSlot) {
             pageTitleActionSlot = document.createElement('div');
             pageTitleActionSlot.className = 'admin-page-title-action-slot';
@@ -956,44 +913,6 @@ if ($latestRegionBallsHtml === '') {
         }
 
         return true;
-    };
-
-    var removeFullscreenLiveSyncBar = function () {
-        if (fullscreenLiveSyncBar && fullscreenLiveSyncBar.parentNode) {
-            fullscreenLiveSyncBar.parentNode.removeChild(fullscreenLiveSyncBar);
-        }
-
-        fullscreenLiveSyncBar = null;
-    };
-
-    var mountFullscreenLiveSyncBar = function (editorInstance) {
-        var currentEditor = editorInstance || (typeof window.tinymce !== 'undefined' ? window.tinymce.get('draw-material-editor') : null);
-        var container = currentEditor && currentEditor.getContainer ? currentEditor.getContainer() : null;
-        var header = container ? container.querySelector('.tox-editor-header') : null;
-        var menubar = container ? container.querySelector('.tox-menubar') : null;
-
-        if (!liveSyncBar || !header) {
-            removeFullscreenLiveSyncBar();
-            return;
-        }
-
-        if (!fullscreenLiveSyncBar) {
-            fullscreenLiveSyncBar = liveSyncBar.cloneNode(true);
-            fullscreenLiveSyncBar.classList.add('is-in-editor-menubar');
-            fullscreenLiveSyncBar.setAttribute('aria-hidden', 'true');
-        } else {
-            fullscreenLiveSyncBar.innerHTML = liveSyncBar.innerHTML;
-        }
-
-        if (menubar) {
-            if (saveButton && saveButton.parentNode === menubar) {
-                menubar.insertBefore(fullscreenLiveSyncBar, saveButton);
-            } else if (fullscreenLiveSyncBar.parentNode !== menubar) {
-                menubar.appendChild(fullscreenLiveSyncBar);
-            }
-        } else if (fullscreenLiveSyncBar.parentNode !== header) {
-            header.appendChild(fullscreenLiveSyncBar);
-        }
     };
 
     var syncDrawStickyLayout = function (editorInstance) {
@@ -1048,11 +967,6 @@ if ($latestRegionBallsHtml === '') {
 
         if (!saveButtonSlot) {
             return;
-        }
-
-        if (liveSyncBar && liveSyncOriginalParent && liveSyncBar.parentNode !== liveSyncOriginalParent) {
-            liveSyncBar.classList.remove('is-in-page-title-shell');
-            liveSyncOriginalParent.appendChild(liveSyncBar);
         }
 
         saveButtonSlot.hidden = false;
@@ -7647,12 +7561,6 @@ if ($latestRegionBallsHtml === '') {
 
                 fullscreenState.explicitToggle = false;
 
-                if (isFullscreen) {
-                    mountFullscreenLiveSyncBar(editor);
-                } else {
-                    removeFullscreenLiveSyncBar();
-                }
-
                 if (!saveButton) {
                     return;
                 }
@@ -7686,7 +7594,6 @@ if ($latestRegionBallsHtml === '') {
                 document.body.classList.remove('draw-editor-is-fullscreen');
                 resetSectionDragState();
                 closeSectionEditor();
-                removeFullscreenLiveSyncBar();
                 resetDrawEditorHeaderFloating(editor);
                 restoreSaveButton();
                 scheduleDrawStickyLayout(editor);

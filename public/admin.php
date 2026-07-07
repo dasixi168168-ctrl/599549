@@ -1191,74 +1191,10 @@ switch ($page) {
         }
         $postLiveDraw = app()->prediction()->latestHomepageDraw($postRegion);
         $postManagedCurrentIssue = app()->admins()->managedIssuePrefixSnapshotByRegion($postRegion);
-        $postLiveNormalizeIssueTail = static function ($issueNo) {
-            $text = trim((string) $issueNo);
-            if ($text === '' || !preg_match('/^\d+$/', $text)) {
-                return '--';
-            }
-
-            $tail = strlen($text) > 3 ? substr($text, -3) : $text;
-
-            return str_pad($tail, 3, '0', STR_PAD_LEFT);
-        };
-        $postLivePadDrawNumber = static function ($value) {
-            $number = (int) $value;
-
-            return $number < 10 ? '0' . $number : (string) $number;
-        };
-        $postLiveDrawDate = is_array($postLiveDraw) ? (string) ($postLiveDraw['draw_date'] ?? '') : '';
-        $postLiveWaveColorClass = static function ($value) {
-            $number = (int) $value;
-            if (in_array($number, array(1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46), true)) {
-                return 'is-red';
-            }
-            if (in_array($number, array(3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48), true)) {
-                return 'is-blue';
-            }
-
-            return 'is-green';
-        };
-        $postLiveRenderBall = static function ($value) use ($postLivePadDrawNumber, $postLiveWaveColorClass, $postLiveDrawDate) {
-            $ballClass = $value === null ? 'is-empty' : $postLiveWaveColorClass((int) $value);
-            $numberText = $value === null ? '--' : $postLivePadDrawNumber((int) $value);
-            $zodiacText = $value === null ? '--' : (app()->prediction()->drawZodiacByNumber((int) $value, $postLiveDrawDate) ?: '--');
-
-            return '<div class="admin-editor-live-ball ' . e($ballClass) . '">' .
-                '<div class="admin-editor-live-ball-code">' . e($numberText) . '</div>' .
-                '<div class="admin-editor-live-ball-zodiac">' . e($zodiacText) . '</div>' .
-                '</div>';
-        };
-        $postLiveIssueText = '--期';
-        $postLiveBallsHtml = '';
-        if (is_array($postLiveDraw)) {
-            $postLiveIssueText = $postLiveNormalizeIssueTail($postLiveDraw['issue_no'] ?? '') . '期';
-        }
-        if (is_array($postLiveDraw)) {
-            $postLiveDrawNumbers = isset($postLiveDraw['numbers']) && is_array($postLiveDraw['numbers'])
-                ? array_values($postLiveDraw['numbers'])
-                : json_decode((string) ($postLiveDraw['numbers_json'] ?? '[]'), true);
-            $postLiveDrawNumbers = is_array($postLiveDrawNumbers) ? array_values($postLiveDrawNumbers) : array();
-            foreach ($postLiveDrawNumbers as $postLiveDrawNumber) {
-                $postLiveDrawNumber = (int) $postLiveDrawNumber;
-                if ($postLiveDrawNumber > 0) {
-                    $postLiveBallsHtml .= $postLiveRenderBall($postLiveDrawNumber);
-                }
-            }
-            $postLiveBallsHtml .= '<span class="admin-editor-live-ball-separator">+</span>';
-            $postLiveSpecialNumber = (int) ($postLiveDraw['special_number'] ?? 0);
-            $postLiveBallsHtml .= $postLiveRenderBall($postLiveSpecialNumber > 0 ? $postLiveSpecialNumber : null);
-        }
-        if ($postLiveBallsHtml === '') {
-            $postLiveBallsHtml = '<span class="admin-help">请先更新当前分区开奖号码</span>';
-        }
+        $viewData['adminHeaderRegion'] = $postRegion;
+        $viewData['adminHeaderLiveDraw'] = $postLiveDraw;
         $viewData['postLatestRegionDraw'] = $postLiveDraw;
         $viewData['postManagedCurrentIssue'] = $postManagedCurrentIssue;
-        $viewData['pageTitleShellExtraClass'] = 'admin-page-title-shell--posts-live-sync';
-        $viewData['pageTitleLiveSyncHtml'] = '<div class="admin-editor-live-sync admin-posts-live-sync is-in-page-title-shell" data-posts-live-sync>' .
-            '<div class="admin-editor-live-sync-head"><div class="admin-editor-live-sync-left">' .
-            '<span class="admin-editor-live-sync-badge">' . e($postRegion === 'hongkong' ? '香港' : '澳门') . '</span>' .
-            '<span class="admin-editor-live-sync-issue">' . e($postLiveIssueText) . '</span>' .
-            '</div></div><div class="admin-editor-live-sync-balls">' . $postLiveBallsHtml . '</div></div>';
         $postViewMode = isset($_GET['view']) ? trim((string) $_GET['view']) : '';
         if ($postViewMode === '' && !empty($_GET['compose'])) {
             $postViewMode = 'compose';
@@ -1624,76 +1560,9 @@ switch ($page) {
             ? app()->admins()->managedDrawComponentEditor($drawComponent)
             : app()->admins()->managedDrawMaterialEditor($drawRegion);
         $drawLiveDraw = app()->prediction()->latestHomepageDraw($drawRegion);
+        $viewData['adminHeaderRegion'] = $drawRegion;
+        $viewData['adminHeaderLiveDraw'] = $drawLiveDraw;
         $viewData['drawLatestRegionDraw'] = $drawLiveDraw;
-        $drawLiveNormalizeIssueTail = static function ($issueNo) {
-            $text = trim((string) $issueNo);
-            if ($text === '' || !preg_match('/^\d+$/', $text)) {
-                return '--';
-            }
-
-            $tail = strlen($text) > 3 ? substr($text, -3) : $text;
-
-            return str_pad($tail, 3, '0', STR_PAD_LEFT);
-        };
-        $drawLivePadNumber = static function ($value) {
-            $number = (int) $value;
-
-            return $number < 10 ? '0' . $number : (string) $number;
-        };
-        $drawLiveWaveRed = array(1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46);
-        $drawLiveWaveBlue = array(3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48);
-        $drawLiveWaveColorClass = static function ($value) use ($drawLiveWaveRed, $drawLiveWaveBlue) {
-            $value = (int) $value;
-            if (in_array($value, $drawLiveWaveRed, true)) {
-                return 'is-red';
-            }
-            if (in_array($value, $drawLiveWaveBlue, true)) {
-                return 'is-blue';
-            }
-
-            return 'is-green';
-        };
-        $drawLiveDrawDate = is_array($drawLiveDraw) ? trim((string) ($drawLiveDraw['draw_date'] ?? '')) : '';
-        $drawLiveRenderBall = static function ($value) use ($drawLivePadNumber, $drawLiveWaveColorClass, $drawLiveDrawDate) {
-            $value = $value === null ? null : (int) $value;
-            $ballClass = $value === null ? 'is-empty' : $drawLiveWaveColorClass($value);
-            $numberText = $value === null ? '--' : $drawLivePadNumber($value);
-            $zodiacText = $value === null ? '--' : (app()->prediction()->drawZodiacByNumber($value, $drawLiveDrawDate) ?: '--');
-
-            return '<div class="admin-editor-live-ball ' . e($ballClass) . '">' .
-                '<div class="admin-editor-live-ball-code">' . e($numberText) . '</div>' .
-                '<div class="admin-editor-live-ball-zodiac">' . e($zodiacText) . '</div>' .
-                '</div>';
-        };
-        $drawLiveIssueText = '--期';
-        $drawLiveBallsHtml = '';
-        if (is_array($drawLiveDraw)) {
-            $drawLiveIssueText = $drawLiveNormalizeIssueTail($drawLiveDraw['issue_no'] ?? '') . '期';
-            $drawLiveNumbers = isset($drawLiveDraw['numbers']) && is_array($drawLiveDraw['numbers'])
-                ? array_values($drawLiveDraw['numbers'])
-                : json_decode((string) ($drawLiveDraw['numbers_json'] ?? '[]'), true);
-            $drawLiveNumbers = is_array($drawLiveNumbers) ? array_values($drawLiveNumbers) : array();
-            for ($drawLiveIndex = 0; $drawLiveIndex < 6; $drawLiveIndex += 1) {
-                $drawLiveValue = array_key_exists($drawLiveIndex, $drawLiveNumbers) ? (int) $drawLiveNumbers[$drawLiveIndex] : null;
-                $drawLiveBallsHtml .= $drawLiveRenderBall($drawLiveValue > 0 ? $drawLiveValue : null);
-            }
-            $drawLiveBallsHtml .= '<div class="admin-editor-live-ball-plus">+</div>';
-            $drawLiveSpecialNumber = (int) ($drawLiveDraw['special_number'] ?? 0);
-            $drawLiveBallsHtml .= $drawLiveRenderBall($drawLiveSpecialNumber > 0 ? $drawLiveSpecialNumber : null);
-        }
-        if ($drawLiveBallsHtml === '') {
-            for ($drawLiveIndex = 0; $drawLiveIndex < 6; $drawLiveIndex += 1) {
-                $drawLiveBallsHtml .= $drawLiveRenderBall(null);
-            }
-            $drawLiveBallsHtml .= '<div class="admin-editor-live-ball-plus">+</div>';
-            $drawLiveBallsHtml .= $drawLiveRenderBall(null);
-        }
-        $viewData['pageTitleShellExtraClass'] = 'admin-page-title-shell--draws-live-sync';
-        $viewData['pageTitleLiveSyncHtml'] = '<div class="admin-editor-live-sync admin-draws-live-sync is-in-page-title-shell" data-draws-live-sync>' .
-            '<div class="admin-editor-live-sync-head"><div class="admin-editor-live-sync-left">' .
-            '<span class="admin-editor-live-sync-badge">' . e($drawRegion === 'hongkong' ? '香港' : '澳门') . '</span>' .
-            '<span class="admin-editor-live-sync-issue">' . e($drawLiveIssueText) . '</span>' .
-            '</div></div><div class="admin-editor-live-sync-balls">' . $drawLiveBallsHtml . '</div></div>';
         break;
 
     case 'home':

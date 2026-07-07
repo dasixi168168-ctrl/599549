@@ -2,20 +2,90 @@
 $pageTitle = isset($pageTitle) ? (string) $pageTitle : '后台管理';
 $pageHeading = isset($pageHeading) ? (string) $pageHeading : '后台管理';
 $pageTitleActionHtml = isset($pageTitleActionHtml) ? (string) $pageTitleActionHtml : '';
-$pageTitleLiveSyncHtml = isset($pageTitleLiveSyncHtml) ? (string) $pageTitleLiveSyncHtml : '';
-$pageTitleShellExtraClass = isset($pageTitleShellExtraClass) ? preg_replace('/[^a-z0-9_ -]+/i', '', (string) $pageTitleShellExtraClass) : '';
+$adminHeaderRegion = isset($adminHeaderRegion)
+    ? (string) $adminHeaderRegion
+    : (isset($region) ? (string) $region : (isset($_GET['region']) ? (string) $_GET['region'] : 'macau'));
+$adminHeaderRegion = $adminHeaderRegion === 'hongkong' ? 'hongkong' : 'macau';
+$adminHeaderLiveDraw = is_array($adminHeaderLiveDraw ?? null) ? $adminHeaderLiveDraw : null;
+if ($adminHeaderLiveDraw === null) {
+    try {
+        $adminHeaderLiveDraw = app()->prediction()->latestHomepageDraw($adminHeaderRegion);
+    } catch (\Throwable $adminHeaderLiveDrawError) {
+        $adminHeaderLiveDraw = null;
+    }
+}
+$adminHeaderLiveNormalizeIssueTail = static function ($issueNo) {
+    $text = trim((string) $issueNo);
+    if ($text === '' || !preg_match('/^\d+$/', $text)) {
+        return '--';
+    }
+
+    $tail = strlen($text) > 3 ? substr($text, -3) : $text;
+
+    return str_pad($tail, 3, '0', STR_PAD_LEFT);
+};
+$adminHeaderLivePadNumber = static function ($value) {
+    $number = (int) $value;
+
+    return $number < 10 ? '0' . $number : (string) $number;
+};
+$adminHeaderLiveWaveColorClass = static function ($value) {
+    $number = (int) $value;
+    if (in_array($number, array(1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46), true)) {
+        return 'is-red';
+    }
+    if (in_array($number, array(3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48), true)) {
+        return 'is-blue';
+    }
+
+    return 'is-green';
+};
+$adminHeaderLiveDrawDate = is_array($adminHeaderLiveDraw) ? trim((string) ($adminHeaderLiveDraw['draw_date'] ?? '')) : '';
+$adminHeaderLiveRenderBall = static function ($value) use ($adminHeaderLivePadNumber, $adminHeaderLiveWaveColorClass, $adminHeaderLiveDrawDate) {
+    $value = $value === null ? null : (int) $value;
+    $ballClass = $value === null ? 'is-empty' : $adminHeaderLiveWaveColorClass($value);
+    $numberText = $value === null ? '--' : $adminHeaderLivePadNumber($value);
+    $zodiacText = $value === null ? '--' : (app()->prediction()->drawZodiacByNumber($value, $adminHeaderLiveDrawDate) ?: '--');
+
+    return '<div class="admin-header-draw-ball ' . e($ballClass) . '">' .
+        '<div class="admin-header-draw-ball-code">' . e($numberText) . '</div>' .
+        '<div class="admin-header-draw-ball-zodiac">' . e($zodiacText) . '</div>' .
+        '</div>';
+};
+$adminHeaderLiveIssueText = '--期';
+$adminHeaderLiveBallsHtml = '';
+if (is_array($adminHeaderLiveDraw)) {
+    $adminHeaderLiveIssueText = $adminHeaderLiveNormalizeIssueTail($adminHeaderLiveDraw['issue_no'] ?? '') . '期';
+    $adminHeaderLiveNumbers = isset($adminHeaderLiveDraw['numbers']) && is_array($adminHeaderLiveDraw['numbers'])
+        ? array_values($adminHeaderLiveDraw['numbers'])
+        : json_decode((string) ($adminHeaderLiveDraw['numbers_json'] ?? '[]'), true);
+    $adminHeaderLiveNumbers = is_array($adminHeaderLiveNumbers) ? array_values($adminHeaderLiveNumbers) : array();
+    for ($adminHeaderLiveIndex = 0; $adminHeaderLiveIndex < 6; $adminHeaderLiveIndex += 1) {
+        $adminHeaderLiveValue = array_key_exists($adminHeaderLiveIndex, $adminHeaderLiveNumbers) ? (int) $adminHeaderLiveNumbers[$adminHeaderLiveIndex] : null;
+        $adminHeaderLiveBallsHtml .= $adminHeaderLiveRenderBall($adminHeaderLiveValue > 0 ? $adminHeaderLiveValue : null);
+    }
+    $adminHeaderLiveBallsHtml .= '<div class="admin-header-draw-ball-plus">+</div>';
+    $adminHeaderLiveSpecialNumber = (int) ($adminHeaderLiveDraw['special_number'] ?? 0);
+    $adminHeaderLiveBallsHtml .= $adminHeaderLiveRenderBall($adminHeaderLiveSpecialNumber > 0 ? $adminHeaderLiveSpecialNumber : null);
+}
+if ($adminHeaderLiveBallsHtml === '') {
+    for ($adminHeaderLiveIndex = 0; $adminHeaderLiveIndex < 6; $adminHeaderLiveIndex += 1) {
+        $adminHeaderLiveBallsHtml .= $adminHeaderLiveRenderBall(null);
+    }
+    $adminHeaderLiveBallsHtml .= '<div class="admin-header-draw-ball-plus">+</div>';
+    $adminHeaderLiveBallsHtml .= $adminHeaderLiveRenderBall(null);
+}
+$adminHeaderDrawHtml = '<div class="admin-header-draw-card" data-admin-header-draw data-region="' . e($adminHeaderRegion) . '">' .
+    '<div class="admin-header-draw-meta">' .
+    '<span class="admin-header-draw-region">' . e($adminHeaderRegion === 'hongkong' ? '香港' : '澳门') . '</span>' .
+    '<span class="admin-header-draw-issue">' . e($adminHeaderLiveIssueText) . '</span>' .
+    '</div><div class="admin-header-draw-balls">' . $adminHeaderLiveBallsHtml . '</div></div>';
+$currentAdmin = is_array($currentAdmin ?? null) ? $currentAdmin : array();
 $pageTitleShellClass = 'admin-page-title admin-page-title-shell';
 if ($pageTitleActionHtml !== '') {
     $pageTitleShellClass .= ' admin-page-title-shell--with-action';
 }
-if ($pageTitleLiveSyncHtml !== '') {
-    $pageTitleShellClass .= ' admin-page-title-shell--with-live-sync';
-}
-if ($pageTitleShellExtraClass !== '') {
-    $pageTitleShellClass .= ' ' . trim((string) $pageTitleShellExtraClass);
-}
 $activeMenuCode = isset($activeMenuCode) ? (string) $activeMenuCode : '';
-$currentAdmin = is_array($currentAdmin ?? null) ? $currentAdmin : array();
 $menuItems = is_array($adminMenuItems ?? null) ? $adminMenuItems : array();
 
 $menuItemsByCode = array();
@@ -84,8 +154,8 @@ $adminBodyPage = preg_replace('/[^a-z0-9_-]+/i', '-', strtolower((string) $activ
 if ($adminBodyPage !== '') {
     $adminBodyClasses[] = 'admin-page-' . trim((string) $adminBodyPage, '-');
 }
-$adminCssUrl = asset('app.css?v=20260628-invite-register-bonus-01');
-$adminJsUrl = asset('app.js?v=20260628-unread-poll-throttle-01');
+$adminCssUrl = asset('app.css?v=20260707-admin-header-draw-01');
+$adminJsUrl = asset('app.js?v=20260707-admin-header-draw-01');
 $needsAdminTinyMce = isset($needsAdminTinyMce) ? (bool) $needsAdminTinyMce : $activeMenuCode === 'draws';
 $enableAdminUiSystem = false;
 $appendAdminUiClasses = static function ($html, $classPattern, $classes) {
@@ -214,26 +284,29 @@ if ($enableAdminUiSystem) {
 <body class="<?php echo e(trim(implode(' ', $adminBodyClasses) . ($enableAdminUiSystem ? ' ui-admin-page' : ''))); ?>">
 <div class="admin-shell">
     <div class="admin-stage">
-        <header class="admin-frame-header<?php echo $enableAdminUiSystem ? ' ui-admin-header' : ''; ?>">
-            <div class="admin-frame-brand">
+        <header class="admin-frame-header<?php echo $enableAdminUiSystem ? ' ui-admin-header' : ''; ?>" role="banner">
+            <button class="admin-frame-btn admin-mobile-nav-toggle" type="button" data-admin-nav-drawer-toggle aria-controls="admin-nav-drawer" aria-expanded="false" aria-label="打开后台导航">
+                <span class="admin-mobile-nav-toggle-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+                <span>菜单</span>
+            </button>
+            <div class="admin-frame-brand" aria-label="后台管理">
                 <div class="admin-frame-brand-title">后台管理</div>
                 <div class="admin-frame-brand-site"><?php echo e(admin_management_name_setting(site_setting('site.name', app()->config('app', 'site_name', '')))); ?></div>
             </div>
-            <div class="admin-frame-account">
-                <div class="admin-frame-account-role">
+            <div class="admin-frame-account" aria-label="当前后台账号">
+                <div class="admin-frame-account-row admin-frame-account-role">
                     <span class="admin-frame-account-label">当前</span>
                     <strong class="admin-frame-account-value"><?php echo e(isset($currentAdmin['role_name']) ? (string) $currentAdmin['role_name'] : '管理员'); ?></strong>
                 </div>
-                <div class="admin-frame-account-name">
+                <div class="admin-frame-account-row admin-frame-account-name">
                     <span class="admin-frame-account-label">账号</span>
                     <span class="admin-frame-account-value"><?php echo e(isset($currentAdmin['username']) ? (string) $currentAdmin['username'] : '-'); ?></span>
                 </div>
             </div>
-            <div class="admin-frame-actions<?php echo $enableAdminUiSystem ? ' ui-admin-actions' : ''; ?>">
-                <button class="admin-frame-btn admin-mobile-nav-toggle" type="button" data-admin-nav-drawer-toggle aria-controls="admin-nav-drawer" aria-expanded="false" aria-label="打开后台导航">
-                    <span class="admin-mobile-nav-toggle-icon" aria-hidden="true"><span></span><span></span><span></span></span>
-                    <span>菜单</span>
-                </button>
+            <div class="admin-header-draw-slot" aria-label="<?php echo e($adminHeaderRegion === 'hongkong' ? '香港开奖结果' : '澳门开奖结果'); ?>">
+                <?php echo $adminHeaderDrawHtml; ?>
+            </div>
+            <nav class="admin-frame-actions<?php echo $enableAdminUiSystem ? ' ui-admin-actions' : ''; ?>" aria-label="后台快捷操作">
                 <a class="admin-frame-btn is-blue" href="<?php echo e(public_url('index.php')); ?>" target="_blank" rel="noopener noreferrer">
                     <span class="admin-frame-btn-icon"><?php echo $buttonIconSvg('home'); ?></span>
                     <span>首页</span>
@@ -242,7 +315,7 @@ if ($enableAdminUiSystem) {
                     <span class="admin-frame-btn-icon"><?php echo $buttonIconSvg('logout'); ?></span>
                     <span>退出</span>
                 </a>
-            </div>
+            </nav>
         </header>
 
         <div class="admin-frame-divider"></div>
@@ -259,15 +332,14 @@ if ($enableAdminUiSystem) {
                         $menuCode = (string) ($menuItem['code'] ?? '');
                         $isActive = $activeMenuCode === $menuCode;
                         ?>
-                        <a class="admin-nav-link<?php echo $isActive ? ' is-active' : ''; ?>" href="<?php echo e(public_url('admin.php') . '?page=' . urlencode((string) ($menuItem['route_path'] ?? 'dashboard'))); ?>" data-flood-guard="off">
+                        <a class="admin-nav-link<?php echo $isActive ? ' is-active' : ''; ?>" href="<?php echo e(public_url('admin.php') . '?page=' . urlencode((string) ($menuItem['route_path'] ?? 'dashboard'))); ?>" data-admin-nav-item="<?php echo e($menuCode); ?>" data-flood-guard="off"<?php echo $isActive ? ' aria-current="page"' : ''; ?>>
                             <span class="admin-menu-icon"><?php echo $menuIconSvg((string) ($menuItem['icon'] ?? 'dot')); ?></span>
-                            <span><?php echo e((string) ($menuItem['label'] ?? '')); ?></span>
+                            <span class="admin-menu-label"><?php echo e((string) ($menuItem['label'] ?? '')); ?></span>
                         </a>
                     <?php endforeach; ?>
                 </nav>
             </aside>
             <div class="admin-drawer-backdrop" data-admin-nav-drawer-backdrop hidden></div>
-
             <main class="admin-main">
                 <div class="admin-content-shell">
                     <div class="<?php echo e($pageTitleShellClass . ($enableAdminUiSystem ? ' ui-admin-header' : '')); ?>">
@@ -275,9 +347,6 @@ if ($enableAdminUiSystem) {
                             <span class="admin-page-title-dot"></span>
                             <span class="admin-page-title-label"><?php echo e($pageHeading); ?></span>
                         </div>
-                        <?php if ($pageTitleLiveSyncHtml !== ''): ?>
-                            <div class="admin-page-title-live-sync-slot"><?php echo $pageTitleLiveSyncHtml; ?></div>
-                        <?php endif; ?>
                         <?php if ($pageTitleActionHtml !== ''): ?>
                             <div class="admin-page-title-action-slot"><?php echo $pageTitleActionHtml; ?></div>
                         <?php endif; ?>
