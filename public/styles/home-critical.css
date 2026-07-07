@@ -752,9 +752,13 @@ html {
 }
 
 .marquee {
+    box-sizing: border-box;
     display: flex;
     align-items: center;
     gap: 12px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     overflow: hidden;
     background: linear-gradient(90deg, #fff8dc, #fff0c8);
     color: #7f1d1d;
@@ -954,6 +958,8 @@ html {
 
 .scrolling-text {
     flex: 1;
+    min-width: 0;
+    max-width: 100%;
     overflow: hidden;
     white-space: nowrap;
     line-height: 1.55;

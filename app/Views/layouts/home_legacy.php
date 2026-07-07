@@ -12,8 +12,8 @@
     <title><?php echo e(isset($pageTitle) ? $pageTitle : browser_title_setting(app()->config('app', 'site_name', '六合彩票论坛首页'))); ?></title>
     <meta name="description" content="<?php echo e(isset($pageDescription) ? $pageDescription : '澳门与香港六合彩论坛网站'); ?>">
     <?php
-    $frontStyleUrl = '/public/styles/style.css?v=20260706-front-float-contract-clean-02';
-    $frontHomeCriticalStyleUrl = '/public/styles/home-critical.css?v=20260706-front-float-contract-clean-02';
+    $frontStyleUrl = '/public/styles/style.css?v=20260706-home-marquee-overflow-01';
+    $frontHomeCriticalStyleUrl = '/public/styles/home-critical.css?v=20260706-home-marquee-overflow-01';
     $frontForecastCriticalStyleUrl = '/public/styles/forecast-critical.css?v=20260706-front-float-contract-clean-02';
     $frontServiceStyleUrl = '/public/styles/front-service.css?v=20260706-front-float-contract-clean-02';
     $frontFloatingStyleUrl = '/public/styles/front-floating.css?v=20260706-front-float-contract-clean-02';
