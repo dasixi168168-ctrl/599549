@@ -289,16 +289,22 @@ $memberPanelUrl = static function ($panel) use ($currentKeyword, $currentRole, $
                                         <strong><?php echo e(number_format((int) ($row['score'] ?? 0))); ?></strong>
                                         <?php if ($userCanManage): ?>
                                             <button class="ui-admin-btn" type="button" data-member-recharge-open="<?php echo e($rechargeModalId); ?>">充值</button>
-                                            <div class="member-recharge-modal" id="<?php echo e($rechargeModalId); ?>" data-member-recharge-modal hidden>
-                                                <div class="member-recharge-backdrop" data-member-recharge-close></div>
-                                                <div class="member-recharge-card" role="dialog" aria-modal="true" aria-labelledby="<?php echo e($rechargeModalId); ?>-title">
-                                                    <div class="member-recharge-head">
-                                                        <h2 id="<?php echo e($rechargeModalId); ?>-title">积分充值</h2>
-                                                        <button class="ui-admin-btn" type="button" aria-label="关闭积分充值" data-member-recharge-close>
-                                                            <i class="fa-solid fa-xmark"></i>
-                                                        </button>
+                                            <div class="member-recharge-modal admin-modal" id="<?php echo e($rechargeModalId); ?>" data-member-recharge-modal hidden>
+                                                <div class="member-recharge-backdrop admin-modal-backdrop" data-member-recharge-close></div>
+                                                <div class="member-recharge-card admin-modal-card admin-modal-card--sm" role="dialog" aria-modal="true" aria-labelledby="<?php echo e($rechargeModalId); ?>-title">
+                                                    <div class="member-recharge-head admin-modal-head">
+                                                        <div class="admin-modal-heading">
+                                                            <div class="admin-modal-title-row">
+                                                                <h2 class="admin-modal-title" id="<?php echo e($rechargeModalId); ?>-title">积分充值</h2>
+                                                            </div>
+                                                        </div>
+                                                        <div class="admin-modal-head-actions">
+                                                            <button class="ui-admin-btn admin-modal-close" type="button" aria-label="关闭积分充值" data-member-recharge-close>
+                                                                <i class="fa-solid fa-xmark"></i>
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    <form class="member-recharge-form" method="post" action="<?php echo e(public_url('admin.php') . '?page=users'); ?>" data-confirm="确认调整该会员积分吗？">
+                                                    <form class="member-recharge-form admin-modal-body" method="post" action="<?php echo e(public_url('admin.php') . '?page=users'); ?>" data-confirm="确认调整该会员积分吗？">
                                                         <input type="hidden" name="_token" value="<?php echo e(csrf_token('admin.users')); ?>">
                                                         <input type="hidden" name="_admin_form" value="page">
                                                         <input type="hidden" name="_admin_action" value="score_user">
@@ -381,17 +387,21 @@ $memberPanelUrl = static function ($panel) use ($currentKeyword, $currentRole, $
                                             </form>
                                         <?php endif; ?>
 
-                                        <div class="member-edit-modal" id="<?php echo e($editModalId); ?>" data-member-edit-modal hidden>
-                                            <div class="member-edit-backdrop" data-member-edit-close></div>
-                                            <div class="member-edit-card" role="dialog" aria-modal="true" aria-labelledby="<?php echo e($editModalId); ?>-title">
-                                                <div class="member-edit-head">
-                                                    <div>
-                                                        <strong id="<?php echo e($editModalId); ?>-title">编辑会员</strong>
-                                                        <span>ID <?php echo e((string) $rowId); ?> / <?php echo e((string) ($row['username'] ?? '')); ?></span>
+                                        <div class="member-edit-modal admin-modal" id="<?php echo e($editModalId); ?>" data-member-edit-modal hidden>
+                                            <div class="member-edit-backdrop admin-modal-backdrop" data-member-edit-close></div>
+                                            <div class="member-edit-card admin-modal-card admin-modal-card--xl" role="dialog" aria-modal="true" aria-labelledby="<?php echo e($editModalId); ?>-title">
+                                                <div class="member-edit-head admin-modal-head">
+                                                    <div class="admin-modal-heading">
+                                                        <div class="admin-modal-title-row">
+                                                            <strong class="admin-modal-title" id="<?php echo e($editModalId); ?>-title">编辑会员</strong>
+                                                        </div>
+                                                        <span class="admin-modal-subtitle">ID <?php echo e((string) $rowId); ?> / <?php echo e((string) ($row['username'] ?? '')); ?></span>
                                                     </div>
-                                                    <button class="ui-admin-btn" type="button" aria-label="关闭编辑弹窗" data-member-edit-close>×</button>
+                                                    <div class="admin-modal-head-actions">
+                                                        <button class="ui-admin-btn admin-modal-close" type="button" aria-label="关闭编辑弹窗" data-member-edit-close>×</button>
+                                                    </div>
                                                 </div>
-                                                <div class="member-edit-body">
+                                                <div class="member-edit-body admin-modal-body">
                                                     <?php if ($userCanManage): ?>
                                                         <form class="member-edit-form" method="post" action="<?php echo e(public_url('admin.php') . '?page=users'); ?>">
                                                             <input type="hidden" name="_token" value="<?php echo e(csrf_token('admin.users')); ?>">

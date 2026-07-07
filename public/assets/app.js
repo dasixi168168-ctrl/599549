@@ -2033,15 +2033,21 @@
 
         existing = document.createElement('div');
         existing.id = 'app-notice-modal';
-        existing.className = 'app-notice-modal front-standard-modal';
+        existing.className = 'app-notice-modal front-standard-modal admin-modal';
         existing.setAttribute('hidden', 'hidden');
         existing.innerHTML = '' +
-            '<div class="app-notice-backdrop front-standard-modal-backdrop" data-app-notice-close></div>' +
-            '<div class="app-notice-dialog front-standard-modal-dialog" role="alertdialog" aria-modal="true" aria-labelledby="app-notice-title">' +
-                '<div class="app-notice-icon" data-app-notice-icon></div>' +
-                '<div class="app-notice-title" id="app-notice-title" data-app-notice-title></div>' +
-                '<div class="app-notice-message" data-app-notice-message></div>' +
-                '<div class="app-notice-actions">' +
+            '<div class="app-notice-backdrop front-standard-modal-backdrop admin-modal-backdrop" data-app-notice-close></div>' +
+            '<div class="app-notice-dialog front-standard-modal-dialog admin-modal-card admin-modal-card--sm" role="alertdialog" aria-modal="true" aria-labelledby="app-notice-title">' +
+                '<div class="app-notice-head admin-modal-head admin-modal-head--center">' +
+                    '<div class="app-notice-icon" data-app-notice-icon></div>' +
+                    '<div class="admin-modal-heading">' +
+                        '<div class="admin-modal-title-row">' +
+                            '<div class="app-notice-title admin-modal-title" id="app-notice-title" data-app-notice-title></div>' +
+                        '</div>' +
+                        '<div class="app-notice-message admin-modal-subtitle" data-app-notice-message></div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="app-notice-actions admin-modal-actions">' +
                     '<button type="button" class="app-notice-button" data-app-notice-close>知道了</button>' +
                 '</div>' +
             '</div>';
@@ -2133,15 +2139,21 @@
 
         existing = document.createElement('div');
         existing.id = 'app-confirm-modal';
-        existing.className = 'app-confirm-modal front-standard-modal';
+        existing.className = 'app-confirm-modal front-standard-modal admin-modal';
         existing.setAttribute('hidden', 'hidden');
         existing.innerHTML = '' +
-            '<div class="app-confirm-backdrop front-standard-modal-backdrop" data-app-confirm-cancel></div>' +
-            '<section class="app-confirm-dialog front-standard-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="app-confirm-title">' +
-                '<div class="app-confirm-icon" data-app-confirm-icon aria-hidden="true"></div>' +
-                '<div class="app-confirm-title" id="app-confirm-title" data-app-confirm-title></div>' +
-                '<div class="app-confirm-message" data-app-confirm-message></div>' +
-                '<div class="app-confirm-actions">' +
+            '<div class="app-confirm-backdrop front-standard-modal-backdrop admin-modal-backdrop" data-app-confirm-cancel></div>' +
+            '<section class="app-confirm-dialog front-standard-modal-dialog admin-modal-card admin-modal-card--sm" role="dialog" aria-modal="true" aria-labelledby="app-confirm-title">' +
+                '<div class="app-confirm-head admin-modal-head admin-modal-head--center">' +
+                    '<div class="app-confirm-icon" data-app-confirm-icon aria-hidden="true"></div>' +
+                    '<div class="admin-modal-heading">' +
+                        '<div class="admin-modal-title-row">' +
+                            '<div class="app-confirm-title admin-modal-title" id="app-confirm-title" data-app-confirm-title></div>' +
+                        '</div>' +
+                        '<div class="app-confirm-message admin-modal-subtitle" data-app-confirm-message></div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="app-confirm-actions admin-modal-actions">' +
                     '<button type="button" class="app-confirm-cancel" data-app-confirm-cancel>取消</button>' +
                     '<button type="button" class="app-confirm-submit" data-app-confirm-submit>确定</button>' +
                 '</div>' +
@@ -2221,18 +2233,26 @@
 
         existing = document.createElement('div');
         existing.id = 'app-prompt-modal';
-        existing.className = 'app-confirm-modal app-prompt-modal front-standard-modal';
+        existing.className = 'app-confirm-modal app-prompt-modal front-standard-modal admin-modal';
         existing.setAttribute('hidden', 'hidden');
         existing.innerHTML = '' +
-            '<div class="app-confirm-backdrop front-standard-modal-backdrop" data-app-prompt-cancel></div>' +
-            '<section class="app-confirm-dialog app-prompt-dialog front-standard-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="app-prompt-title">' +
-                '<div class="app-confirm-icon" data-app-prompt-icon aria-hidden="true"></div>' +
-                '<div class="app-confirm-title" id="app-prompt-title" data-app-prompt-title></div>' +
-                '<label class="app-prompt-field">' +
-                    '<span class="app-confirm-message app-prompt-label" data-app-prompt-label></span>' +
-                    '<input class="app-prompt-input" type="text" data-app-prompt-input autocomplete="off">' +
-                '</label>' +
-                '<div class="app-confirm-actions">' +
+            '<div class="app-confirm-backdrop front-standard-modal-backdrop admin-modal-backdrop" data-app-prompt-cancel></div>' +
+            '<section class="app-confirm-dialog app-prompt-dialog front-standard-modal-dialog admin-modal-card admin-modal-card--sm" role="dialog" aria-modal="true" aria-labelledby="app-prompt-title">' +
+                '<div class="app-confirm-head app-prompt-head admin-modal-head admin-modal-head--center">' +
+                    '<div class="app-confirm-icon" data-app-prompt-icon aria-hidden="true"></div>' +
+                    '<div class="admin-modal-heading">' +
+                        '<div class="admin-modal-title-row">' +
+                            '<div class="app-confirm-title admin-modal-title" id="app-prompt-title" data-app-prompt-title></div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+                '<div class="app-prompt-body admin-modal-body">' +
+                    '<label class="app-prompt-field">' +
+                        '<span class="app-confirm-message app-prompt-label admin-modal-subtitle" data-app-prompt-label></span>' +
+                        '<input class="app-prompt-input" type="text" data-app-prompt-input autocomplete="off">' +
+                    '</label>' +
+                '</div>' +
+                '<div class="app-confirm-actions admin-modal-actions">' +
                     '<button type="button" class="app-confirm-cancel" data-app-prompt-cancel>取消</button>' +
                     '<button type="button" class="app-confirm-submit" data-app-prompt-submit>确定</button>' +
                 '</div>' +
@@ -2340,8 +2360,8 @@
     function setFormError(form, message) {
         var target = form.querySelector('[data-form-error]');
         if (target) {
-            target.textContent = '';
-            target.classList.add('hidden');
+            target.textContent = message || '';
+            target.classList.toggle('hidden', !message);
         }
     }
 
@@ -6858,6 +6878,181 @@
         }, 160));
     }
 
+    function initAdminAccountModal(root) {
+        var scope = root || document;
+        var body = document.body;
+        var modal = document.querySelector('[data-admin-account-modal]');
+        var openButtons = document.querySelectorAll('[data-admin-account-modal-open]');
+        var closeButtons;
+        var tabs;
+        var editButtons;
+        var panelOpenButtons;
+        var closeTimer = 0;
+        var lastFocus = null;
+        var modalOpen = false;
+
+        if (!body || !modal || !openButtons.length) {
+            return;
+        }
+
+        if (body.getAttribute('data-admin-account-modal-ready') === '1') {
+            return;
+        }
+
+        body.setAttribute('data-admin-account-modal-ready', '1');
+        closeButtons = modal.querySelectorAll('[data-admin-account-modal-close]');
+        tabs = modal.querySelectorAll('.admin-account-tabs [data-admin-account-tab]');
+        editButtons = modal.querySelectorAll('[data-admin-account-edit]');
+        panelOpenButtons = modal.querySelectorAll('[data-admin-account-panel-open]');
+
+        function setExpanded(expanded) {
+            Array.prototype.forEach.call(openButtons, function (button) {
+                button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+            });
+        }
+
+        function focusFirstField() {
+            var target = modal.querySelector('.admin-account-panel:not([hidden]) input:not([type="hidden"]), .admin-account-panel:not([hidden]) select, .admin-account-panel:not([hidden]) textarea, .admin-account-modal-close');
+            if (target && target.focus) {
+                target.focus();
+            }
+        }
+
+        function openModal() {
+            if (closeTimer) {
+                window.clearTimeout(closeTimer);
+                closeTimer = 0;
+            }
+
+            lastFocus = document.activeElement;
+            modalOpen = true;
+            modal.hidden = false;
+            setExpanded(true);
+            if (modalOpen) {
+                modal.classList.add('is-visible');
+                focusFirstField();
+            }
+        }
+
+        function closeModal() {
+            modalOpen = false;
+            modal.classList.remove('is-visible');
+            setExpanded(false);
+            closeTimer = window.setTimeout(function () {
+                modal.hidden = true;
+                closeTimer = 0;
+                if (lastFocus && lastFocus.focus) {
+                    lastFocus.focus();
+                }
+            }, 180);
+        }
+
+        function activatePanel(name) {
+            var tabName = name === 'edit' ? 'manage' : name;
+
+            Array.prototype.forEach.call(tabs, function (tab) {
+                var active = tab.getAttribute('data-admin-account-tab') === tabName;
+                tab.classList.toggle('is-active', active);
+                tab.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
+
+            Array.prototype.forEach.call(modal.querySelectorAll('[data-admin-account-panel]'), function (panel) {
+                var active = panel.getAttribute('data-admin-account-panel') === name;
+                panel.hidden = !active;
+                panel.classList.toggle('is-active', active);
+            });
+
+            focusFirstField();
+        }
+
+        function field(form, name) {
+            return form ? form.querySelector('[name="' + name + '"]') : null;
+        }
+
+        function setFieldValue(form, name, value) {
+            var target = field(form, name);
+            if (target) {
+                target.value = value == null ? '' : String(value);
+            }
+        }
+
+        function editAdminFromButton(button) {
+            var form = modal.querySelector('[data-admin-account-edit-form]');
+            var raw = button.getAttribute('data-admin-account-json') || '{}';
+            var payload;
+
+            if (!form) {
+                return;
+            }
+
+            try {
+                payload = JSON.parse(raw);
+            } catch (error) {
+                payload = {};
+            }
+
+            setFormError(form, '');
+            setFieldValue(form, 'id', payload.id || 0);
+            setFieldValue(form, 'username', payload.username || '');
+            setFieldValue(form, 'password', '');
+            setFieldValue(form, 'real_name', payload.real_name || '');
+            setFieldValue(form, 'nickname', payload.nickname || '');
+            setFieldValue(form, 'mobile', payload.mobile || '');
+            setFieldValue(form, 'email', payload.email || '');
+            setFieldValue(form, 'role_id', payload.role_id || 0);
+            setFieldValue(form, 'status', payload.status == null ? 1 : payload.status);
+            setFieldValue(form, 'remark', payload.remark || '');
+            activatePanel('edit');
+        }
+
+        Array.prototype.forEach.call(openButtons, function (button) {
+            button.addEventListener('click', function (event) {
+                event.preventDefault();
+                openModal();
+            });
+        });
+
+        Array.prototype.forEach.call(closeButtons, function (button) {
+            button.addEventListener('click', function (event) {
+                event.preventDefault();
+                closeModal();
+            });
+        });
+
+        Array.prototype.forEach.call(tabs, function (tab) {
+            tab.addEventListener('click', function (event) {
+                event.preventDefault();
+                activatePanel(tab.getAttribute('data-admin-account-tab') || 'current');
+            });
+        });
+
+        Array.prototype.forEach.call(panelOpenButtons, function (button) {
+            button.addEventListener('click', function (event) {
+                event.preventDefault();
+                activatePanel(button.getAttribute('data-admin-account-panel-open') || 'manage');
+            });
+        });
+
+        Array.prototype.forEach.call(editButtons, function (button) {
+            button.addEventListener('click', function (event) {
+                event.preventDefault();
+                editAdminFromButton(button);
+            });
+        });
+
+        modal.addEventListener('click', function (event) {
+            if (event.target && event.target.matches('[data-admin-account-modal-close]')) {
+                closeModal();
+            }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && !modal.hidden) {
+                closeModal();
+            }
+        });
+    }
+
     function initAdminSettingsComposer(root) {
         var scope = root || document;
         var forms = scope.querySelectorAll('[data-admin-settings-composer]');
@@ -7925,6 +8120,7 @@
 
         if (isAdminBody) {
             initAdminNavigationDrawer(root);
+            initAdminAccountModal(root);
             initAdminNavigationFeedback(root);
             initAdminSettingsComposer(root);
             initAdminForecastPricing(root);

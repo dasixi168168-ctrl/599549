@@ -641,6 +641,36 @@ class AdminService extends Service
         return $this->findById($adminId);
     }
 
+    public function deleteAdmin($adminId, array $actor)
+    {
+        $admin = $this->findById($adminId);
+        if (!$admin) {
+            throw new RuntimeException('管理员不存在。');
+        }
+
+        if ((int) $admin['id'] === (int) ($actor['id'] ?? 0)) {
+            throw new RuntimeException('不能删除当前登录管理员。');
+        }
+
+        if ((int) ($admin['is_super'] ?? 0) === 1) {
+            throw new RuntimeException('不能删除超级管理员。');
+        }
+
+        $this->db()->execute(
+            'UPDATE admin_users SET deleted_at = :deleted_at, updated_at = :updated_at WHERE id = :id AND deleted_at IS NULL',
+            array(
+                'deleted_at' => $this->now(),
+                'updated_at' => $this->now(),
+                'id' => (int) $admin['id'],
+            )
+        );
+
+        $this->recordOperation((int) $actor['id'], 'admins', 'delete', 'admin_user', (int) $admin['id'], '删除管理员：' . $admin['username']);
+        $this->flushAdminMenuItemsCache();
+
+        return true;
+    }
+
     public function saveRole(array $payload, array $actor)
     {
         $id = isset($payload['id']) ? (int) $payload['id'] : 0;

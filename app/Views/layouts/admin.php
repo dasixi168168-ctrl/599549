@@ -81,6 +81,35 @@ $adminHeaderDrawHtml = '<div class="admin-header-draw-card" data-admin-header-dr
     '<span class="admin-header-draw-issue">' . e($adminHeaderLiveIssueText) . '</span>' .
     '</div><div class="admin-header-draw-balls">' . $adminHeaderLiveBallsHtml . '</div></div>';
 $currentAdmin = is_array($currentAdmin ?? null) ? $currentAdmin : array();
+$adminAccountCanManage = false;
+$adminAccountRoles = array();
+$adminAccountAdmins = array();
+try {
+    $adminAccountCanManage = app()->auth()->adminCan('admins.manage');
+    if ($adminAccountCanManage) {
+        $adminAccountRoles = app()->admins()->listRoles();
+        $adminAccountAdmins = app()->admins()->listAdmins();
+    }
+} catch (\Throwable $adminAccountModalError) {
+    $adminAccountCanManage = false;
+    $adminAccountRoles = array();
+    $adminAccountAdmins = array();
+}
+$adminAccountCurrentRoleId = (int) ($currentAdmin['role_id'] ?? 0);
+$adminAccountDefaultRoleId = 0;
+$adminAccountAdminCount = count($adminAccountAdmins);
+foreach ($adminAccountRoles as $adminAccountRole) {
+    $roleId = (int) ($adminAccountRole['id'] ?? 0);
+    if ($roleId <= 0) {
+        continue;
+    }
+    if ($adminAccountDefaultRoleId === 0) {
+        $adminAccountDefaultRoleId = $roleId;
+    }
+    if ($roleId === $adminAccountCurrentRoleId) {
+        $adminAccountDefaultRoleId = $roleId;
+    }
+}
 $pageTitleShellClass = 'admin-page-title admin-page-title-shell';
 if ($pageTitleActionHtml !== '') {
     $pageTitleShellClass .= ' admin-page-title-shell--with-action';
@@ -154,8 +183,8 @@ $adminBodyPage = preg_replace('/[^a-z0-9_-]+/i', '-', strtolower((string) $activ
 if ($adminBodyPage !== '') {
     $adminBodyClasses[] = 'admin-page-' . trim((string) $adminBodyPage, '-');
 }
-$adminCssUrl = asset('app.css?v=20260707-admin-header-draw-01');
-$adminJsUrl = asset('app.js?v=20260707-admin-header-draw-01');
+$adminCssUrl = asset('app.css?v=20260707-admin-modal-standard-01');
+$adminJsUrl = asset('app.js?v=20260707-admin-modal-standard-01');
 $needsAdminTinyMce = isset($needsAdminTinyMce) ? (bool) $needsAdminTinyMce : $activeMenuCode === 'draws';
 $enableAdminUiSystem = false;
 $appendAdminUiClasses = static function ($html, $classPattern, $classes) {
@@ -293,16 +322,29 @@ if ($enableAdminUiSystem) {
                 <div class="admin-frame-brand-title">后台管理</div>
                 <div class="admin-frame-brand-site"><?php echo e(admin_management_name_setting(site_setting('site.name', app()->config('app', 'site_name', '')))); ?></div>
             </div>
-            <div class="admin-frame-account" aria-label="当前后台账号">
-                <div class="admin-frame-account-row admin-frame-account-role">
-                    <span class="admin-frame-account-label">当前</span>
-                    <strong class="admin-frame-account-value"><?php echo e(isset($currentAdmin['role_name']) ? (string) $currentAdmin['role_name'] : '管理员'); ?></strong>
+            <?php if ($adminAccountCanManage): ?>
+                <button class="admin-frame-account is-clickable" type="button" data-admin-account-modal-open aria-haspopup="dialog" aria-controls="admin-account-modal" aria-expanded="false" aria-label="打开管理账号设置">
+                    <span class="admin-frame-account-row admin-frame-account-role">
+                        <span class="admin-frame-account-label">当前</span>
+                        <strong class="admin-frame-account-value"><?php echo e(isset($currentAdmin['role_name']) ? (string) $currentAdmin['role_name'] : '管理员'); ?></strong>
+                    </span>
+                    <span class="admin-frame-account-row admin-frame-account-name">
+                        <span class="admin-frame-account-label">账号</span>
+                        <span class="admin-frame-account-value"><?php echo e(isset($currentAdmin['username']) ? (string) $currentAdmin['username'] : '-'); ?></span>
+                    </span>
+                </button>
+            <?php else: ?>
+                <div class="admin-frame-account" aria-label="当前后台账号">
+                    <div class="admin-frame-account-row admin-frame-account-role">
+                        <span class="admin-frame-account-label">当前</span>
+                        <strong class="admin-frame-account-value"><?php echo e(isset($currentAdmin['role_name']) ? (string) $currentAdmin['role_name'] : '管理员'); ?></strong>
+                    </div>
+                    <div class="admin-frame-account-row admin-frame-account-name">
+                        <span class="admin-frame-account-label">账号</span>
+                        <span class="admin-frame-account-value"><?php echo e(isset($currentAdmin['username']) ? (string) $currentAdmin['username'] : '-'); ?></span>
+                    </div>
                 </div>
-                <div class="admin-frame-account-row admin-frame-account-name">
-                    <span class="admin-frame-account-label">账号</span>
-                    <span class="admin-frame-account-value"><?php echo e(isset($currentAdmin['username']) ? (string) $currentAdmin['username'] : '-'); ?></span>
-                </div>
-            </div>
+            <?php endif; ?>
             <div class="admin-header-draw-slot" aria-label="<?php echo e($adminHeaderRegion === 'hongkong' ? '香港开奖结果' : '澳门开奖结果'); ?>">
                 <?php echo $adminHeaderDrawHtml; ?>
             </div>
@@ -340,6 +382,222 @@ if ($enableAdminUiSystem) {
                 </nav>
             </aside>
             <div class="admin-drawer-backdrop" data-admin-nav-drawer-backdrop hidden></div>
+            <?php if ($adminAccountCanManage): ?>
+                <div class="admin-account-modal admin-modal" id="admin-account-modal" data-admin-account-modal hidden>
+                    <div class="admin-account-modal-backdrop admin-modal-backdrop" data-admin-account-modal-close></div>
+                    <div class="admin-account-modal-card admin-modal-card admin-modal-card--md" role="dialog" aria-modal="true" aria-labelledby="admin-account-modal-title">
+                        <div class="admin-account-modal-head admin-modal-head">
+                            <div class="admin-modal-heading">
+                                <div class="admin-modal-title-row">
+                                    <h2 class="admin-modal-title" id="admin-account-modal-title">管理账号</h2>
+                                </div>
+                                <p class="admin-modal-subtitle">共 <?php echo e((string) $adminAccountAdminCount); ?> 位管理人员</p>
+                            </div>
+                            <div class="admin-modal-head-actions">
+                                <button class="admin-account-modal-close admin-modal-close" type="button" data-admin-account-modal-close aria-label="关闭">×</button>
+                            </div>
+                        </div>
+
+                        <div class="admin-account-tabs admin-modal-tabs" role="tablist" aria-label="管理账号操作">
+                            <button class="admin-account-tab admin-modal-tab is-active" type="button" data-admin-account-tab="current" role="tab" aria-selected="true">当前账号</button>
+                            <button class="admin-account-tab admin-modal-tab" type="button" data-admin-account-tab="manage" role="tab" aria-selected="false">管理人员 <?php echo e((string) $adminAccountAdminCount); ?></button>
+                            <button class="admin-account-tab admin-modal-tab" type="button" data-admin-account-tab="create" role="tab" aria-selected="false">新增管理人员</button>
+                        </div>
+
+                        <div class="admin-account-panel admin-modal-body is-active" data-admin-account-panel="current">
+                            <form method="post" action="<?php echo e(public_url('api.php')); ?>" data-ajax-form data-reload-current="1" class="admin-account-form">
+                                <input type="hidden" name="action" value="admin.admin.save">
+                                <input type="hidden" name="_token" value="<?php echo e(csrf_token('api')); ?>">
+                                <input type="hidden" name="id" value="<?php echo e((string) ((int) ($currentAdmin['id'] ?? 0))); ?>">
+                                <input type="hidden" name="role_id" value="<?php echo e((string) $adminAccountCurrentRoleId); ?>">
+                                <input type="hidden" name="status" value="<?php echo e((string) ((int) ($currentAdmin['status'] ?? 1))); ?>">
+                                <input type="hidden" name="real_name" value="<?php echo e((string) ($currentAdmin['real_name'] ?? '')); ?>">
+                                <input type="hidden" name="nickname" value="<?php echo e((string) ($currentAdmin['nickname'] ?? '')); ?>">
+                                <input type="hidden" name="mobile" value="<?php echo e((string) ($currentAdmin['mobile'] ?? '')); ?>">
+                                <input type="hidden" name="email" value="<?php echo e((string) ($currentAdmin['email'] ?? '')); ?>">
+                                <input type="hidden" name="remark" value="<?php echo e((string) ($currentAdmin['remark'] ?? '')); ?>">
+                                <div data-form-error class="admin-account-form-error hidden"></div>
+
+                                <label class="admin-account-field">
+                                    <span>管理账号</span>
+                                    <input class="admin-input" name="username" value="<?php echo e((string) ($currentAdmin['username'] ?? '')); ?>" autocomplete="username">
+                                </label>
+                                <label class="admin-account-field">
+                                    <span>登录密码</span>
+                                    <input class="admin-input" type="password" name="password" autocomplete="new-password" placeholder="留空不修改">
+                                </label>
+                                <div class="admin-account-actions">
+                                    <button class="admin-button" type="submit">保存当前账号</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="admin-account-panel admin-modal-body" data-admin-account-panel="manage" hidden>
+                            <div class="admin-account-summary">
+                                <strong><?php echo e((string) $adminAccountAdminCount); ?></strong>
+                                <span>位管理人员</span>
+                            </div>
+                            <?php if ($adminAccountAdmins): ?>
+                                <div class="admin-account-list">
+                                    <?php foreach ($adminAccountAdmins as $adminAccountRow): ?>
+                                        <?php
+                                        $adminAccountRowId = (int) ($adminAccountRow['id'] ?? 0);
+                                        $adminAccountRowPayload = array(
+                                            'id' => $adminAccountRowId,
+                                            'username' => (string) ($adminAccountRow['username'] ?? ''),
+                                            'real_name' => (string) ($adminAccountRow['real_name'] ?? ''),
+                                            'nickname' => (string) ($adminAccountRow['nickname'] ?? ''),
+                                            'mobile' => (string) ($adminAccountRow['mobile'] ?? ''),
+                                            'email' => (string) ($adminAccountRow['email'] ?? ''),
+                                            'role_id' => (int) ($adminAccountRow['role_id'] ?? 0),
+                                            'status' => (int) ($adminAccountRow['status'] ?? 1),
+                                            'remark' => (string) ($adminAccountRow['remark'] ?? ''),
+                                        );
+                                        $adminAccountRowJson = json_encode($adminAccountRowPayload, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT);
+                                        $adminAccountRowLocked = $adminAccountRowId === (int) ($currentAdmin['id'] ?? 0) || (int) ($adminAccountRow['is_super'] ?? 0) === 1;
+                                        ?>
+                                        <div class="admin-account-list-item">
+                                            <div class="admin-account-list-main">
+                                                <strong><?php echo e((string) ($adminAccountRow['username'] ?? '-')); ?></strong>
+                                                <span><?php echo e((string) ($adminAccountRow['role_name'] ?? '管理员')); ?> · <?php echo (int) ($adminAccountRow['status'] ?? 1) === 1 ? '启用' : '停用'; ?></span>
+                                            </div>
+                                            <div class="admin-account-list-actions">
+                                                <button class="admin-button is-light" type="button" data-admin-account-edit data-admin-account-json="<?php echo e((string) $adminAccountRowJson); ?>">编辑</button>
+                                                <?php if ($adminAccountRowLocked): ?>
+                                                    <button class="admin-button is-ghost" type="button" disabled>保护</button>
+                                                <?php else: ?>
+                                                    <form method="post" action="<?php echo e(public_url('api.php')); ?>" data-ajax-form data-reload-current="1" data-confirm="确认删除该管理员吗？">
+                                                        <input type="hidden" name="action" value="admin.admin.delete">
+                                                        <input type="hidden" name="_token" value="<?php echo e(csrf_token('api')); ?>">
+                                                        <input type="hidden" name="target_id" value="<?php echo e((string) $adminAccountRowId); ?>">
+                                                        <button class="admin-button is-danger" type="submit">删除</button>
+                                                    </form>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php else: ?>
+                                <div class="admin-empty">暂无管理人员。</div>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="admin-account-panel admin-modal-body" data-admin-account-panel="edit" hidden>
+                            <form method="post" action="<?php echo e(public_url('api.php')); ?>" data-ajax-form data-reload-current="1" class="admin-account-form" data-admin-account-edit-form>
+                                <input type="hidden" name="action" value="admin.admin.save">
+                                <input type="hidden" name="_token" value="<?php echo e(csrf_token('api')); ?>">
+                                <input type="hidden" name="id" value="0">
+                                <div data-form-error class="admin-account-form-error hidden"></div>
+
+                                <div class="admin-account-form-grid">
+                                    <label class="admin-account-field">
+                                        <span>管理账号</span>
+                                        <input class="admin-input" name="username" autocomplete="username">
+                                    </label>
+                                    <label class="admin-account-field">
+                                        <span>登录密码</span>
+                                        <input class="admin-input" type="password" name="password" autocomplete="new-password" placeholder="留空不修改">
+                                    </label>
+                                </div>
+                                <div class="admin-account-form-grid">
+                                    <label class="admin-account-field">
+                                        <span>姓名</span>
+                                        <input class="admin-input" name="real_name" autocomplete="name">
+                                    </label>
+                                    <label class="admin-account-field">
+                                        <span>角色</span>
+                                        <select class="admin-select" name="role_id">
+                                            <option value="0">请选择角色</option>
+                                            <?php foreach ($adminAccountRoles as $adminAccountRole): ?>
+                                                <option value="<?php echo e((string) ((int) ($adminAccountRole['id'] ?? 0))); ?>">
+                                                    <?php echo e((string) ($adminAccountRole['name'] ?? '管理员')); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </label>
+                                </div>
+                                <div class="admin-account-form-grid">
+                                    <label class="admin-account-field">
+                                        <span>昵称</span>
+                                        <input class="admin-input" name="nickname">
+                                    </label>
+                                    <label class="admin-account-field">
+                                        <span>状态</span>
+                                        <select class="admin-select" name="status">
+                                            <option value="1">启用</option>
+                                            <option value="0">停用</option>
+                                        </select>
+                                    </label>
+                                </div>
+                                <div class="admin-account-form-grid">
+                                    <label class="admin-account-field">
+                                        <span>手机号码</span>
+                                        <input class="admin-input" name="mobile" autocomplete="tel">
+                                    </label>
+                                    <label class="admin-account-field">
+                                        <span>邮箱地址</span>
+                                        <input class="admin-input" name="email" autocomplete="email">
+                                    </label>
+                                </div>
+                                <label class="admin-account-field">
+                                    <span>备注</span>
+                                    <textarea class="admin-textarea" name="remark" rows="3"></textarea>
+                                </label>
+                                <div class="admin-account-actions">
+                                    <button class="admin-button is-light" type="button" data-admin-account-panel-open="manage">返回列表</button>
+                                    <button class="admin-button" type="submit">保存管理员</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="admin-account-panel admin-modal-body" data-admin-account-panel="create" hidden>
+                            <form method="post" action="<?php echo e(public_url('api.php')); ?>" data-ajax-form data-reload-current="1" class="admin-account-form">
+                                <input type="hidden" name="action" value="admin.admin.save">
+                                <input type="hidden" name="_token" value="<?php echo e(csrf_token('api')); ?>">
+                                <input type="hidden" name="id" value="0">
+                                <input type="hidden" name="status" value="1">
+                                <div data-form-error class="admin-account-form-error hidden"></div>
+
+                                <div class="admin-account-form-grid">
+                                    <label class="admin-account-field">
+                                        <span>管理账号</span>
+                                        <input class="admin-input" name="username" autocomplete="username">
+                                    </label>
+                                    <label class="admin-account-field">
+                                        <span>登录密码</span>
+                                        <input class="admin-input" type="password" name="password" autocomplete="new-password">
+                                    </label>
+                                </div>
+                                <div class="admin-account-form-grid">
+                                    <label class="admin-account-field">
+                                        <span>姓名</span>
+                                        <input class="admin-input" name="real_name" autocomplete="name">
+                                    </label>
+                                    <label class="admin-account-field">
+                                        <span>角色</span>
+                                        <select class="admin-select" name="role_id">
+                                            <option value="0">请选择角色</option>
+                                            <?php foreach ($adminAccountRoles as $adminAccountRole): ?>
+                                                <option value="<?php echo e((string) ((int) ($adminAccountRole['id'] ?? 0))); ?>" <?php echo (int) ($adminAccountRole['id'] ?? 0) === $adminAccountDefaultRoleId ? 'selected' : ''; ?>>
+                                                    <?php echo e((string) ($adminAccountRole['name'] ?? '管理员')); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </label>
+                                </div>
+                                <label class="admin-account-field">
+                                    <span>备注</span>
+                                    <textarea class="admin-textarea" name="remark" rows="3"></textarea>
+                                </label>
+                                <div class="admin-account-actions">
+                                    <button class="admin-button" type="submit">新增管理人员</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+
             <main class="admin-main">
                 <div class="admin-content-shell">
                     <div class="<?php echo e($pageTitleShellClass . ($enableAdminUiSystem ? ' ui-admin-header' : '')); ?>">

@@ -290,27 +290,27 @@ if ($latestRegionBallsHtml === '') {
                 </div>
             </form>
 
-            <div class="admin-section-editor-modal" data-section-editor-modal hidden>
-                <div class="admin-section-editor-backdrop" data-section-editor-close></div>
-                <div class="admin-section-editor-dialog" role="dialog" aria-modal="true" aria-labelledby="draw-section-editor-title">
-                    <div class="admin-section-editor-header">
-                        <div>
-                            <div class="admin-section-editor-title-row">
-                                <div class="admin-section-editor-title" id="draw-section-editor-title">广告设置</div>
+            <div class="admin-section-editor-modal admin-modal" data-section-editor-modal hidden>
+                <div class="admin-section-editor-backdrop admin-modal-backdrop" data-section-editor-close></div>
+                <div class="admin-section-editor-dialog admin-modal-card admin-modal-card--lg" role="dialog" aria-modal="true" aria-labelledby="draw-section-editor-title">
+                    <div class="admin-section-editor-header admin-modal-head">
+                        <div class="admin-modal-heading">
+                            <div class="admin-section-editor-title-row admin-modal-title-row">
+                                <div class="admin-section-editor-title admin-modal-title" id="draw-section-editor-title">广告设置</div>
                                 <label class="admin-section-editor-lock-toggle">
                                     <input type="checkbox" data-section-editor-field="edit-lock">
                                     <span>锁定编辑</span>
                                 </label>
                             </div>
-                            <div class="admin-section-editor-subtitle" data-section-editor-target>请选择要编辑的主卡片</div>
+                            <div class="admin-section-editor-subtitle admin-modal-subtitle" data-section-editor-target>请选择要编辑的主卡片</div>
                         </div>
-                        <div class="admin-section-editor-header-actions">
+                        <div class="admin-section-editor-header-actions admin-modal-head-actions admin-modal-actions">
                             <button class="admin-button" type="submit" form="section-editor-form">保存</button>
                             <button class="admin-button is-light" type="button" data-section-editor-close>关闭</button>
                         </div>
                     </div>
 
-                    <div class="admin-section-editor-body">
+                    <div class="admin-section-editor-body admin-modal-body">
                         <form id="section-editor-form" data-section-editor-form>
                             <div class="admin-section-editor-grid">
                                 <div class="admin-section-editor-panel admin-section-editor-title-panel">
@@ -3099,10 +3099,14 @@ if ($latestRegionBallsHtml === '') {
 
         if (open) {
             sectionEditorModal.removeAttribute('hidden');
+            window.requestAnimationFrame(function () {
+                sectionEditorModal.classList.add('is-visible');
+            });
             document.body.classList.add('admin-section-editor-open');
             return;
         }
 
+        sectionEditorModal.classList.remove('is-visible');
         sectionEditorModal.setAttribute('hidden', 'hidden');
         document.body.classList.remove('admin-section-editor-open');
     };

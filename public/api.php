@@ -806,6 +806,19 @@ try {
             ));
             break;
 
+        case 'admin.admin.delete':
+            if (!$admin) {
+                throw new RuntimeException('请先登录后台后再执行该操作。');
+            }
+            app()->auth()->requireAdminPortal('admins.manage', public_url('admin.php'));
+            app()->admins()->deleteAdmin((int) input('target_id', 0), $admin);
+            json_response(array(
+                'success' => true,
+                'message' => '管理员已删除。',
+                'reload' => true,
+            ));
+            break;
+
         case 'admin.role.save':
             if (!$admin) {
                 throw new RuntimeException('请先登录后台后再执行该操作。');

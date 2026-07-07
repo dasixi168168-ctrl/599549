@@ -239,18 +239,22 @@ $customerServiceTabUrl = static function ($view, array $extra = array()) {
     <?php if ($customerServiceView === 'agents'): ?>
     <div class="support-management-grid is-agents<?php echo $customerServiceAgentFormOpen ? ' has-agent-modal' : ''; ?>">
         <?php if ($customerServiceAgentFormOpen): ?>
-            <div class="support-agent-modal" role="dialog" aria-modal="true" aria-labelledby="support-agent-editor-title">
-                <a class="support-agent-modal-backdrop" href="<?php echo e($customerServiceTabUrl('agents')); ?>" aria-label="<?php echo $customerServiceAddingAgent ? '关闭添加客服账号' : '关闭编辑客服账号'; ?>"></a>
-                <section class="support-ops-card support-management-card support-agent-editor-card is-modal">
-                    <div class="support-panel-head">
-                        <div>
-                            <h3 id="support-agent-editor-title"><?php echo $customerServiceAddingAgent ? '添加客服账号' : '编辑客服账号'; ?></h3>
+            <div class="support-agent-modal admin-modal is-visible" role="dialog" aria-modal="true" aria-labelledby="support-agent-editor-title">
+                <a class="support-agent-modal-backdrop admin-modal-backdrop" href="<?php echo e($customerServiceTabUrl('agents')); ?>" aria-label="<?php echo $customerServiceAddingAgent ? '关闭添加客服账号' : '关闭编辑客服账号'; ?>"></a>
+                <section class="support-ops-card support-management-card support-agent-editor-card is-modal admin-modal-card admin-modal-card--lg">
+                    <div class="support-panel-head admin-modal-head">
+                        <div class="admin-modal-heading">
+                            <div class="admin-modal-title-row">
+                                <h3 class="admin-modal-title" id="support-agent-editor-title"><?php echo $customerServiceAddingAgent ? '添加客服账号' : '编辑客服账号'; ?></h3>
+                            </div>
                         </div>
-                        <a class="support-open-link is-muted" href="<?php echo e($customerServiceTabUrl('agents')); ?>"><?php echo $customerServiceAddingAgent ? '取消添加' : '取消编辑'; ?></a>
+                        <div class="admin-modal-head-actions">
+                            <a class="support-open-link is-muted admin-modal-close" href="<?php echo e($customerServiceTabUrl('agents')); ?>"><?php echo $customerServiceAddingAgent ? '取消添加' : '取消编辑'; ?></a>
+                        </div>
                     </div>
 
                     <?php if ($customerServiceCanManage): ?>
-                        <form class="support-agent-form" method="post" action="<?php echo e(public_url('api.php')); ?>" data-customer-service-agent-form data-success-redirect="<?php echo e($customerServiceTabUrl('agents')); ?>">
+                        <form class="support-agent-form admin-modal-body" method="post" action="<?php echo e(public_url('api.php')); ?>" data-customer-service-agent-form data-success-redirect="<?php echo e($customerServiceTabUrl('agents')); ?>">
                             <input type="hidden" name="action" value="customer_service.agent.save">
                             <input type="hidden" name="_token" value="<?php echo e(csrf_token('api')); ?>">
                             <input type="hidden" name="id" value="<?php echo e((string) (int) ($customerServiceAgentForm['id'] ?? 0)); ?>">
