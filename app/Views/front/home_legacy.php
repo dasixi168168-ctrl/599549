@@ -16,7 +16,7 @@ $memberLabel = $currentUser ? '我的' : '登录';
 $indexUrl = public_url('index.php');
 $recordUrl = public_url('record.php');
 $memberUrl = public_url('member.php') . '?region=' . urlencode($currentRegion);
-$forecastUrl = public_url('forecast.php') . '?region=macau';
+$forecastUrl = public_url('forecast.php') . '?region=' . urlencode($currentRegion);
 $serviceUrl = public_url('service.php') . '?region=' . urlencode($currentRegion);
 if ($customerServiceAgentNav) {
     $memberLabel = '管理';

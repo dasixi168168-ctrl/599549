@@ -58,7 +58,7 @@ $customerServiceUnreadEnabled = ($customerServiceAgentSessionActive || (isset($u
 $agentNavSuffix = $customerServiceAgentSessionActive ? 'agent=1' : '';
 $macauNavUrl = public_url('index.php') . ($agentNavSuffix !== '' ? '?' . $agentNavSuffix : '');
 $hongkongNavUrl = public_url('record.php') . ($agentNavSuffix !== '' ? '?' . $agentNavSuffix : '');
-$forecastNavUrl = public_url('forecast.php') . '?region=macau' . ($agentNavSuffix !== '' ? '&' . $agentNavSuffix : '');
+$forecastNavUrl = public_url('forecast.php') . '?region=' . urlencode($currentRegion) . ($agentNavSuffix !== '' ? '&' . $agentNavSuffix : '');
 $serviceNavUrl = public_url('service.php') . '?region=' . urlencode($currentRegion) . ($agentNavSuffix !== '' ? '&' . $agentNavSuffix : '');
 $managedBottomHtml = !empty($ignoreManagedBottomNav)
     ? ''
