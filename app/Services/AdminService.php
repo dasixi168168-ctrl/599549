@@ -10450,7 +10450,7 @@ class AdminService extends Service
             'report_total_count',
             'report_pending_count',
         );
-        $cachedStats = $this->app->cache()->get($statsCacheKey, null, 8);
+        $cachedStats = $this->app->cache()->get($statsCacheKey, null, 300);
         if (is_array($cachedStats)) {
             foreach ($posts as $index => $post) {
                 $postId = (int) ($post['id'] ?? 0);
@@ -11572,9 +11572,16 @@ class AdminService extends Service
             return;
         }
 
+        $cacheKey = 'admin_managed_post_meta_schema_ready_20260707_01';
+        if ($this->app->cache()->get($cacheKey, false, 86400) === true) {
+            $managedPostMetaReady = true;
+            return;
+        }
+
         $database = $this->db();
         if (!$this->tableExists($database, 'post_manage_meta')) {
             $this->runSchemaOn($database);
+            $this->app->cache()->put($cacheKey, true);
             $managedPostMetaReady = true;
             return;
         }
@@ -11585,6 +11592,7 @@ class AdminService extends Service
                 break;
             }
         }
+        $this->app->cache()->put($cacheKey, true);
         $managedPostMetaReady = true;
     }
 

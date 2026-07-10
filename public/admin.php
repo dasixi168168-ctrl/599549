@@ -1145,7 +1145,7 @@ if ($page === 'posts' && !is_post() && app()->auth()->adminCan('posts.manage')) 
 if ($page === 'posts' && !is_post() && !is_prefetch_request() && app()->auth()->adminCan('posts.manage') && $postsScheduleView === 'manage') {
     try {
         $postScheduleCheckKey = 'admin_posts_manage_schedule_checked_at';
-        $postScheduleCheckedAt = (int) app()->cache()->get($postScheduleCheckKey, 0, 20);
+        $postScheduleCheckedAt = (int) app()->cache()->get($postScheduleCheckKey, 0, 300);
         if ($postScheduleCheckedAt <= 0) {
             app()->cache()->put($postScheduleCheckKey, time());
             app()->admins()->runManagedPostGeneratorSchedule($currentAdmin);
