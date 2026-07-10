@@ -15635,14 +15635,25 @@ class AdminService extends Service
     {
         $tokens = preg_split('/\s+/', trim($classList)) ?: array();
         $filtered = array();
+        $editorOnlyClasses = array(
+            'editor-sortable-block' => true,
+            'editor-sortable-block--floating' => true,
+            'editor-sortable-block--control-anchor' => true,
+            'editor-section-dragging' => true,
+            'editor-section-drop-indicator' => true,
+        );
 
         foreach ($tokens as $token) {
             $token = trim((string) $token);
-            if ($token === '' || $token === 'editor-sortable-block' || $token === 'editor-sortable-block--floating') {
+            if ($token === '' || isset($editorOnlyClasses[$token])) {
                 continue;
             }
 
-            if (strpos($token, 'mce-') === 0) {
+            if (
+                strpos($token, 'mce-') === 0
+                || strpos($token, 'tox-') === 0
+                || strpos($token, 'editor-section-') === 0
+            ) {
                 continue;
             }
 
@@ -15753,6 +15764,114 @@ class AdminService extends Service
             '',
             $html
         );
+    }
+
+    protected function removeManagedDrawEditorControlElements(string $html): string
+    {
+        $html = trim($html);
+        if ($html === '') {
+            return '';
+        }
+
+        for ($index = 0; $index < 6; $index += 1) {
+            $nextHtml = (string) preg_replace(
+                '/<([a-z][a-z0-9:-]*)\b(?=[^>]*\sdata-section-editor-control\s*=)[^>]*>[\s\S]*?<\/\s*\1\s*>/iu',
+                '',
+                $html
+            );
+            $nextHtml = (string) preg_replace(
+                '/<([a-z][a-z0-9:-]*)\b(?=[^>]*\sdata-section-editor-control\s*=)[^>]*\/?\s*>/iu',
+                '',
+                $nextHtml
+            );
+
+            if ($nextHtml === $html) {
+                break;
+            }
+
+            $html = $nextHtml;
+        }
+
+        return trim($html);
+    }
+
+    protected function sanitizeManagedDrawComponentHtml(string $html): string
+    {
+        $html = $this->removeManagedDrawEditorControlElements($this->normalizeManagedDrawEditorResourceReferences($html));
+        if ($html === '') {
+            return '';
+        }
+
+        $html = (string) preg_replace('/\scontenteditable\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/iu', '', $html);
+        $html = (string) preg_replace('/\sdraggable\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/iu', '', $html);
+        $html = (string) preg_replace('/\sdata-section-(?:editor-[a-z0-9_-]+|edit-locked|hidden|display)\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/iu', '', $html);
+        $html = (string) preg_replace('/\sdata-mce-[a-z0-9_-]+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/iu', '', $html);
+        $html = (string) preg_replace('/<\s*(script|iframe|object|embed|link|meta|base|form|input|button|textarea|select|option)\b[\s\S]*?<\s*\/\s*\1\s*>/iu', '', $html);
+        $html = (string) preg_replace('/<\s*(script|iframe|object|embed|link|meta|base|form|input|button|textarea|select|option)\b[^>]*\/?\s*>/iu', '', $html);
+        $html = (string) preg_replace('/\s+on[a-z0-9_-]+\s*=\s*(".*?"|\'.*?\'|[^\s>]+)/iu', '', $html);
+        $html = (string) preg_replace_callback(
+            '/\s+(href|src|xlink:href|action|formaction)\s*=\s*("([^"]*)"|\'([^\']*)\'|([^\s>]+))/iu',
+            function ($matches) {
+                $attribute = strtolower((string) ($matches[1] ?? ''));
+                $value = '';
+                if (isset($matches[3])) {
+                    $value = (string) $matches[3];
+                } elseif (isset($matches[4])) {
+                    $value = (string) $matches[4];
+                } elseif (isset($matches[5])) {
+                    $value = (string) $matches[5];
+                }
+
+                $decodedValue = html_entity_decode($value, ENT_QUOTES, 'UTF-8');
+                $normalizedValue = strtolower((string) preg_replace('/[\x00-\x20]+/', '', $decodedValue));
+                if (
+                    strpos($normalizedValue, 'javascript:') === 0
+                    || strpos($normalizedValue, 'vbscript:') === 0
+                    || strpos($normalizedValue, 'data:') === 0
+                ) {
+                    return '';
+                }
+
+                return ' ' . $attribute . '="' . htmlspecialchars($value, ENT_QUOTES, 'UTF-8') . '"';
+            },
+            $html
+        );
+        $html = (string) preg_replace_callback(
+            '/\sclass="([^"]*)"/i',
+            function ($matches) {
+                $classList = $this->normalizeManagedDrawEditorClassList((string) ($matches[1] ?? ''));
+                if ($classList === '') {
+                    return '';
+                }
+
+                return ' class="' . htmlspecialchars($classList, ENT_QUOTES, 'UTF-8') . '"';
+            },
+            $html
+        );
+        $html = (string) preg_replace_callback(
+            '/\sstyle\s*=\s*("([^"]*)"|\'([^\']*)\'|[^\s>]+)/i',
+            function ($matches) {
+                $styleValue = '';
+                if (isset($matches[2])) {
+                    $styleValue = (string) $matches[2];
+                } elseif (isset($matches[3])) {
+                    $styleValue = (string) $matches[3];
+                } elseif (isset($matches[1])) {
+                    $styleValue = trim((string) $matches[1], '"\'');
+                }
+
+                $styleValue = $this->normalizeManagedDrawInlineStyle($styleValue);
+                if ($styleValue === '') {
+                    return '';
+                }
+
+                return ' style="' . htmlspecialchars($styleValue, ENT_QUOTES, 'UTF-8') . '"';
+            },
+            $html
+        );
+        $html = (string) preg_replace('/\sstyle=""/i', '', $html);
+
+        return trim($html);
     }
 
     protected function sanitizeManagedDrawMaterialHtml(string $html): string
@@ -16381,6 +16500,66 @@ class AdminService extends Service
         return $this->managedDrawDefaultComponentTemplatesRequestCache;
     }
 
+    protected function managedDrawComponentHtmlLooksComplete(string $componentPart, string $contentHtml): bool
+    {
+        $contentHtml = trim($contentHtml);
+        if ($contentHtml === '') {
+            return false;
+        }
+
+        $plainText = trim((string) preg_replace('/\s+/u', '', strip_tags($contentHtml)));
+        if ($plainText === '') {
+            return false;
+        }
+
+        if ($componentPart === 'top_float') {
+            return preg_match('/<header\b(?=[^>]*\bclass\s*=\s*["\'][^"\']*\btop-bar\b)/u', $contentHtml) === 1
+                && strpos($contentHtml, 'top-bar-inner') !== false
+                && strpos($contentHtml, 'top-brand') !== false
+                && strpos($contentHtml, 'top-bar-actions') !== false;
+        }
+
+        if ($componentPart === 'bottom_float') {
+            return preg_match('/<nav\b(?=[^>]*\bclass\s*=\s*["\'][^"\']*\bbottom-float-nav\b)/u', $contentHtml) === 1
+                && substr_count($contentHtml, 'bottom-nav-link') >= 3
+                && $this->managedDrawBottomNavHasForecastItem($contentHtml);
+        }
+
+        return false;
+    }
+
+    protected function managedDrawBottomNavHasForecastItem(string $contentHtml): bool
+    {
+        $contentHtml = trim($contentHtml);
+        if ($contentHtml === '') {
+            return false;
+        }
+
+        if (!preg_match_all('/<a\b(?P<attrs>[^>]*)>(?P<body>[\s\S]*?)<\/a>/u', $contentHtml, $matches, PREG_SET_ORDER)) {
+            return false;
+        }
+
+        foreach ($matches as $match) {
+            $attrs = (string) ($match['attrs'] ?? '');
+            if (!preg_match('/\bclass\s*=\s*(["\'])(?P<class>.*?)\1/iu', $attrs, $classMatches)) {
+                continue;
+            }
+
+            $classList = preg_split('/\s+/', trim(html_entity_decode((string) ($classMatches['class'] ?? ''), ENT_QUOTES, 'UTF-8')));
+            $classList = is_array($classList) ? $classList : array();
+            if (!in_array('bottom-nav-link', $classList, true)) {
+                continue;
+            }
+
+            $plainText = trim((string) preg_replace('/\s+/u', '', strip_tags((string) ($match['body'] ?? ''))));
+            if (strpos($plainText, '预测') !== false) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     protected function managedDrawComponentLatestMeta(array $components): array
     {
         $latestAt = '';
@@ -16422,7 +16601,7 @@ class AdminService extends Service
         $bottomUpdatedBy = (string) $this->app->settings()->get($component['updated_by_keys']['bottom_float'], '');
         $cacheSource = array(
             'component_key' => $componentKey,
-            'fallback_version' => 2,
+            'fallback_version' => 6,
             'top_html_hash' => md5($topStoredHtml),
             'bottom_html_hash' => md5($bottomStoredHtml),
             'top_updated_at' => $topUpdatedAt,
@@ -16444,13 +16623,18 @@ class AdminService extends Service
 
         $topHasCustomized = trim($topUpdatedAt) !== '' || trim($topUpdatedBy) !== '' || trim($topStoredHtml) !== '';
         $bottomHasCustomized = trim($bottomUpdatedAt) !== '' || trim($bottomUpdatedBy) !== '' || trim($bottomStoredHtml) !== '';
-        $topHasContent = trim($topStoredHtml) !== '';
-        $bottomHasContent = trim($bottomStoredHtml) !== '';
+        $topHasContent = $this->managedDrawComponentHtmlLooksComplete('top_float', $topStoredHtml);
+        $bottomHasContent = $this->managedDrawComponentHtmlLooksComplete('bottom_float', $bottomStoredHtml);
         $defaults = (!$topHasContent || !$bottomHasContent)
             ? $this->managedDrawDefaultComponentTemplates()
             : array();
-        $topContentHtml = $this->normalizeManagedDrawEditorResourceReferences($topHasContent ? $topStoredHtml : (string) ($defaults['top_float'] ?? ''));
-        $bottomContentHtml = $this->normalizeManagedDrawEditorResourceReferences($bottomHasContent ? $bottomStoredHtml : (string) ($defaults['bottom_float'] ?? ''));
+        $topContentHtml = $this->sanitizeManagedDrawComponentHtml($topHasContent ? $topStoredHtml : (string) ($defaults['top_float'] ?? ''));
+        $bottomContentHtml = $this->sanitizeManagedDrawComponentHtml($bottomHasContent ? $bottomStoredHtml : (string) ($defaults['bottom_float'] ?? ''));
+        $storedContentHtml = trim(
+            $this->sanitizeManagedDrawComponentHtml($topStoredHtml)
+            . "\n\n"
+            . $this->sanitizeManagedDrawComponentHtml($bottomStoredHtml)
+        );
         $latestMeta = $this->managedDrawComponentLatestMeta(array(
             array('updated_at' => $topUpdatedAt, 'updated_by' => $topUpdatedBy),
             array('updated_at' => $bottomUpdatedAt, 'updated_by' => $bottomUpdatedBy),
@@ -16460,7 +16644,7 @@ class AdminService extends Service
             'component_key' => $componentKey,
             'component_label' => (string) $component['label'],
             'content_html' => trim($topContentHtml . "\n\n" . $bottomContentHtml),
-            'stored_content_html' => trim($topStoredHtml . "\n\n" . $bottomStoredHtml),
+            'stored_content_html' => $storedContentHtml,
             'updated_at' => (string) ($latestMeta['updated_at'] ?? ''),
             'updated_by' => (string) ($latestMeta['updated_by'] ?? ''),
             'has_customized' => $topHasCustomized || $bottomHasCustomized,
@@ -16475,34 +16659,45 @@ class AdminService extends Service
     {
         $componentKey = $this->normalizeManagedDrawComponentKey((string) ($payload['component_key'] ?? 'float_group'));
         $component = $this->managedDrawComponentMap($componentKey);
-        $contentHtml = isset($payload['content_html']) ? $this->normalizeManagedDrawEditorResourceReferences((string) $payload['content_html']) : '';
+        $contentHtml = isset($payload['content_html']) ? $this->sanitizeManagedDrawComponentHtml((string) $payload['content_html']) : '';
         $componentParts = $this->splitManagedDrawComponentHtml($contentHtml);
         $contentIsBlank = trim($contentHtml) === '';
         $topContentHtml = (string) ($componentParts['top_float'] ?? '');
         $bottomContentHtml = (string) ($componentParts['bottom_float'] ?? '');
-        $storedTopContentHtml = (string) $this->app->settings()->get($component['content_keys']['top_float'], '');
-        $storedBottomContentHtml = (string) $this->app->settings()->get($component['content_keys']['bottom_float'], '');
+        $storedTopContentHtml = $this->sanitizeManagedDrawComponentHtml((string) $this->app->settings()->get($component['content_keys']['top_float'], ''));
+        $storedBottomContentHtml = $this->sanitizeManagedDrawComponentHtml((string) $this->app->settings()->get($component['content_keys']['bottom_float'], ''));
+        $topContentComplete = $this->managedDrawComponentHtmlLooksComplete('top_float', $topContentHtml);
+        $bottomContentComplete = $this->managedDrawComponentHtmlLooksComplete('bottom_float', $bottomContentHtml);
+        $storedTopContentComplete = $this->managedDrawComponentHtmlLooksComplete('top_float', $storedTopContentHtml);
+        $storedBottomContentComplete = $this->managedDrawComponentHtmlLooksComplete('bottom_float', $storedBottomContentHtml);
         $defaultComponents = array();
 
         if (!$contentIsBlank && trim($topContentHtml) === '' && trim($bottomContentHtml) === '') {
             throw new RuntimeException('未识别到悬浮组件内容，请确认编辑器中包含顶部悬浮卡片或底部悬浮卡片后再保存。');
         }
 
-        if ($contentIsBlank || trim($topContentHtml) === '' || trim($bottomContentHtml) === '') {
+        if (!$contentIsBlank && trim($bottomContentHtml) !== '' && !$this->managedDrawBottomNavHasForecastItem($bottomContentHtml)) {
+            throw new RuntimeException('底部悬浮导航必须保留带 bottom-nav-link 类名且文案包含“预测”的预测项，否则香港首页无法自动重写到香港预测。');
+        }
+
+        if ($contentIsBlank || !$topContentComplete || !$bottomContentComplete) {
             $defaultComponents = $this->managedDrawDefaultComponentTemplates();
         }
 
-        if ($contentIsBlank || trim($topContentHtml) === '') {
-            $topContentHtml = trim($storedTopContentHtml) !== ''
+        if ($contentIsBlank || !$topContentComplete) {
+            $topContentHtml = $storedTopContentComplete
                 ? $storedTopContentHtml
                 : (string) ($defaultComponents['top_float'] ?? '');
         }
 
-        if ($contentIsBlank || trim($bottomContentHtml) === '') {
-            $bottomContentHtml = trim($storedBottomContentHtml) !== ''
+        if ($contentIsBlank || !$bottomContentComplete) {
+            $bottomContentHtml = $storedBottomContentComplete
                 ? $storedBottomContentHtml
                 : (string) ($defaultComponents['bottom_float'] ?? '');
         }
+
+        $topContentHtml = $this->sanitizeManagedDrawComponentHtml($topContentHtml);
+        $bottomContentHtml = $this->sanitizeManagedDrawComponentHtml($bottomContentHtml);
 
         $updatedAt = $this->now();
         $updatedBy = isset($actor['username']) ? (string) $actor['username'] : '';
