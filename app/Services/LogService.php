@@ -272,12 +272,14 @@ class LogService extends Service
     public function recentLoginLogs($limit = 20, $userId = null)
     {
         if ($userId !== null) {
-            return $this->db()->fetchAll('SELECT * FROM login_logs WHERE user_id = :user_id ORDER BY created_at DESC LIMIT ' . (int) $limit, array(
+            $rows = $this->db()->fetchAll('SELECT * FROM login_logs WHERE user_id = :user_id ORDER BY created_at DESC LIMIT ' . (int) $limit, array(
                 'user_id' => $userId,
             ));
+
+            return $this->enrichLoginAreaRows($rows);
         }
 
-        return $this->db()->fetchAll('SELECT * FROM login_logs ORDER BY created_at DESC LIMIT ' . (int) $limit);
+        return $this->enrichLoginAreaRows($this->db()->fetchAll('SELECT * FROM login_logs ORDER BY created_at DESC LIMIT ' . (int) $limit));
     }
 
     public function adminLogs($limit = 50)

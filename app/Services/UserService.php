@@ -573,9 +573,11 @@ class UserService extends Service
 
     public function recentLoginLogs($userId, $limit = 3)
     {
-        return $this->db()->fetchAll('SELECT * FROM login_logs WHERE user_id = :user_id ORDER BY created_at DESC LIMIT ' . (int) $limit, array(
+        $rows = $this->db()->fetchAll('SELECT * FROM login_logs WHERE user_id = :user_id ORDER BY created_at DESC LIMIT ' . (int) $limit, array(
             'user_id' => $userId,
         ));
+
+        return $this->enrichLoginAreaRows($rows);
     }
 
     public function listUsers($roleFilter = null)

@@ -80,19 +80,23 @@ $registerSourceUnknown = static function ($value) use ($locationLabelUnknown) {
 };
 
 $resolveRegisterCarrierFromIp = static function (array $row) {
+    $hasPublicIp = false;
     foreach (array('register_ip', 'last_login_ip') as $field) {
         $ip = trim((string) ($row[$field] ?? ''));
         if ($ip === '' || $ip === '-') {
             continue;
         }
 
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false) {
+            $hasPublicIp = true;
+        }
         $carrier = trim((string) \App\Core\Security::carrierFromIpAddress($ip));
         if ($carrier !== '' && !in_array($carrier, array('未知运营商', '内网', '本地网络'), true)) {
             return $carrier;
         }
     }
 
-    return '未知运营商';
+    return $hasPublicIp ? '公网网络' : '未知运营商';
 };
 
 $resolveRegisterSourceFromIp = static function (array $row) use ($locationLabelUnknown) {
@@ -108,10 +112,13 @@ $resolveRegisterSourceFromIp = static function (array $row) use ($locationLabelU
         $location = \App\Core\Security::ipLocationFromAddress($ip);
         $province = trim((string) ($location['province'] ?? ''));
         $city = trim((string) ($location['city'] ?? ''));
-        if (!$locationLabelUnknown($province) && !$locationLabelUnknown($city)) {
+        if (!$locationLabelUnknown($province)) {
+            if ($locationLabelUnknown($city)) {
+                $city = '地区未细分';
+            }
             $carrier = trim((string) \App\Core\Security::carrierFromIpAddress($ip));
-            if ($carrier === '') {
-                $carrier = '未知运营商';
+            if ($carrier === '' || $carrier === '未知运营商') {
+                $carrier = '公网网络';
             }
 
             return $province . ' / ' . $city . ' / ' . $carrier;
@@ -292,6 +299,10 @@ $memberPanelUrl = static function ($panel) use ($currentKeyword, $currentRole, $
                             $rowRegisterProvinceLabel = trim((string) ($rowRegisterSourceParts[0] ?? '未知省份'));
                             $rowRegisterCityLabel = trim((string) ($rowRegisterSourceParts[1] ?? '未知城市'));
                             $rowRegisterCarrierLabel = trim((string) ($rowRegisterSourceParts[2] ?? '未知运营商'));
+                            if (($rowRegisterCarrierLabel === '' || $rowRegisterCarrierLabel === '未知运营商')
+                                && (!$locationLabelUnknown($rowRegisterProvinceLabel) || !$locationLabelUnknown($rowRegisterCityLabel))) {
+                                $rowRegisterCarrierLabel = '公网网络';
+                            }
                             ?>
                             <tr>
                                 <?php if ($userCanManage): ?>
