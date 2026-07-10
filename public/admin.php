@@ -839,7 +839,107 @@ if (is_post() && (string) input('_admin_form', '') === 'page') {
                 break;
 
             case 'draws':
-                if ((string) input('_admin_action', '') === 'save_draw_material') {
+                $drawAction = (string) input('_admin_action', '');
+                $drawImagesRedirect = static function () use ($adminBaseUrl) {
+                    return $adminBaseUrl . '?page=draws&mode=images';
+                };
+
+                if ($drawAction === 'upload_draw_library_image') {
+                    app()->auth()->requireAdminPortal('draws.manage', $adminBaseUrl);
+                    $uploadBusinessType = trim((string) input('upload_business_type', 'site'));
+                    if (!isset(app()->uploads()->businessTypeOptions()[$uploadBusinessType])) {
+                        $uploadBusinessType = 'site';
+                    }
+                    $savedUpload = app()->uploads()->saveUploadedFile('draw_image_file', $uploadBusinessType, $currentAdmin, array(
+                        'max_size' => 5 * 1024 * 1024,
+                        'infer_image_extension' => true,
+                    ));
+                    app()->admins()->recordManagedOperation(
+                        (int) ($currentAdmin['id'] ?? 0),
+                        'draws',
+                        'upload_image_library',
+                        'upload',
+                        (int) ($savedUpload['id'] ?? 0),
+                        '上传图片管理资源：' . (string) ($savedUpload['file_name'] ?? '')
+                    );
+                    $pushFlash('success', '图片已上传。');
+                    redirect($drawImagesRedirect());
+                }
+
+                if ($drawAction === 'delete_draw_library_image') {
+                    app()->auth()->requireAdminPortal('draws.manage', $adminBaseUrl);
+                    $deletedUpload = app()->uploads()->deleteUploadedImage((int) input('upload_id', 0), $currentAdmin);
+                    app()->admins()->recordManagedOperation(
+                        (int) ($currentAdmin['id'] ?? 0),
+                        'draws',
+                        'delete_image_library',
+                        'upload',
+                        (int) ($deletedUpload['id'] ?? 0),
+                        '删除图片管理资源：' . (string) ($deletedUpload['file_name'] ?? '')
+                    );
+                    $pushFlash('success', '图片已删除。');
+                    redirect($drawImagesRedirect());
+                }
+
+                if ($drawAction === 'delete_draw_library_images') {
+                    app()->auth()->requireAdminPortal('draws.manage', $adminBaseUrl);
+                    $rawUploadIds = $_POST['upload_ids'] ?? array();
+                    if (!is_array($rawUploadIds)) {
+                        $rawUploadIds = array($rawUploadIds);
+                    }
+
+                    $uploadIds = array();
+                    foreach ($rawUploadIds as $rawUploadId) {
+                        $uploadId = (int) $rawUploadId;
+                        if ($uploadId > 0) {
+                            $uploadIds[$uploadId] = $uploadId;
+                        }
+                    }
+                    $uploadIds = array_values($uploadIds);
+
+                    if (!$uploadIds) {
+                        $pushFlash('error', '请选择要删除的图片。');
+                        redirect($drawImagesRedirect());
+                    }
+
+                    $deletedUploads = array();
+                    $failedCount = 0;
+                    foreach ($uploadIds as $uploadId) {
+                        try {
+                            $deletedUploads[] = app()->uploads()->deleteUploadedImage((int) $uploadId, $currentAdmin);
+                        } catch (\Throwable $deleteException) {
+                            $failedCount++;
+                            app()->admins()->writeManagedExceptionLog($deleteException, 'draws', 'delete_image_library_batch', 'admin', (int) ($currentAdmin['id'] ?? 0));
+                        }
+                    }
+
+                    $deletedCount = count($deletedUploads);
+                    if ($deletedCount <= 0) {
+                        $pushFlash('error', '选中的图片未能删除，请确认图片是否仍存在。');
+                        redirect($drawImagesRedirect());
+                    }
+
+                    $deletedNames = array();
+                    foreach (array_slice($deletedUploads, 0, 3) as $deletedUpload) {
+                        $deletedName = trim((string) ($deletedUpload['file_name'] ?? ''));
+                        if ($deletedName !== '') {
+                            $deletedNames[] = $deletedName;
+                        }
+                    }
+                    app()->admins()->recordManagedOperation(
+                        (int) ($currentAdmin['id'] ?? 0),
+                        'draws',
+                        'batch_delete_image_library',
+                        'upload',
+                        0,
+                        '批量删除图片管理资源：' . $deletedCount . ' 张' . ($deletedNames ? '（' . implode('、', $deletedNames) . ($deletedCount > count($deletedNames) ? '等' : '') . '）' : '')
+                    );
+
+                    $pushFlash('success', $failedCount > 0 ? ('已删除 ' . $deletedCount . ' 张图片，' . $failedCount . ' 张未能删除。') : ('已删除 ' . $deletedCount . ' 张图片。'));
+                    redirect($drawImagesRedirect());
+                }
+
+                if ($drawAction === 'save_draw_material') {
                     app()->auth()->requireAdminPortal('draws.manage', $adminBaseUrl);
                     $savedMaterial = app()->admins()->saveManagedDrawMaterialEditor($_POST, $currentAdmin);
                     if ($expectsJsonResponse()) {
@@ -853,7 +953,7 @@ if (is_post() && (string) input('_admin_form', '') === 'page') {
                     $pushFlash('success', '开奖素材已保存。');
                     redirect($adminBaseUrl . '?page=draws&mode=material&region=' . urlencode((string) ($savedMaterial['region'] ?? 'macau')));
                 }
-                if ((string) input('_admin_action', '') === 'save_draw_component') {
+                if ($drawAction === 'save_draw_component') {
                     app()->auth()->requireAdminPortal('draws.manage', $adminBaseUrl);
                     $savedComponent = app()->admins()->saveManagedDrawComponentEditor($_POST, $currentAdmin);
                     if ($expectsJsonResponse()) {
@@ -1540,7 +1640,7 @@ switch ($page) {
 
     case 'draws':
         $drawMode = isset($_GET['mode']) ? trim((string) $_GET['mode']) : 'material';
-        if (!in_array($drawMode, array('material', 'component'), true)) {
+        if (!in_array($drawMode, array('material', 'component', 'images'), true)) {
             $drawMode = 'material';
         }
         $drawRegion = isset($_GET['region']) ? trim((string) $_GET['region']) : 'macau';
@@ -1555,10 +1655,27 @@ switch ($page) {
         );
         $viewData['pageHeading'] = '资料分区';
         $viewData['drawCanManage'] = app()->auth()->adminCan('draws.manage');
-        $viewData['needsAdminTinyMce'] = $viewData['drawCanManage'];
-        $viewData['drawEditor'] = $drawMode === 'component'
-            ? app()->admins()->managedDrawComponentEditor($drawComponent)
-            : app()->admins()->managedDrawMaterialEditor($drawRegion);
+        if ($viewData['drawCanManage'] && $drawMode !== 'images') {
+            $drawSaveLabel = $drawMode === 'component'
+                ? '保存悬浮组件'
+                : '保存资料';
+            $viewData['pageTitleActionHtml'] = '<button class="admin-button admin-editor-save-button is-in-page-title-shell" type="submit" form="draw-material-form" data-draw-header-save>' . e($drawSaveLabel) . '</button>';
+        }
+        $viewData['needsAdminTinyMce'] = $viewData['drawCanManage'] && $drawMode !== 'images';
+        $viewData['drawEditor'] = $drawMode === 'images'
+            ? array('content_html' => '')
+            : ($drawMode === 'component'
+                ? app()->admins()->managedDrawComponentEditor($drawComponent)
+                : app()->admins()->managedDrawMaterialEditor($drawRegion));
+        $drawImageBusinessOptions = app()->uploads()->businessTypeOptions();
+        $drawImageFilters = array(
+            'keyword' => '',
+            'business_type' => '',
+        );
+        $viewData['drawImageFilters'] = $drawImageFilters;
+        $viewData['drawImageFiles'] = $drawMode === 'images' ? app()->uploads()->listUploads($drawImageFilters) : array();
+        $viewData['drawImageAllCount'] = $drawMode === 'images' ? app()->uploads()->countUploads(array()) : 0;
+        $viewData['drawImageBusinessOptions'] = $drawImageBusinessOptions;
         $drawLiveDraw = app()->prediction()->latestHomepageDraw($drawRegion);
         $viewData['adminHeaderRegion'] = $drawRegion;
         $viewData['adminHeaderLiveDraw'] = $drawLiveDraw;

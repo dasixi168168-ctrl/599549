@@ -2,8 +2,12 @@
 $drawFilters = isset($drawFilters) && is_array($drawFilters) ? $drawFilters : array();
 $drawEditor = isset($drawEditor) && is_array($drawEditor) ? $drawEditor : array();
 $drawCanManage = !empty($drawCanManage);
+$drawImageFiles = isset($drawImageFiles) && is_array($drawImageFiles) ? $drawImageFiles : array();
+$drawImageFilters = isset($drawImageFilters) && is_array($drawImageFilters) ? $drawImageFilters : array();
+$drawImageBusinessOptions = isset($drawImageBusinessOptions) && is_array($drawImageBusinessOptions) ? $drawImageBusinessOptions : array();
+$drawImageAllCount = max(0, (int) ($drawImageAllCount ?? count($drawImageFiles)));
 
-$drawMode = in_array((string) ($drawFilters['mode'] ?? ''), array('material', 'component'), true)
+$drawMode = in_array((string) ($drawFilters['mode'] ?? ''), array('material', 'component', 'images'), true)
     ? (string) $drawFilters['mode']
     : 'material';
 $currentRegion = in_array((string) ($drawFilters['region'] ?? ''), array('macau', 'hongkong'), true)
@@ -25,13 +29,17 @@ $drawEditorBodyClass = 'is-live-head-fit-pending admin-draw-preview page-frame';
 if ($drawMode === 'component') {
     $drawEditorBodyClass .= ' admin-draw-component-preview admin-draw-component-preview--' . str_replace('_', '-', $currentComponent);
 }
-$currentEditorLabel = $drawMode === 'component' ? $currentComponentLabel : ($currentRegionLabel . '资料');
+$currentEditorLabel = $drawMode === 'component' ? $currentComponentLabel : ($drawMode === 'images' ? '图片管理' : ($currentRegionLabel . '资料'));
 $editorContent = isset($drawEditor['content_html']) ? (string) $drawEditor['content_html'] : '';
 $saveAction = $drawMode === 'component' ? 'save_draw_component' : 'save_draw_material';
-$saveButtonText = $drawMode === 'component' ? ('保存' . $currentComponentLabel) : ('保存' . $currentRegionLabel . '资料');
-$tipText = $drawMode === 'component'
-    ? '组件编辑当前会默认载入首页模板里的顶部悬浮和底部悬浮结构。你保存后，首页和底部悬浮导航会优先读取这里的组件内容。'
-    : '澳门和香港资料编辑器现在会直接载入首页当前主体 HTML，框架结构、文案内容和样式类名会一起带入。保存后，前台首页会优先使用这里的主体内容。';
+$saveButtonText = $drawMode === 'component' ? ('保存' . $currentComponentLabel) : '保存资料';
+if ($drawMode === 'component') {
+    $tipText = '组件编辑当前会默认载入首页模板里的顶部悬浮和底部悬浮结构。你保存后，首页和底部悬浮导航会优先读取这里的组件内容。';
+} elseif ($drawMode === 'images') {
+    $tipText = '网站图片统一在这里上传、查看和删除。已被页面引用的图片删除后，前台对应位置会无法显示，请先确认引用关系。';
+} else {
+    $tipText = '澳门和香港资料编辑器现在会直接载入首页当前主体 HTML，框架结构、文案内容和样式类名会一起带入。保存后，前台首页会优先使用这里的主体内容。';
+}
 
 $buildDrawLink = static function (array $overrides = array()) use ($drawMode, $currentRegion, $currentComponent) {
     $params = array(
@@ -46,6 +54,38 @@ $buildDrawLink = static function (array $overrides = array()) use ($drawMode, $c
     }
 
     return public_url('admin.php') . '?' . http_build_query($params);
+};
+
+$formatDrawImageSize = static function ($bytes) {
+    $bytes = max(0, (int) $bytes);
+    if ($bytes >= 1048576) {
+        return number_format($bytes / 1048576, 2) . ' MB';
+    }
+
+    return number_format($bytes / 1024, 1) . ' KB';
+};
+
+$drawRequestIsHttps = (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off')
+    || strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
+$drawRequestScheme = $drawRequestIsHttps ? 'https' : 'http';
+$drawRequestHost = preg_replace('/[^A-Za-z0-9.\-:\[\]]/', '', (string) ($_SERVER['HTTP_HOST'] ?? ''));
+$drawRequestOrigin = $drawRequestHost !== '' ? ($drawRequestScheme . '://' . $drawRequestHost) : '';
+$buildDrawExternalImageUrl = static function ($url) use ($drawRequestOrigin, $drawRequestScheme) {
+    $url = trim((string) $url);
+    if ($url === '') {
+        return '';
+    }
+    if (preg_match('/^https?:\/\//i', $url)) {
+        return $url;
+    }
+    if (strpos($url, '//') === 0) {
+        return $drawRequestScheme . ':' . $url;
+    }
+    if ($drawRequestOrigin === '') {
+        return $url;
+    }
+
+    return rtrim($drawRequestOrigin, '/') . '/' . ltrim($url, '/');
 };
 
 $fullscreenStorageKey = 'draw-editor-fullscreen:' . $drawMode . ':' . $currentRegion . ':' . $currentComponent;
@@ -225,7 +265,7 @@ if ($latestRegionBallsHtml === '') {
     $latestRegionBallsHtml .= '<div class="admin-editor-live-ball-plus">+</div>';
     $latestRegionBallsHtml .= $renderAdminDrawBall(null);
 }
-?><?php if ($drawCanManage): ?><script>
+?><?php if ($drawCanManage && $drawMode !== 'images'): ?><script>
 (function () {
     try {
         if (window.sessionStorage && window.sessionStorage.getItem('<?php echo e($fullscreenStorageKey); ?>') === '1') {
@@ -261,9 +301,129 @@ if ($latestRegionBallsHtml === '') {
                 <a class="admin-filter-chip admin-draws-mode-chip is-macau <?php echo $drawMode === 'material' && $currentRegion === 'macau' ? 'is-active' : ''; ?>" href="<?php echo e($buildDrawLink(array('mode' => 'material', 'region' => 'macau'))); ?>">澳门资料更新</a>
                 <a class="admin-filter-chip admin-draws-mode-chip is-hongkong <?php echo $drawMode === 'material' && $currentRegion === 'hongkong' ? 'is-active' : ''; ?>" href="<?php echo e($buildDrawLink(array('mode' => 'material', 'region' => 'hongkong'))); ?>">香港资料更新</a>
                 <a class="admin-filter-chip admin-draws-mode-chip is-component <?php echo $drawMode === 'component' ? 'is-active' : ''; ?>" href="<?php echo e($buildDrawLink(array('mode' => 'component'))); ?>">组件管理</a>
+                <a class="admin-filter-chip admin-draws-mode-chip is-images <?php echo $drawMode === 'images' ? 'is-active' : ''; ?>" href="<?php echo e($buildDrawLink(array('mode' => 'images'))); ?>">图片管理</a>
             </div>
         </div>
-        <?php if ($drawCanManage): ?>
+        <?php if ($drawMode === 'images'): ?>
+            <div class="admin-draw-image-manager" data-draw-image-manager>
+                <div class="admin-draw-image-topline">
+                    <?php if ($drawCanManage): ?>
+                        <form class="admin-draw-image-upload-form" method="post" action="<?php echo e(public_url('admin.php') . '?page=draws&mode=images'); ?>" enctype="multipart/form-data">
+                            <input type="hidden" name="_token" value="<?php echo e(csrf_token('admin.draws')); ?>">
+                            <input type="hidden" name="_admin_form" value="page">
+                            <input type="hidden" name="_admin_action" value="upload_draw_library_image">
+                            <input type="hidden" name="upload_business_type" value="site">
+                            <div class="admin-draw-image-form-grid">
+                                <label class="admin-draw-image-field is-file app-upload-file-field">
+                                    <span class="admin-draw-image-upload-label app-upload-file-label">上传图片</span>
+                                    <span class="admin-draw-image-file-control app-upload-file-control" data-app-upload-file-control data-draw-image-file-control>
+                                        <span class="admin-draw-image-file-button app-upload-file-button">选择文件</span>
+                                        <span class="admin-draw-image-file-name app-upload-file-name" data-app-upload-file-name data-draw-image-file-name data-empty-text="未选择任何文件">未选择任何文件</span>
+                                        <input class="admin-input admin-draw-image-file-input app-upload-file-input" type="file" name="draw_image_file" accept=".jpg,.jpeg,.png,.gif,.webp,.bmp,image/jpeg,image/png,image/gif,image/webp,image/bmp,image/x-ms-bmp" data-app-upload-file-input data-draw-image-file-input>
+                                    </span>
+                                </label>
+                                <button class="admin-button" type="submit">上传图片</button>
+                            </div>
+                        </form>
+                    <?php else: ?>
+                        <div class="admin-draw-image-readonly">当前账号只有查看权限，不能上传或删除图片。</div>
+                    <?php endif; ?>
+
+                    <div class="admin-draw-image-summary" aria-label="图片数量">
+                        <strong>图片数量</strong>
+                        <span class="admin-draw-image-count-card">
+                            <b><?php echo e((string) $drawImageAllCount); ?></b>
+                            <small>全部图片</small>
+                        </span>
+                    </div>
+                </div>
+
+                <?php if ($drawCanManage && $drawImageFiles): ?>
+                    <form id="draw-image-batch-delete-form" class="admin-draw-image-batch-form" method="post" action="<?php echo e(public_url('admin.php') . '?page=draws&mode=images'); ?>" data-confirm="确认批量删除选中的图片吗？如果图片已经被页面引用，删除后前台对应位置会无法显示。">
+                        <input type="hidden" name="_token" value="<?php echo e(csrf_token('admin.draws')); ?>">
+                        <input type="hidden" name="_admin_form" value="page">
+                        <input type="hidden" name="_admin_action" value="delete_draw_library_images">
+                    </form>
+                    <div class="admin-draw-image-batchbar" aria-label="图片批量操作">
+                        <label class="admin-draw-image-batch-check">
+                            <input type="checkbox" data-check-all=".admin-draw-image-check">
+                            <span>全选</span>
+                        </label>
+                        <span class="admin-draw-image-batch-hint">选择图片后可批量删除</span>
+                        <button class="admin-button is-danger admin-draw-image-batch-button" type="submit" form="draw-image-batch-delete-form">批量删除</button>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($drawImageFiles): ?>
+                    <div class="admin-draw-image-list">
+                        <?php foreach ($drawImageFiles as $imageRow): ?>
+                            <?php
+                            $imagePath = (string) ($imageRow['file_path'] ?? '');
+                            $imageName = (string) ($imageRow['file_name'] ?? '');
+                            $imageBusiness = (string) ($imageRow['business_type'] ?? '');
+                            $imageBusinessLabel = (string) ($drawImageBusinessOptions[$imageBusiness] ?? $imageBusiness);
+                            $imageExt = strtoupper(trim((string) ($imageRow['file_ext'] ?? '')));
+                            $imageFormatText = $imageExt !== '' ? ('格式 ' . $imageExt) : '格式未知';
+                            $imageWidth = (int) ($imageRow['image_width'] ?? 0);
+                            $imageHeight = (int) ($imageRow['image_height'] ?? 0);
+                            $imageLocalUrl = $imagePath;
+                            $imageExternalUrl = $buildDrawExternalImageUrl($imageLocalUrl);
+                            ?>
+                            <article class="admin-draw-image-row<?php echo $drawCanManage ? ' has-batch-check' : ''; ?>">
+                                <?php if ($drawCanManage): ?>
+                                    <label class="admin-draw-image-select" aria-label="选择<?php echo e($imageName !== '' ? $imageName : '图片'); ?>">
+                                        <input class="admin-draw-image-check" type="checkbox" name="upload_ids[]" value="<?php echo e((string) ($imageRow['id'] ?? 0)); ?>" form="draw-image-batch-delete-form">
+                                    </label>
+                                <?php endif; ?>
+                                <a class="admin-draw-image-preview" href="<?php echo e($imagePath); ?>" target="_blank" rel="noopener noreferrer">
+                                    <img src="<?php echo e($imagePath); ?>" alt="<?php echo e($imageName !== '' ? $imageName : '图片预览'); ?>" loading="lazy">
+                                </a>
+                                <div class="admin-draw-image-main">
+                                    <div class="admin-draw-image-info">
+                                        <strong title="<?php echo e($imageName); ?>"><?php echo e($imageName !== '' ? $imageName : ('图片 #' . (string) ($imageRow['id'] ?? ''))); ?></strong>
+                                        <span><?php echo e($imageBusinessLabel); ?> · <?php echo e($imageFormatText); ?> · <?php echo e($formatDrawImageSize($imageRow['file_size'] ?? 0)); ?> · <?php echo e($imageWidth > 0 && $imageHeight > 0 ? ($imageWidth . ' x ' . $imageHeight) : '尺寸未知'); ?></span>
+                                    </div>
+                                    <div class="admin-draw-image-url-list">
+                                        <div class="admin-draw-image-url-row">
+                                            <span class="admin-draw-image-url-label">本地URL</span>
+                                            <span class="admin-draw-image-url-control">
+                                                <input class="admin-input admin-draw-image-path" type="text" value="<?php echo e($imageLocalUrl); ?>" readonly>
+                                                <button class="admin-button is-light admin-draw-image-url-copy" type="button" data-admin-copy-text="<?php echo e($imageLocalUrl); ?>" data-admin-copy-success="本地URL已复制">复制</button>
+                                            </span>
+                                            <div class="admin-draw-image-row-action">
+                                                <a class="admin-button is-light" href="<?php echo e($imagePath); ?>" target="_blank" rel="noopener noreferrer">查看</a>
+                                            </div>
+                                        </div>
+                                        <div class="admin-draw-image-url-row">
+                                            <span class="admin-draw-image-url-label">外网URL</span>
+                                            <span class="admin-draw-image-url-control">
+                                                <input class="admin-input admin-draw-image-path" type="text" value="<?php echo e($imageExternalUrl); ?>" readonly>
+                                                <button class="admin-button is-light admin-draw-image-url-copy" type="button" data-admin-copy-text="<?php echo e($imageExternalUrl); ?>" data-admin-copy-success="外网URL已复制">复制</button>
+                                            </span>
+                                            <div class="admin-draw-image-row-action">
+                                                <?php if ($drawCanManage): ?>
+                                                    <form method="post" action="<?php echo e(public_url('admin.php') . '?page=draws&mode=images'); ?>" data-confirm="确认删除这张图片吗？如果图片已经被页面引用，删除后前台对应位置会无法显示。">
+                                                        <input type="hidden" name="_token" value="<?php echo e(csrf_token('admin.draws')); ?>">
+                                                        <input type="hidden" name="_admin_form" value="page">
+                                                        <input type="hidden" name="_admin_action" value="delete_draw_library_image">
+                                                        <input type="hidden" name="upload_id" value="<?php echo e((string) ($imageRow['id'] ?? 0)); ?>">
+                                                        <button class="admin-button is-danger" type="submit">删除</button>
+                                                    </form>
+                                                <?php else: ?>
+                                                    <span class="admin-draw-image-action-placeholder" aria-hidden="true"></span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </article>
+                        <?php endforeach; ?>
+                    </div>
+                <?php else: ?>
+                    <div class="admin-empty admin-draw-image-empty">当前没有符合条件的图片。</div>
+                <?php endif; ?>
+            </div>
+        <?php elseif ($drawCanManage): ?>
             <form class="mt-4" id="draw-material-form" method="post" action="<?php echo e(public_url('admin.php') . '?page=draws&mode=' . urlencode($drawMode) . '&region=' . urlencode($currentRegion) . '&component=' . urlencode($currentComponent)); ?>" data-draw-material-form>
                 <input type="hidden" name="_token" value="<?php echo e(csrf_token('admin.draws')); ?>">
                 <input type="hidden" name="_admin_form" value="page">
