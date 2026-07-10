@@ -23,16 +23,20 @@ $uploadCanManage = !empty($uploadCanManage);
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div>
-                    <label class="admin-label">选择图片</label>
-                    <input class="admin-input" type="file" name="upload_file" accept=".jpg,.jpeg,.png,.gif,.webp,.bmp,image/jpeg,image/png,image/gif,image/webp,image/bmp,image/x-ms-bmp">
-                </div>
+                <label class="app-upload-file-field">
+                    <span class="admin-label app-upload-file-label">上传图片</span>
+                    <span class="app-upload-file-control" data-app-upload-file-control>
+                        <span class="app-upload-file-button">选择文件</span>
+                        <span class="app-upload-file-name" data-app-upload-file-name data-empty-text="未选择任何文件">未选择任何文件</span>
+                        <input class="admin-input app-upload-file-input" type="file" name="upload_file" accept=".jpg,.jpeg,.png,.gif,.webp,.bmp,image/jpeg,image/png,image/gif,image/webp,image/bmp,image/x-ms-bmp" data-app-upload-file-input>
+                    </span>
+                </label>
             </div>
 
             <div class="admin-help mt-4">当前允许上传 jpg、jpeg、png、gif、webp，单文件最大 5MB，保存后会自动写入本地目录和上传文件表。</div>
 
             <div class="admin-form-actions">
-                <button class="admin-button" type="submit">开始上传</button>
+                <button class="admin-button" type="submit">上传图片</button>
             </div>
         </form>
     <?php else: ?>
