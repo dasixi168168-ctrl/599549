@@ -393,6 +393,10 @@ $defaultMaterialHtml = $extractDefaultMaterial($templateHtml);
 $managedCurrentIssue = app()->admins()->managedIssuePrefixSnapshotByRegion($currentRegion);
 $incrementManagedDrawAdViews = !isset($incrementManagedDrawAdViews) || (bool) $incrementManagedDrawAdViews;
 
+if ($hasManagedMaterial && !app()->admins()->managedDrawMaterialHasEditableContent($managedMaterialHtml)) {
+    $hasManagedMaterial = false;
+}
+
 $bodyHtml = $hasManagedMaterial ? trim($managedMaterialHtml) : $defaultMaterialHtml;
 
 $bodyHtml = $applyFrontLinks($extractDefaultMaterial($stripLegacyHomeData($bodyHtml)));

@@ -15388,10 +15388,9 @@ class AdminService extends Service
         return trim($html);
     }
 
-    protected function managedDrawMaterialProtectedBoundary(string $html): int
+    protected function managedDrawMaterialProtectedBlockPatterns(): array
     {
-        $boundary = 0;
-        $patterns = array_merge(array(
+        return array_merge(array(
             '/<section id="section-home"[\s\S]*?<\/section>/',
         ), $this->managedDrawLiveBlockPatterns(), array(
             '/<div class="marquee\b[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/',
@@ -15399,8 +15398,13 @@ class AdminService extends Service
             '/<section id="section-data"[\s\S]*?<\/section>/',
             '/<section id="section-ad"[\s\S]*?<\/section>/',
         ));
+    }
 
-        foreach ($patterns as $pattern) {
+    protected function managedDrawMaterialProtectedBoundary(string $html): int
+    {
+        $boundary = 0;
+
+        foreach ($this->managedDrawMaterialProtectedBlockPatterns() as $pattern) {
             if (!preg_match($pattern, $html, $matches, PREG_OFFSET_CAPTURE)) {
                 continue;
             }
@@ -15411,6 +15415,20 @@ class AdminService extends Service
         }
 
         return $boundary;
+    }
+
+    protected function removeManagedDrawMaterialProtectedBlocks(string $html): string
+    {
+        $html = trim($html);
+        if ($html === '') {
+            return '';
+        }
+
+        foreach ($this->managedDrawMaterialProtectedBlockPatterns() as $pattern) {
+            $html = (string) preg_replace($pattern, '', $html);
+        }
+
+        return trim($html);
     }
 
     protected function managedDrawHomeSectionRootAttribute(string $sectionHtml, string $attribute): string
@@ -15518,11 +15536,44 @@ class AdminService extends Service
         }
 
         $boundary = $this->managedDrawMaterialProtectedBoundary($html);
-        if ($boundary <= 0 || $boundary >= strlen($html)) {
+        if ($boundary <= 0) {
             return $html;
         }
 
+        if ($boundary >= strlen($html)) {
+            return '';
+        }
+
         return trim((string) substr($html, $boundary));
+    }
+
+    public function managedDrawMaterialHasEditableContent(string $html): bool
+    {
+        return $this->managedDrawMaterialEditableHtmlLooksComplete($html);
+    }
+
+    protected function managedDrawMaterialEditableHtmlLooksComplete(string $html): bool
+    {
+        $html = trim($html);
+        if ($html === '') {
+            return false;
+        }
+
+        $editableHtml = $this->removeManagedDrawMaterialSectionSpacerParagraphs($this->removeManagedDrawMaterialProtectedBlocks($html));
+        if ($editableHtml === '') {
+            return false;
+        }
+
+        $plainText = trim((string) preg_replace('/\s+/u', '', strip_tags($editableHtml)));
+        if ($plainText === '') {
+            return false;
+        }
+
+        if (preg_match('/\b(?:section-title|data-frame|expert-item-card|zodiac-reference-card|zodiac-attr-list|home-vip-title)\b/u', $editableHtml)) {
+            return true;
+        }
+
+        return preg_match('/<section\b(?![^>]*\bid=["\']section-home["\'])[\s\S]*?<\/section>/iu', $editableHtml) === 1;
     }
 
     protected function mergeManagedDrawMaterialHtml(string $baseHtml, string $editableHtml): string
@@ -15912,7 +15963,7 @@ class AdminService extends Service
 
         return trim($resultHtml) !== '' ? trim($resultHtml) : $html;
     }
-    protected function normalizeManagedDrawMaterialHtml(string $region, string $contentHtml): string
+    protected function normalizeManagedDrawMaterialHtml(string $region, string $contentHtml, string $fallbackHtml = ''): string
     {
         $region = $this->normalizeManagedDrawMaterialRegion($region);
         $contentHtml = $this->sanitizeManagedDrawMaterialHtml($contentHtml);
@@ -15930,8 +15981,9 @@ class AdminService extends Service
 
         if (!$this->isManagedDrawMaterialFullHtml($contentHtml)) {
             $mergedHtml = $this->removeManagedDrawMaterialSectionSpacerParagraphs($this->mergeManagedDrawMaterialHtml($baseHtml, $contentHtml));
+            $normalizedHtml = $this->normalizeManagedDrawZodiacReferenceHeads($this->moveManagedDrawLiveBlockBelowHomeSection($this->removeManagedDrawMaterialSectionSpacerParagraphs($this->syncManagedDrawExpertLinks($region, $mergedHtml))));
 
-            return $this->normalizeManagedDrawZodiacReferenceHeads($this->moveManagedDrawLiveBlockBelowHomeSection($this->removeManagedDrawMaterialSectionSpacerParagraphs($this->syncManagedDrawExpertLinks($region, $mergedHtml))));
+            return $this->ensureManagedDrawMaterialEditableHtml($region, $normalizedHtml, $fallbackHtml, $baseHtml);
         }
 
         if ($this->hasManagedDrawMaterialDuplicatedShell($contentHtml)) {
@@ -15976,8 +16028,45 @@ class AdminService extends Service
         $normalizedHtml = $this->syncManagedDrawExpertLinks($region, $normalizedHtml);
         $normalizedHtml = $this->removeManagedDrawMaterialSectionSpacerParagraphs($normalizedHtml);
         $normalizedHtml = $this->normalizeManagedDrawZodiacReferenceHeads($normalizedHtml);
+        $normalizedHtml = $this->ensureManagedDrawMaterialEditableHtml($region, $normalizedHtml, $fallbackHtml, $baseHtml);
 
         return trim($normalizedHtml);
+    }
+
+    protected function ensureManagedDrawMaterialEditableHtml(string $region, string $html, string $primaryFallbackHtml = '', string $secondaryFallbackHtml = ''): string
+    {
+        $html = trim($html);
+        if ($html === '' || $this->managedDrawMaterialEditableHtmlLooksComplete($html)) {
+            return $html;
+        }
+
+        foreach (array($primaryFallbackHtml, $secondaryFallbackHtml) as $fallbackHtml) {
+            $fallbackHtml = trim((string) $fallbackHtml);
+            if ($fallbackHtml === '') {
+                continue;
+            }
+
+            $fallbackHtml = $this->sanitizeManagedDrawMaterialHtml($fallbackHtml);
+            $fallbackHtml = $this->stripManagedDrawHeroCopy($fallbackHtml);
+            $fallbackHtml = $this->removeManagedDrawMaterialSectionSpacerParagraphs($fallbackHtml);
+            if (!$this->managedDrawMaterialEditableHtmlLooksComplete($fallbackHtml)) {
+                continue;
+            }
+
+            $editableHtml = $this->removeManagedDrawMaterialProtectedBlocks($fallbackHtml);
+            if (!$this->managedDrawMaterialEditableHtmlLooksComplete($editableHtml)) {
+                continue;
+            }
+
+            $mergedHtml = $this->mergeManagedDrawMaterialHtml($html, $editableHtml);
+            $mergedHtml = $this->moveManagedDrawLiveBlockBelowHomeSection($mergedHtml);
+            $mergedHtml = $this->syncManagedDrawExpertLinks($region, $mergedHtml);
+            $mergedHtml = $this->removeManagedDrawMaterialSectionSpacerParagraphs($mergedHtml);
+
+            return $this->normalizeManagedDrawZodiacReferenceHeads($mergedHtml);
+        }
+
+        return $html;
     }
 
     protected function removeManagedDrawMaterialSectionSpacerParagraphs(string $html): string
@@ -16207,13 +16296,15 @@ class AdminService extends Service
         }
 
         $contentHtml = isset($payload['content_html']) ? trim((string) $payload['content_html']) : '';
+        $storedContentHtml = (string) $this->app->settings()->get('draws.material_html.' . $region, '');
         $updatedAt = $this->now();
         $updatedBy = isset($actor['username']) ? (string) $actor['username'] : '';
 
         $settings = array(
             'draws.material_html.' . $region => $this->normalizeManagedDrawMaterialHtml(
                 $region,
-                $contentHtml
+                $contentHtml,
+                $storedContentHtml
             ),
             'draws.material_updated_at.' . $region => $updatedAt,
             'draws.material_updated_by.' . $region => $updatedBy,
