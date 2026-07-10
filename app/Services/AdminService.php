@@ -10129,7 +10129,27 @@ class AdminService extends Service
             $params['wrong_streak_any_mark'] = '[0-9]+[[:space:]]*(错|錯)';
         }
 
-        $sql .= ' ORDER BY COALESCE(post_meta.segment_no, 1) ASC, GREATEST(1, LEAST(5, COALESCE(NULLIF(post_meta.segment_sort, 0), 5))) ASC, posts.created_at DESC LIMIT 150';
+        $orderSql = ' ORDER BY COALESCE(post_meta.segment_no, 1) ASC, GREATEST(1, LEAST(5, COALESCE(NULLIF(post_meta.segment_sort, 0), 5))) ASC, posts.created_at DESC';
+        $usePagination = !empty($filters['paginate']) && !in_array($resultFilter, array('hit', 'wrong'), true);
+        if ($usePagination) {
+            $page = $this->paginateAdminQuery(
+                'SELECT COUNT(*) AS total_count FROM (' . $sql . ') AS managed_forum_post_count_table',
+                $sql . $orderSql,
+                $params,
+                (int) ($filters['page_no'] ?? 1),
+                (int) ($filters['per_page'] ?? 40)
+            );
+            $page['items'] = $this->filterManagedForumPostsByResultState((array) ($page['items'] ?? array()), $resultFilter, $wrongStreakFilter);
+            if (array_key_exists('include_stats', $filters) && empty($filters['include_stats'])) {
+                return $page;
+            }
+
+            $page['items'] = $this->enrichManagedForumPostStats($page['items']);
+
+            return $page;
+        }
+
+        $sql .= $orderSql . ' LIMIT 150';
 
         $rows = $this->db()->fetchAll($sql, $params);
         $rows = $this->filterManagedForumPostsByResultState($rows, $resultFilter, $wrongStreakFilter);
@@ -10139,6 +10159,25 @@ class AdminService extends Service
 
         return $this->enrichManagedForumPostStats($rows);
 
+    }
+
+    public function listManagedForumPostsPage(array $filters = array())
+    {
+        $filters['paginate'] = true;
+        $page = $this->listManagedForumPosts($filters);
+        if (isset($page['items']) && is_array($page)) {
+            return $page;
+        }
+
+        $rows = is_array($page) ? $page : array();
+
+        return array(
+            'items' => $rows,
+            'total' => count($rows),
+            'page_no' => 1,
+            'per_page' => max(1, count($rows)),
+            'page_count' => 1,
+        );
     }
 
     public function managedPostSelectOptions($selectedPostId = 0, $region = '', $limit = 150)

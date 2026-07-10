@@ -6,11 +6,52 @@ $postCanManage = !empty($postCanManage);
 $postCurrentRegion = isset($postCurrentRegion) ? (string) $postCurrentRegion : ((string) ($postForm['region'] ?? ($postFilters['region'] ?? 'macau')));
 $postViewMode = isset($postViewMode) ? (string) $postViewMode : ((string) (isset($_GET['view']) ? $_GET['view'] : 'manage'));
 $postSummaryCounts = isset($postSummaryCounts) && is_array($postSummaryCounts) ? $postSummaryCounts : array();
+$postPage = isset($postPage) && is_array($postPage) ? $postPage : array(
+    'items' => $posts,
+    'total' => count($posts),
+    'page_no' => 1,
+    'per_page' => count($posts) > 0 ? count($posts) : 40,
+    'page_count' => 1,
+);
 if ($postCurrentRegion !== 'hongkong') {
     $postCurrentRegion = 'macau';
 }
 $postRegionLabel = $postCurrentRegion === 'hongkong' ? '香港' : '澳门';
 $postQuickMode = in_array($postViewMode, array('manage', 'compose', 'published', 'recycle'), true) ? $postViewMode : 'manage';
+$postPageNo = max(1, (int) ($postPage['page_no'] ?? 1));
+$postPageCount = max(1, (int) ($postPage['page_count'] ?? 1));
+$postPageTotal = max(0, (int) ($postPage['total'] ?? count($posts)));
+$postPagerText = $postPageNo . '/' . $postPageCount;
+$postPaginationQueryBase = array(
+    'page' => 'posts',
+    'region' => $postCurrentRegion,
+    'view' => $postQuickMode,
+);
+foreach (array(
+    'keyword',
+    'status',
+    'color_tag',
+    'section_id',
+    'category_id',
+    'segment_no',
+    'top_scope',
+    'sale_filter',
+    'purchase_filter',
+    'result_filter',
+    'wrong_streak_filter',
+) as $postPaginationFilterKey) {
+    $postPaginationFilterValue = $postFilters[$postPaginationFilterKey] ?? '';
+    if (is_int($postPaginationFilterValue)) {
+        if ($postPaginationFilterValue > 0) {
+            $postPaginationQueryBase[$postPaginationFilterKey] = $postPaginationFilterValue;
+        }
+        continue;
+    }
+    $postPaginationFilterValue = trim((string) $postPaginationFilterValue);
+    if ($postPaginationFilterValue !== '') {
+        $postPaginationQueryBase[$postPaginationFilterKey] = $postPaginationFilterValue;
+    }
+}
 $postNeedsManageSettings = $postQuickMode === 'manage';
 $postLockSettings = $postNeedsManageSettings ? app()->posts()->postLockSettings() : array();
 $postLockState = $postNeedsManageSettings ? app()->posts()->postLockState($postCurrentRegion) : array();
@@ -212,6 +253,7 @@ if ($posts === array() && $postSummaryCounts !== array()) {
 }
 ksort($segmentOptions);
 $saleAndFreePostCount = $pricedSalePostCount + $freePostCount;
+$postClassicTotalCount = $postPageTotal > 0 ? $postPageTotal : $saleAndFreePostCount;
 $postClassicManageSummaryHtml = sprintf(
     '<span class="admin-posts-classic-toolbar-summary-item">选择 <span class="admin-posts-classic-toolbar-summary-count" data-post-selected-count>0</span> 条</span>'
     . '<span class="admin-posts-classic-toolbar-summary-item">出售帖 <span class="admin-posts-classic-toolbar-summary-count">%s</span> 条</span>'
@@ -219,7 +261,7 @@ $postClassicManageSummaryHtml = sprintf(
     . '<span class="admin-posts-classic-toolbar-summary-item">共 <span class="admin-posts-classic-toolbar-summary-count">%s</span> 条帖子</span>',
     e((string) $pricedSalePostCount),
     e((string) $freePostCount),
-    e((string) $saleAndFreePostCount)
+    e((string) $postClassicTotalCount)
 );
 $postManageSubtitle = '';
 $postTopScopeFilter = (string) ($postFilters['top_scope'] ?? '');
@@ -1050,7 +1092,7 @@ $generatorTopBadgeClass = static function (array $option) {
                                     </select>
                                     <div class="admin-posts-classic-toolbar-summary-side">
                                         <span class="admin-posts-classic-toolbar-summary"><?php echo $postClassicManageSummaryHtml; ?></span>
-                                        <span class="admin-posts-classic-toolbar-pager">1</span>
+                                        <span class="admin-posts-classic-toolbar-pager"><?php echo e($postPagerText); ?></span>
                                     </div>
                                 </div>
                             </div>
@@ -1138,7 +1180,7 @@ $generatorTopBadgeClass = static function (array $option) {
                                 <?php endif; ?>
                                 <div class="admin-posts-classic-toolbar-meta">
                                     <span class="admin-posts-classic-toolbar-summary"><?php echo $postClassicManageSummaryHtml; ?></span>
-                                    <span class="admin-posts-classic-toolbar-pager">1</span>
+                                    <span class="admin-posts-classic-toolbar-pager"><?php echo e($postPagerText); ?></span>
                                 </div>
                             </div>
                         </div>
@@ -1788,6 +1830,19 @@ $generatorTopBadgeClass = static function (array $option) {
                         </table>
                         <?php endif; ?>
                     </div>
+                    <?php if ($showPostManageSection && $postPageCount > 1): ?>
+                        <div class="admin-pagination">
+                            <div class="admin-pagination-meta">共 <?php echo e((string) $postPageTotal); ?> 条，第 <?php echo e((string) $postPageNo); ?> / <?php echo e((string) $postPageCount); ?> 页</div>
+                            <div class="admin-pagination-links">
+                                <?php if ($postPageNo > 1): ?>
+                                    <a class="admin-button is-light" href="<?php echo e(public_url('admin.php') . '?' . http_build_query(array_merge($postPaginationQueryBase, array('page_no' => $postPageNo - 1)))); ?>">上一页</a>
+                                <?php endif; ?>
+                                <?php if ($postPageNo < $postPageCount): ?>
+                                    <a class="admin-button is-light" href="<?php echo e(public_url('admin.php') . '?' . http_build_query(array_merge($postPaginationQueryBase, array('page_no' => $postPageNo + 1)))); ?>">下一页</a>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </form>
 
                 <?php if ($postCanManage): ?>

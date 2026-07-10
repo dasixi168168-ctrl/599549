@@ -1333,9 +1333,14 @@ switch ($page) {
             'result_filter' => isset($_GET['result_filter']) ? trim((string) $_GET['result_filter']) : '',
             'wrong_streak_filter' => isset($_GET['wrong_streak_filter']) ? trim((string) $_GET['wrong_streak_filter']) : '',
             'include_stats' => $postViewMode !== 'recycle',
+            'page_no' => isset($_GET['page_no']) ? max(1, (int) $_GET['page_no']) : 1,
         );
+        $managedPostPage = $shouldLoadPostList
+            ? app()->admins()->listManagedForumPostsPage($postFilters)
+            : array('items' => array(), 'total' => 0, 'page_no' => 1, 'per_page' => 40, 'page_count' => 1);
         $viewData['postFilters'] = $postFilters;
-        $viewData['posts'] = $shouldLoadPostList ? app()->admins()->listManagedForumPosts($postFilters) : array();
+        $viewData['postPage'] = $managedPostPage;
+        $viewData['posts'] = $shouldLoadPostList ? (array) ($managedPostPage['items'] ?? array()) : array();
         $viewData['postSummaryCounts'] = $shouldLoadPostList
             ? array()
             : app()->admins()->managedForumPostSummaryCounts($postRegion);
