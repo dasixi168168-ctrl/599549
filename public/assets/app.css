@@ -25317,3 +25317,370 @@ body.admin-body.admin-page-draws .admin-draws-filter-shell .admin-draws-mode-chi
         grid-column: auto !important;
     }
 }
+
+/* Admin shared feedback modal and tip consistency. */
+:where(body.admin-body) {
+    --admin-feedback-width: 380px;
+    --admin-feedback-radius: 12px;
+    --admin-feedback-backdrop: rgba(15, 23, 42, 0.42);
+    --admin-feedback-pad-x: 18px;
+    --admin-feedback-head-y: 16px;
+    --admin-feedback-action-y: 14px;
+    --admin-feedback-icon-size: 42px;
+    --admin-feedback-title-size: 17px;
+    --admin-feedback-text-size: 12.5px;
+    --admin-feedback-button-height: 36px;
+    --admin-tip-pad-y: 9px;
+    --admin-tip-pad-x: 11px;
+    --admin-tip-radius: 9px;
+    --admin-tip-font-size: 12px;
+    --admin-tip-line-height: 1.55;
+    --admin-tip-label-width: 34px;
+    --admin-tip-label-height: 18px;
+}
+
+:where(body.admin-body) .app-feedback-modal.admin-modal,
+:where(body.admin-body) .app-notice-modal.admin-modal,
+:where(body.admin-body) .app-confirm-modal.admin-modal {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 11240 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    padding: 14px !important;
+    overflow: auto !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.16s ease !important;
+}
+
+:where(body.admin-body) .app-feedback-modal.admin-modal[hidden],
+:where(body.admin-body) .app-notice-modal.admin-modal[hidden],
+:where(body.admin-body) .app-confirm-modal.admin-modal[hidden] {
+    display: none !important;
+}
+
+:where(body.admin-body) .app-feedback-modal.admin-modal.is-visible,
+:where(body.admin-body) .app-notice-modal.admin-modal.is-visible,
+:where(body.admin-body) .app-confirm-modal.admin-modal.is-visible {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+:where(body.admin-body) .app-feedback-modal .admin-modal-backdrop,
+:where(body.admin-body) .app-notice-modal .app-notice-backdrop,
+:where(body.admin-body) .app-confirm-modal .app-confirm-backdrop {
+    position: absolute !important;
+    inset: 0 !important;
+    background: var(--admin-feedback-backdrop) !important;
+    backdrop-filter: blur(2px) !important;
+    -webkit-backdrop-filter: blur(2px) !important;
+}
+
+:where(body.admin-body) .app-feedback-modal .admin-modal-card,
+:where(body.admin-body) .app-notice-modal .app-notice-dialog,
+:where(body.admin-body) .app-confirm-modal .app-confirm-dialog {
+    position: relative !important;
+    z-index: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-sizing: border-box !important;
+    width: min(var(--admin-feedback-width), calc(100vw - 28px)) !important;
+    max-height: calc(100vh - 28px) !important;
+    max-height: calc(100dvh - 28px) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    border: 1px solid #d6e2ef !important;
+    border-radius: var(--admin-feedback-radius) !important;
+    background: #ffffff !important;
+    box-shadow: 0 20px 48px rgba(15, 23, 42, 0.2) !important;
+    text-align: left !important;
+    transform: translate3d(0, 8px, 0) scale(0.99) !important;
+    transition: transform 0.16s ease, opacity 0.16s ease !important;
+}
+
+:where(body.admin-body) .app-feedback-modal.admin-modal.is-visible .admin-modal-card,
+:where(body.admin-body) .app-notice-modal.admin-modal.is-visible .app-notice-dialog,
+:where(body.admin-body) .app-confirm-modal.admin-modal.is-visible .app-confirm-dialog {
+    transform: translate3d(0, 0, 0) scale(1) !important;
+}
+
+:where(body.admin-body) .app-feedback-modal .admin-modal-head,
+:where(body.admin-body) .app-notice-modal .app-notice-head,
+:where(body.admin-body) .app-confirm-modal .app-confirm-head {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) !important;
+    align-items: center !important;
+    justify-content: stretch !important;
+    gap: 11px !important;
+    box-sizing: border-box !important;
+    min-height: 0 !important;
+    padding: var(--admin-feedback-head-y) var(--admin-feedback-pad-x) 12px !important;
+    border-bottom: 1px solid #edf2f7 !important;
+    background: #ffffff !important;
+    text-align: left !important;
+}
+
+:where(body.admin-body) .app-feedback-modal .admin-modal-heading,
+:where(body.admin-body) .app-notice-modal .admin-modal-heading,
+:where(body.admin-body) .app-confirm-modal .admin-modal-heading {
+    display: grid !important;
+    justify-items: stretch !important;
+    align-content: center !important;
+    gap: 3px !important;
+    min-width: 0 !important;
+}
+
+:where(body.admin-body) .app-feedback-modal .admin-modal-title-row,
+:where(body.admin-body) .app-notice-modal .admin-modal-title-row,
+:where(body.admin-body) .app-confirm-modal .admin-modal-title-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    min-width: 0 !important;
+}
+
+:where(body.admin-body) .app-feedback-modal .admin-modal-title,
+:where(body.admin-body) .app-notice-modal .app-notice-title,
+:where(body.admin-body) .app-confirm-modal .app-confirm-title {
+    margin: 0 !important;
+    color: #0f172a !important;
+    font-size: var(--admin-feedback-title-size) !important;
+    font-weight: 900 !important;
+    line-height: 1.18 !important;
+    letter-spacing: 0 !important;
+    overflow-wrap: anywhere !important;
+}
+
+:where(body.admin-body) .app-feedback-modal .admin-modal-subtitle,
+:where(body.admin-body) .app-notice-modal .app-notice-message,
+:where(body.admin-body) .app-confirm-modal .app-confirm-message {
+    margin: 0 !important;
+    color: #5b6f89 !important;
+    font-size: var(--admin-feedback-text-size) !important;
+    font-weight: 700 !important;
+    line-height: 1.42 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+}
+
+:where(body.admin-body) .app-feedback-modal .app-notice-icon,
+:where(body.admin-body) .app-feedback-modal .app-confirm-icon,
+:where(body.admin-body) .app-notice-modal .app-notice-icon,
+:where(body.admin-body) .app-confirm-modal .app-confirm-icon {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 var(--admin-feedback-icon-size) !important;
+    width: var(--admin-feedback-icon-size) !important;
+    height: var(--admin-feedback-icon-size) !important;
+    margin: 0 !important;
+    border-radius: 999px !important;
+    background: #eff6ff !important;
+    color: #2563eb !important;
+}
+
+:where(body.admin-body) .app-feedback-modal .app-notice-icon svg,
+:where(body.admin-body) .app-feedback-modal .app-confirm-icon svg,
+:where(body.admin-body) .app-notice-modal .app-notice-icon svg,
+:where(body.admin-body) .app-confirm-modal .app-confirm-icon svg {
+    display: block !important;
+    width: 21px !important;
+    height: 21px !important;
+}
+
+:where(body.admin-body) .app-notice-modal.is-success .app-notice-icon {
+    background: #dcfce7 !important;
+    color: #16a34a !important;
+}
+
+:where(body.admin-body) .app-notice-modal.is-error .app-notice-icon {
+    background: #fee2e2 !important;
+    color: #dc2626 !important;
+}
+
+:where(body.admin-body) .app-notice-modal.is-info .app-notice-icon,
+:where(body.admin-body) .app-confirm-modal .app-confirm-icon {
+    background: #eff6ff !important;
+    color: #2563eb !important;
+}
+
+:where(body.admin-body) .app-feedback-modal .admin-modal-actions,
+:where(body.admin-body) .app-notice-modal .app-notice-actions,
+:where(body.admin-body) .app-confirm-modal .app-confirm-actions {
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0 var(--admin-feedback-pad-x) var(--admin-feedback-action-y) !important;
+    border-top: 0 !important;
+}
+
+:where(body.admin-body) .app-notice-modal .app-notice-actions {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+:where(body.admin-body) .app-confirm-modal .app-confirm-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    padding-top: 12px !important;
+}
+
+:where(body.admin-body) .app-notice-modal .app-notice-button,
+:where(body.admin-body) .app-confirm-modal .app-confirm-cancel,
+:where(body.admin-body) .app-confirm-modal .app-confirm-submit {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    min-width: 96px !important;
+    width: 100% !important;
+    min-height: var(--admin-feedback-button-height) !important;
+    height: var(--admin-feedback-button-height) !important;
+    padding: 0 16px !important;
+    border-radius: 9px !important;
+    font-size: 13px !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+    cursor: pointer !important;
+}
+
+:where(body.admin-body) .app-notice-modal .app-notice-button,
+:where(body.admin-body) .app-confirm-modal .app-confirm-submit {
+    border: 1px solid #1d4ed8 !important;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 8px 16px rgba(37, 99, 235, 0.18) !important;
+}
+
+:where(body.admin-body) .app-confirm-modal .app-confirm-cancel {
+    border: 1px solid #cbd5e1 !important;
+    background: #ffffff !important;
+    color: #334155 !important;
+    box-shadow: none !important;
+}
+
+:where(body.admin-body) .app-prompt-modal .app-prompt-body {
+    box-sizing: border-box !important;
+    padding: 0 var(--admin-feedback-pad-x) 12px !important;
+}
+
+:where(body.admin-body) .app-prompt-modal .app-prompt-field {
+    display: grid !important;
+    gap: 8px !important;
+    padding: 0 !important;
+}
+
+:where(body.admin-body) .app-prompt-modal .app-prompt-label {
+    padding: 0 !important;
+    text-align: left !important;
+}
+
+:where(body.admin-body) .app-prompt-modal .app-prompt-input {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-height: 36px !important;
+    padding: 7px 10px !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 9px !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    outline: 0 !important;
+}
+
+:where(body.admin-body) .app-prompt-modal .app-prompt-input:focus {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+}
+
+:where(body.admin-body) .admin-tip,
+:where(body.admin-body.admin-page-draws) .admin-draws-card .admin-tip {
+    box-sizing: border-box !important;
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin-top: 8px !important;
+    padding: var(--admin-tip-pad-y) var(--admin-tip-pad-x) !important;
+    border: 1px solid #d6e2ef !important;
+    border-radius: var(--admin-tip-radius) !important;
+    background: #f8fbff !important;
+    color: #40546f !important;
+    box-shadow: none !important;
+    font-size: var(--admin-tip-font-size) !important;
+    font-weight: 650 !important;
+    line-height: var(--admin-tip-line-height) !important;
+    letter-spacing: 0 !important;
+    overflow-wrap: anywhere !important;
+}
+
+:where(body.admin-body) .admin-tip::before,
+:where(body.admin-body.admin-page-draws) .admin-draws-card .admin-tip::before {
+    content: '提示' !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: var(--admin-tip-label-width) !important;
+    height: var(--admin-tip-label-height) !important;
+    margin-right: 6px !important;
+    border-radius: 999px !important;
+    background: rgba(37, 99, 235, 0.1) !important;
+    color: #1d4ed8 !important;
+    font-size: 10.5px !important;
+    font-weight: 900 !important;
+    line-height: var(--admin-tip-label-height) !important;
+    letter-spacing: 0.02em !important;
+    vertical-align: middle !important;
+}
+
+@media (max-width: 860px) {
+    :where(body.admin-body) {
+        --admin-feedback-width: 360px;
+        --admin-feedback-radius: 11px;
+        --admin-feedback-pad-x: 14px;
+        --admin-feedback-head-y: 14px;
+        --admin-feedback-action-y: 13px;
+        --admin-feedback-icon-size: 38px;
+        --admin-feedback-title-size: 16px;
+        --admin-feedback-text-size: 12px;
+        --admin-feedback-button-height: 35px;
+        --admin-tip-pad-y: 8px;
+        --admin-tip-pad-x: 10px;
+        --admin-tip-radius: 8px;
+    }
+
+    :where(body.admin-body) .app-feedback-modal.admin-modal,
+    :where(body.admin-body) .app-notice-modal.admin-modal,
+    :where(body.admin-body) .app-confirm-modal.admin-modal {
+        align-items: center !important;
+        padding: 10px !important;
+    }
+
+    :where(body.admin-body) .app-feedback-modal .admin-modal-card,
+    :where(body.admin-body) .app-notice-modal .app-notice-dialog,
+    :where(body.admin-body) .app-confirm-modal .app-confirm-dialog {
+        width: min(var(--admin-feedback-width), calc(100vw - 20px)) !important;
+        max-height: calc(100vh - 20px) !important;
+        max-height: calc(100dvh - 20px) !important;
+    }
+}
+
+@media (max-width: 390px) {
+    :where(body.admin-body) {
+        --admin-feedback-pad-x: 12px;
+        --admin-feedback-icon-size: 36px;
+        --admin-feedback-button-height: 34px;
+    }
+
+    :where(body.admin-body) .app-feedback-modal .admin-modal-head,
+    :where(body.admin-body) .app-notice-modal .app-notice-head,
+    :where(body.admin-body) .app-confirm-modal .app-confirm-head {
+        gap: 9px !important;
+    }
+}

@@ -14,6 +14,7 @@
     var formModalViewportBound = false;
     var frontPostBuyScrollKey = 'front_post_buy_scroll_restore';
     var frontRefreshScrollKey = 'front_refresh_scroll_restore';
+    var adminRefreshScrollKey = 'admin_refresh_scroll_restore';
     var frontRefreshScrollRestorePayload = window.__frontRefreshScrollRestore || null;
     var memberPurchasePostFrameScrollRestore = null;
     var frontPostAuthSyncPending = false;
@@ -583,6 +584,189 @@
         }
     }
 
+    function isAdminRefreshScrollEnabled() {
+        return !!(document.body && document.body.classList && document.body.classList.contains('admin-body'));
+    }
+
+    function normalizedAdminRefreshHref() {
+        return String(window.location.href || '').replace(/#.*$/, '');
+    }
+
+    function currentAdminWindowScrollY() {
+        return Math.max(0, parseInt(
+            window.pageYOffset
+                || (document.documentElement ? document.documentElement.scrollTop : 0)
+                || (document.body ? document.body.scrollTop : 0)
+                || 0,
+            10
+        ) || 0);
+    }
+
+    function adminMainScrollElement() {
+        return document.querySelector('.admin-main');
+    }
+
+    function adminMaxWindowScrollY() {
+        var doc = document.documentElement;
+        var body = document.body;
+        var height = Math.max(
+            doc ? doc.scrollHeight : 0,
+            body ? body.scrollHeight : 0,
+            doc ? doc.offsetHeight : 0,
+            body ? body.offsetHeight : 0
+        );
+
+        return Math.max(0, height - (window.innerHeight || (doc ? doc.clientHeight : 0) || 0));
+    }
+
+    function readAdminRefreshScrollPayload(storage) {
+        var raw = '';
+
+        if (!storage) {
+            return null;
+        }
+
+        try {
+            raw = storage.getItem(adminRefreshScrollKey);
+        } catch (error) {
+            raw = '';
+        }
+
+        if (!raw) {
+            return null;
+        }
+
+        try {
+            return JSON.parse(raw);
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function saveAdminRefreshScroll() {
+        var storage = getSessionStorage();
+        var main = adminMainScrollElement();
+        var payload;
+
+        if (!storage || !isAdminRefreshScrollEnabled()) {
+            return;
+        }
+
+        payload = {
+            href: normalizedAdminRefreshHref(),
+            scrollY: currentAdminWindowScrollY(),
+            mainScrollTop: main ? Math.max(0, parseInt(main.scrollTop, 10) || 0) : 0,
+            time: (new Date()).getTime()
+        };
+
+        try {
+            storage.setItem(adminRefreshScrollKey, JSON.stringify(payload));
+        } catch (error) {}
+    }
+
+    function bindAdminRefreshScrollSave() {
+        if (window.__adminRefreshScrollSaveBound) {
+            return;
+        }
+
+        window.__adminRefreshScrollSaveBound = true;
+        window.addEventListener('pagehide', saveAdminRefreshScroll, true);
+        window.addEventListener('beforeunload', saveAdminRefreshScroll, true);
+    }
+
+    function restoreAdminRefreshScroll() {
+        var storage = getSessionStorage();
+        var payload = readAdminRefreshScrollPayload(storage);
+        var targetWindowY;
+        var targetMainY;
+        var startedAt = (new Date()).getTime();
+        var restored = false;
+        var restore;
+        var schedule;
+
+        if (!isAdminRefreshScrollEnabled() || !payload) {
+            return;
+        }
+
+        if (payload.href !== normalizedAdminRefreshHref() || (new Date()).getTime() - Number(payload.time || 0) > 300000) {
+            return;
+        }
+
+        try {
+            if (storage) {
+                storage.removeItem(adminRefreshScrollKey);
+            }
+        } catch (error) {}
+
+        targetWindowY = Math.max(0, parseInt(payload.scrollY, 10) || 0);
+        targetMainY = Math.max(0, parseInt(payload.mainScrollTop, 10) || 0);
+        if (targetWindowY <= 0 && targetMainY <= 0) {
+            return;
+        }
+
+        try {
+            if ('scrollRestoration' in window.history) {
+                window.history.scrollRestoration = 'manual';
+            }
+        } catch (error) {}
+
+        restore = function (forceReveal) {
+            var main;
+            var mainMaxY = 0;
+            var windowMaxY = 0;
+            var elapsed;
+
+            if (restored) {
+                return;
+            }
+
+            main = adminMainScrollElement();
+            if (main) {
+                mainMaxY = Math.max(0, main.scrollHeight - main.clientHeight);
+                main.scrollTop = Math.min(targetMainY, mainMaxY);
+            }
+
+            windowMaxY = adminMaxWindowScrollY();
+            window.scrollTo(0, Math.min(targetWindowY, windowMaxY));
+
+            elapsed = (new Date()).getTime() - startedAt;
+            if (
+                forceReveal
+                || ((targetMainY <= 0 || mainMaxY >= targetMainY - 4) && (targetWindowY <= 0 || windowMaxY >= targetWindowY - 4))
+                || elapsed > 1400
+            ) {
+                restored = true;
+            }
+        };
+
+        schedule = function (delay, forceReveal) {
+            window.setTimeout(function () {
+                restore(!!forceReveal);
+            }, delay);
+        };
+
+        if (typeof window.requestAnimationFrame === 'function') {
+            window.requestAnimationFrame(function () {
+                restore(false);
+            });
+        } else {
+            restore(false);
+        }
+
+        schedule(80, false);
+        schedule(180, false);
+        schedule(360, false);
+        schedule(700, false);
+        schedule(1100, false);
+        schedule(1500, true);
+
+        if (document.readyState !== 'complete') {
+            window.addEventListener('load', function () {
+                restore(true);
+            });
+        }
+    }
+
     function isPostBuyAjaxForm(form) {
         var actionInput;
 
@@ -776,7 +960,9 @@
     }
 
     bindFrontRefreshScrollSave();
+    bindAdminRefreshScrollSave();
     restoreFrontRefreshScroll();
+    restoreAdminRefreshScroll();
     restoreFrontPostBuyScroll();
     installFrontFloodGuard();
 
@@ -2041,7 +2227,7 @@
 
         existing = document.createElement('div');
         existing.id = 'app-notice-modal';
-        existing.className = 'app-notice-modal front-standard-modal admin-modal';
+        existing.className = 'app-notice-modal app-feedback-modal front-standard-modal admin-modal';
         existing.setAttribute('hidden', 'hidden');
         existing.innerHTML = '' +
             '<div class="app-notice-backdrop front-standard-modal-backdrop admin-modal-backdrop" data-app-notice-close></div>' +
@@ -2118,6 +2304,7 @@
         modal.setAttribute('hidden', 'hidden');
         activeNotice = null;
         if (redirectUrl) {
+            saveAdminRefreshScroll();
             window.location.href = redirectUrl;
             return;
         }
@@ -2147,7 +2334,7 @@
 
         existing = document.createElement('div');
         existing.id = 'app-confirm-modal';
-        existing.className = 'app-confirm-modal front-standard-modal admin-modal';
+        existing.className = 'app-confirm-modal app-feedback-modal front-standard-modal admin-modal';
         existing.setAttribute('hidden', 'hidden');
         existing.innerHTML = '' +
             '<div class="app-confirm-backdrop front-standard-modal-backdrop admin-modal-backdrop" data-app-confirm-cancel></div>' +
@@ -2241,7 +2428,7 @@
 
         existing = document.createElement('div');
         existing.id = 'app-prompt-modal';
-        existing.className = 'app-confirm-modal app-prompt-modal front-standard-modal admin-modal';
+        existing.className = 'app-confirm-modal app-prompt-modal app-feedback-modal front-standard-modal admin-modal';
         existing.setAttribute('hidden', 'hidden');
         existing.innerHTML = '' +
             '<div class="app-confirm-backdrop front-standard-modal-backdrop admin-modal-backdrop" data-app-prompt-cancel></div>' +
@@ -2417,6 +2604,7 @@
         }
 
         if (error && error.redirect) {
+            saveAdminRefreshScroll();
             window.location.href = error.redirect;
             return true;
         }
@@ -9426,6 +9614,7 @@
 
                 if (reloadCurrent) {
                     leavingPage = true;
+                    saveAdminRefreshScroll();
                     window.setTimeout(function () {
                         window.location.reload();
                     }, 450);
@@ -9442,11 +9631,13 @@
                     }
                     if (immediateRedirect) {
                         leavingPage = true;
+                        saveAdminRefreshScroll();
                         window.location.href = payload.redirect;
                         return;
                     }
 
                     leavingPage = true;
+                    saveAdminRefreshScroll();
                     window.setTimeout(function () {
                         window.location.href = payload.redirect;
                     }, 450);
@@ -9459,6 +9650,7 @@
                     }
 
                     saveFrontPostBuyScroll(form);
+                    saveAdminRefreshScroll();
                     leavingPage = true;
                     window.setTimeout(function () {
                         window.location.reload();
@@ -10489,6 +10681,7 @@
             }
 
             if (href) {
+                saveAdminRefreshScroll();
                 window.location.href = href;
             }
         });

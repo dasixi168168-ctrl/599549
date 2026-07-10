@@ -131,7 +131,7 @@ if (isset($sidebarMenuSpec[$activeMenuCode])) {
     $adminBodyClasses[] = 'admin-main-menu-page';
 }
 $adminCssUrl = asset('app.css?v=20260709-draw-image-batch-01');
-$adminJsUrl = asset('app.js?v=20260707-admin-modal-standard-01');
+$adminJsUrl = asset('app.js?v=20260709-admin-scroll-restore-01');
 $needsAdminTinyMce = isset($needsAdminTinyMce) ? (bool) $needsAdminTinyMce : $activeMenuCode === 'draws';
 $enableAdminUiSystem = false;
 $appendAdminUiClasses = static function ($html, $classPattern, $classes) {
