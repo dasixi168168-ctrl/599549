@@ -72,8 +72,9 @@ class LogService extends Service
             return false;
         }
 
-        $provinceName = Security::provinceFromIp($ipAddress);
-        $cityName = Security::cityFromIp($ipAddress);
+        $location = Security::ipLocation($ipAddress);
+        $provinceName = (string) ($location['province'] ?? '未知省份');
+        $cityName = (string) ($location['city'] ?? '未知城市');
 
         $cleanupKey = 'page_views_cleanup_at';
         $lastCleanupAt = (int) $this->app->cache()->get($cleanupKey, 0);
@@ -89,7 +90,7 @@ class LogService extends Service
 
         if (in_array((string) $routeName, array('front_macau', 'front_hongkong'), true)) {
             $existing = $this->db()->fetch(
-                "SELECT id, referer
+                "SELECT id, referer, province_name, city_name
                  FROM page_views
                  WHERE route_name IN ('front_macau', 'front_hongkong')
                    AND viewed_on = :viewed_on
@@ -104,6 +105,15 @@ class LogService extends Service
             );
 
             if ($existing) {
+                $existingProvinceName = trim((string) ($existing['province_name'] ?? ''));
+                $existingCityName = trim((string) ($existing['city_name'] ?? ''));
+                if (!$this->pageViewLocationIsUnknown($existingProvinceName) && $this->pageViewLocationIsUnknown($provinceName)) {
+                    $provinceName = $existingProvinceName;
+                }
+                if (!$this->pageViewLocationIsUnknown($existingCityName) && $this->pageViewLocationIsUnknown($cityName)) {
+                    $cityName = $existingCityName;
+                }
+
                 $this->db()->execute(
                     'UPDATE page_views
                      SET route_name = :route_name,
@@ -146,6 +156,16 @@ class LogService extends Service
 
         $this->rememberPageViewThrottle($routeName, $pathName, $ipAddress, $userAgent, $userId);
         return true;
+    }
+
+    protected function pageViewLocationIsUnknown($value)
+    {
+        $value = strtolower(trim((string) $value));
+        if ($value === '') {
+            return true;
+        }
+
+        return in_array($value, array('未知', '未知地区', '未知省份', '未知城市', 'unknown', 'unknown province', 'unknown city', '-'), true);
     }
 
     protected function pageViewIsThrottled($routeName, $pathName, $ipAddress, $userAgent, $userId)
