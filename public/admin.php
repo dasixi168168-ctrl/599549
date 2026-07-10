@@ -1695,9 +1695,7 @@ switch ($page) {
     case 'home':
         $viewData['homeCanManage'] = app()->auth()->adminCan('home.manage');
         if ($viewData['homeCanManage']) {
-            $viewData['pageTitleActionHtml'] =
-                '<button class="forecast-pricing-reset is-in-page-title-shell" type="reset" form="forecast-pricing-form">还原修改</button>'
-                . '<button class="forecast-pricing-save is-in-page-title-shell" type="submit" form="forecast-pricing-form">保存设置</button>';
+            $viewData['pageTitleActionHtml'] = '<button class="forecast-pricing-save is-in-page-title-shell" type="submit" form="forecast-pricing-form">保存设置</button>';
         }
         $viewData['forecastPricingConfig'] = app()->admins()->forecastPricingSettings();
         break;
