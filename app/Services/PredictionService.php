@@ -15,6 +15,7 @@ class PredictionService extends Service
     protected $latestForecastPredictionNumbersRuntimeCache = array();
     protected $forecastRecommendedCombinationsRuntimeCache = array();
     protected $tableExistsRuntimeCache = array();
+    protected $advancedForecastAnalysisService = null;
 
     protected function macauLiveCacheKey()
     {
@@ -1193,20 +1194,39 @@ class PredictionService extends Service
         return (string) $region === 'hongkong' ? 'remote:hkjc.com' : 'remote:live2';
     }
 
+    protected function forecastAnalysisSourceNotes($region)
+    {
+        return (string) $region === 'hongkong'
+            ? array('remote:hkjc.com', 'remote:lottolyzer')
+            : array('remote:live2', 'remote:macaujc2-history');
+    }
+
+    public function advancedForecastSourceNotes($region)
+    {
+        return $this->forecastAnalysisSourceNotes($region);
+    }
+
     protected function latestForecastSourceDraws($region, $limit = 12)
     {
         $region = (string) $region === 'hongkong' ? 'hongkong' : 'macau';
+        $notes = $this->forecastAnalysisSourceNotes($region);
+        $params = array(
+            'region' => $region,
+        );
+        $notePlaceholders = array();
+        foreach ($notes as $index => $note) {
+            $paramName = 'note_' . (int) $index;
+            $notePlaceholders[] = ':' . $paramName;
+            $params[$paramName] = (string) $note;
+        }
 
         return $this->db()->fetchAll(
             'SELECT *
              FROM lottery_draws
              WHERE region = :region
-               AND note = :note' . $this->drawOrderSql() . '
+               AND note IN (' . implode(', ', $notePlaceholders) . ')' . $this->drawOrderSql() . '
              LIMIT ' . (int) $limit,
-            array(
-                'region' => $region,
-                'note' => $this->forecastAllowedSourceNote($region),
-            )
+            $params
         );
     }
 
@@ -2436,6 +2456,15 @@ class PredictionService extends Service
         ));
     }
 
+    protected function advancedForecastAnalysisService()
+    {
+        if (!$this->advancedForecastAnalysisService instanceof ForecastAdvancedAnalysisService) {
+            $this->advancedForecastAnalysisService = new ForecastAdvancedAnalysisService($this->app);
+        }
+
+        return $this->advancedForecastAnalysisService;
+    }
+
     public function frontCachedForecast($region, array $filters = array(), $ttl = 300, $currentIssueNo = '')
     {
         $region = (string) $region === 'hongkong' ? 'hongkong' : 'macau';
@@ -2464,6 +2493,37 @@ class PredictionService extends Service
         }
 
         return $generated;
+    }
+
+    public function advancedForecastAnalysis($region, $limit = 60)
+    {
+        $region = (string) $region === 'hongkong' ? 'hongkong' : 'macau';
+        $limit = max(8, min(240, (int) $limit));
+        $draws = $this->latestAvailableDraws($region, $limit);
+        $heatStats = $this->buildForecastHeatStats($draws);
+        $rankedNumbers = $this->rankForecastNumbersByHeat($heatStats);
+        $latestIssue = !empty($draws[0]['issue_no']) ? (string) $draws[0]['issue_no'] : '';
+        $nextIssue = $latestIssue !== '' ? $this->incrementIssueNo($latestIssue) : '';
+
+        return $this->advancedForecastAnalysisService()->buildAdvancedForecast(
+            $region,
+            $draws,
+            array_slice($rankedNumbers, 0, 12),
+            $heatStats,
+            $nextIssue,
+            array(),
+            0.0
+        );
+    }
+
+    public function backtestAdvancedForecast($region, $historyLimit = 30, $trainingWindow = 60)
+    {
+        $region = (string) $region === 'hongkong' ? 'hongkong' : 'macau';
+        $historyLimit = max(1, min(160, (int) $historyLimit));
+        $trainingWindow = max(8, min(240, (int) $trainingWindow));
+        $draws = $this->latestAvailableDraws($region, $historyLimit + $trainingWindow);
+
+        return $this->advancedForecastAnalysisService()->backtest($draws, $historyLimit, $trainingWindow);
     }
 
     public function prewarmFrontForecastPreviewCaches($ttl = 300)
@@ -2705,8 +2765,22 @@ class PredictionService extends Service
         $displayPayloads = $this->filterForecastSpecialRepeatDisplayPayloads($displayPayloads, $heatStats, $rankedHotNumbers, $filters);
         $confidence = $this->buildForecastConfidence($region, $nextIssue, $heatStats, $recommended, $filterContext, $filters);
         $lineConfidences = $this->buildForecastLineConfidences($region, $nextIssue, $confidence, $filters, $displayPayloads, $heatStats, $recommended);
+        $advancedAnalysis = $this->advancedForecastAnalysisService()->buildAdvancedForecast(
+            $region,
+            $draws,
+            $recommended,
+            $heatStats,
+            $nextIssue,
+            $filters,
+            $confidence
+        );
+        $advancedSummaryLine = trim((string) ($advancedAnalysis['summary_line'] ?? ''));
+        if ($advancedSummaryLine !== '' && strpos($summary, $advancedSummaryLine) === false) {
+            $summary = trim($summary . "\n" . $advancedSummaryLine);
+        }
 
         $result = array(
+            'version' => ForecastAdvancedAnalysisService::VERSION,
             'region' => $region,
             'generated_for_issue' => $nextIssue,
             'numbers' => $recommended,
@@ -2719,6 +2793,7 @@ class PredictionService extends Service
             'line_confidences' => $lineConfidences,
             'forecast_stats' => $this->buildForecastStatsPayload($heatStats),
             'forecast_combinations' => $forecastCombinations,
+            'advanced_analysis' => $advancedAnalysis,
         );
 
         if ($persist) {

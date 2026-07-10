@@ -1,0 +1,35 @@
+{
+  "version": "2026-high-priority-1",
+  "weights": {
+    "number": {
+      "normal": 10.0,
+      "special": 12.0,
+      "all": 2.5,
+      "current_omission": 0.7,
+      "average_omission": 0.35
+    },
+    "five_elements": {
+      "normal": 1.0,
+      "special": 2.4,
+      "current_omission": 0.7,
+      "max_omission": 0.25,
+      "avg_omission": 0.2,
+      "generating": 0.6,
+      "overcoming": -0.35
+    },
+    "omission": {
+      "current_vs_max": 48.0,
+      "current_vs_average": 18.0
+    }
+  },
+  "kill": {
+    "special_number_count": 6
+  },
+  "omission": {
+    "top_count": 10
+  },
+  "dan_tuo": {
+    "drag_count": 14,
+    "combo_limit": 12
+  }
+}
