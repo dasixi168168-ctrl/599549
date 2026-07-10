@@ -31,6 +31,42 @@ if (!in_array($customerServiceView, array('supervision', 'agents'), true)) {
 }
 $customerServiceSessionId = $customerServiceSession ? (int) ($customerServiceSession['id'] ?? 0) : (int) ($customerServicePayload['active_id'] ?? 0);
 $customerServiceLastDate = '';
+$customerServiceJsChecksum = static function ($value) {
+    $text = (string) ($value ?? '');
+    $hash = 0;
+    $utf16 = function_exists('mb_convert_encoding') ? mb_convert_encoding($text, 'UTF-16BE', 'UTF-8') : $text;
+    $length = strlen($utf16);
+    for ($index = 0; $index < $length; $index += 2) {
+        $code = $index + 1 < $length
+            ? ((ord($utf16[$index]) << 8) + ord($utf16[$index + 1]))
+            : ord($utf16[$index]);
+        $hash = (($hash << 5) - $hash + $code) & 0xffffffff;
+        if ($hash >= 0x80000000) {
+            $hash -= 0x100000000;
+        }
+    }
+
+    return (string) ($hash < 0 ? $hash + 0x100000000 : $hash);
+};
+$customerServiceMessagesState = static function (array $messages) use ($customerServiceJsChecksum) {
+    $parts = array((string) count($messages));
+    foreach ($messages as $message) {
+        $parts[] = implode(':', array(
+            (string) ($message['id'] ?? ''),
+            (string) ($message['sender_type'] ?? ''),
+            (string) ($message['message_type'] ?? ''),
+            (string) ($message['created_date'] ?? ''),
+            (string) ($message['created_time'] ?? ''),
+            $customerServiceJsChecksum($message['content'] ?? ''),
+            $customerServiceJsChecksum($message['attachment_url'] ?? ''),
+            (string) ($message['voice_duration'] ?? ''),
+        ));
+    }
+
+    return implode('|', $parts);
+};
+$customerServiceMessageState = $customerServiceMessagesState($customerServiceMessages);
+$customerServiceMessageCount = count($customerServiceMessages);
 $customerServiceActiveName = $customerServiceSession ? (string) (($customerServiceSession['username'] ?? '') ?: '会员') : '未选择会话';
 $customerServiceActiveInitial = $customerServiceActiveName !== ''
     ? (function_exists('mb_substr') ? mb_substr($customerServiceActiveName, 0, 1, 'UTF-8') : substr($customerServiceActiveName, 0, 1))
@@ -65,7 +101,6 @@ $customerServiceEditPermissions = $customerServiceEditingAgent && isset($custome
         'clear' => true,
     );
 $customerServiceSupportUrl = public_url('admin.php') . '?page=support';
-$customerServiceFrontAgentUrl = (string) ($customerServicePayload['front_agent_url'] ?? public_url('admin.php'));
 $customerServiceSupervisionUrlExtra = array('status' => $customerServiceStatus);
 if ($customerServiceSessionId > 0) {
     $customerServiceSupervisionUrlExtra['session_id'] = $customerServiceSessionId;
@@ -176,12 +211,15 @@ $customerServiceTabUrl = static function ($view, array $extra = array()) {
                         </div>
                     </div>
                 </div>
-                <div class="support-chat-actions">
-                    <a class="support-action-btn is-muted" href="<?php echo e($customerServiceFrontAgentUrl); ?>" target="_blank" rel="noopener noreferrer">前台接待</a>
-                </div>
             </div>
 
-            <div class="support-message-stream" data-customer-service-log>
+            <div
+                class="support-message-stream"
+                data-customer-service-log
+                data-customer-service-message-state="<?php echo e($customerServiceMessageState); ?>"
+                data-customer-service-message-count="<?php echo e((string) $customerServiceMessageCount); ?>"
+                <?php echo $customerServiceMessageCount > 0 ? 'data-customer-service-scroll-pending="1"' : ''; ?>
+            >
                 <?php if ($customerServiceSession && $customerServiceMessages): ?>
                     <?php foreach ($customerServiceMessages as $message): ?>
                         <?php
