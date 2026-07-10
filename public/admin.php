@@ -1737,8 +1737,17 @@ switch ($page) {
             'date_to' => isset($_GET['date_to']) ? trim((string) $_GET['date_to']) : '',
             'page_no' => isset($_GET['page_no']) ? (int) $_GET['page_no'] : 1,
         );
+        $systemLogFilters = array(
+            'source' => isset($_GET['system_source']) ? trim((string) $_GET['system_source']) : '',
+            'keyword' => isset($_GET['system_keyword']) ? trim((string) $_GET['system_keyword']) : '',
+            'date_from' => isset($_GET['system_date_from']) ? trim((string) $_GET['system_date_from']) : '',
+            'date_to' => isset($_GET['system_date_to']) ? trim((string) $_GET['system_date_to']) : '',
+            'page_no' => isset($_GET['system_page_no']) ? (int) $_GET['system_page_no'] : 1,
+        );
         $viewData['operationLogFilters'] = $operationLogFilters;
         $viewData['operationLogPage'] = app()->admins()->listAdminOperationLogsPage($operationLogFilters);
+        $viewData['systemLogFilters'] = $systemLogFilters;
+        $viewData['systemLogPage'] = app()->admins()->listAdminSystemLogsPage($systemLogFilters);
         break;
 
     case 'exceptions':

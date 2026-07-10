@@ -58,6 +58,7 @@ class AdminService extends Service
     protected $recentOperationLogsRequestCache = array();
     protected $adminLoginLogPageRequestCache = array();
     protected $adminOperationLogPageRequestCache = array();
+    protected $adminSystemLogPageRequestCache = array();
     protected $adminExceptionLogPageRequestCache = array();
     protected $managedUserRolesRequestCache = null;
     protected $managedUserSelectBaseCache = array();
@@ -2984,8 +2985,10 @@ class AdminService extends Service
         }
 
         if ($keyword !== '') {
-            $sql .= ' AND (admin_operation_logs.summary LIKE :keyword OR admin_operation_logs.request_path LIKE :keyword OR admin_users.username LIKE :keyword)';
-            $params['keyword'] = '%' . $keyword . '%';
+            $sql .= ' AND (admin_operation_logs.summary LIKE :keyword_summary OR admin_operation_logs.request_path LIKE :keyword_path OR admin_users.username LIKE :keyword_user)';
+            $params['keyword_summary'] = '%' . $keyword . '%';
+            $params['keyword_path'] = '%' . $keyword . '%';
+            $params['keyword_user'] = '%' . $keyword . '%';
         }
 
         if ($dateFrom !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom)) {
@@ -3006,6 +3009,72 @@ class AdminService extends Service
             20
         );
         $this->adminOperationLogPageRequestCache[$cacheKey] = $page;
+        $this->app->cache()->put($cacheKey, $page);
+
+        return $page;
+    }
+
+    public function listAdminSystemLogsPage(array $filters = array())
+    {
+        if (!$this->tableExists($this->db(), 'system_logs')) {
+            return $this->emptyPaginatedResult();
+        }
+
+        $normalizedFilters = array(
+            'source' => trim((string) ($filters['source'] ?? '')),
+            'keyword' => trim((string) ($filters['keyword'] ?? '')),
+            'date_from' => trim((string) ($filters['date_from'] ?? '')),
+            'date_to' => trim((string) ($filters['date_to'] ?? '')),
+            'page_no' => max(1, (int) ($filters['page_no'] ?? 1)),
+        );
+        $cacheKey = 'admin_system_log_page_' . md5(json_encode($normalizedFilters));
+        if (isset($this->adminSystemLogPageRequestCache[$cacheKey])) {
+            return $this->adminSystemLogPageRequestCache[$cacheKey];
+        }
+
+        $cachedPage = $this->app->cache()->get($cacheKey, null, 10);
+        if (is_array($cachedPage)) {
+            $this->adminSystemLogPageRequestCache[$cacheKey] = $cachedPage;
+
+            return $cachedPage;
+        }
+
+        $sql = 'SELECT * FROM system_logs WHERE 1 = 1';
+        $params = array();
+        $source = (string) $normalizedFilters['source'];
+        $keyword = (string) $normalizedFilters['keyword'];
+        $dateFrom = (string) $normalizedFilters['date_from'];
+        $dateTo = (string) $normalizedFilters['date_to'];
+
+        if ($source !== '') {
+            $sql .= ' AND source_name = :source_name';
+            $params['source_name'] = $source;
+        }
+
+        if ($keyword !== '') {
+            $sql .= ' AND (message LIKE :keyword_message OR context_json LIKE :keyword_context)';
+            $params['keyword_message'] = '%' . $keyword . '%';
+            $params['keyword_context'] = '%' . $keyword . '%';
+        }
+
+        if ($dateFrom !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom)) {
+            $sql .= ' AND created_at >= :date_from';
+            $params['date_from'] = $dateFrom . ' 00:00:00';
+        }
+
+        if ($dateTo !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo)) {
+            $sql .= ' AND created_at <= :date_to';
+            $params['date_to'] = $dateTo . ' 23:59:59';
+        }
+
+        $page = $this->paginateAdminQuery(
+            'SELECT COUNT(*) AS total_count FROM (' . $sql . ') AS system_log_count_table',
+            $sql . ' ORDER BY created_at DESC, id DESC',
+            $params,
+            (int) $normalizedFilters['page_no'],
+            20
+        );
+        $this->adminSystemLogPageRequestCache[$cacheKey] = $page;
         $this->app->cache()->put($cacheKey, $page);
 
         return $page;
