@@ -424,7 +424,7 @@ class Security
             return '';
         }
 
-        foreach (array('zh-CN', 'ja', 'en') as $locale) {
+        foreach (array('zh-CN', 'en', 'ja') as $locale) {
             if (preg_match('/"' . preg_quote($locale, '/') . '"\s*:\s*"([^"]*)"/u', $section, $matches)) {
                 $value = self::normalizeLocationName($matches[1]);
                 if ($value !== '') {
@@ -708,6 +708,9 @@ class Security
         if (self::isUnknownLocation($province) && self::isUnknownLocation($city)) {
             return null;
         }
+        if (self::cachedLocationNeedsRefresh($province) || self::cachedLocationNeedsRefresh($city)) {
+            return null;
+        }
 
         return array(
             'province' => $province !== '' ? $province : '未知省份',
@@ -724,6 +727,16 @@ class Security
         }
 
         @file_put_contents($path, json_encode($location, JSON_UNESCAPED_UNICODE));
+    }
+
+    protected static function cachedLocationNeedsRefresh($value)
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return false;
+        }
+
+        return preg_match('/[\x{3040}-\x{30ff}]/u', $value) === 1;
     }
 
     protected static function ipLocationCachePath($ip)
