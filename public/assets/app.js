@@ -1525,6 +1525,14 @@
         stateTarget.hidden = false;
     }
 
+    function findCustomerServiceHeaderNode(root, legacySelector, currentSelector) {
+        if (!root) {
+            return null;
+        }
+
+        return root.querySelector(legacySelector) || root.querySelector(currentSelector);
+    }
+
     function syncMemberRechargeServiceHeader(modal) {
         if (!modal) {
             return;
@@ -1536,9 +1544,9 @@
         }
 
         var frameDocument = frame.contentDocument;
-        var innerTitle = frameDocument.querySelector('.customer-service-title-text');
-        var innerHours = frameDocument.querySelector('.customer-service-title-hours');
-        var innerState = frameDocument.querySelector('.customer-service-title-state');
+        var innerTitle = findCustomerServiceHeaderNode(frameDocument, '.customer-service-title-text', '.service-thread-title');
+        var innerHours = findCustomerServiceHeaderNode(frameDocument, '.customer-service-title-hours', '.service-thread-hours');
+        var innerState = findCustomerServiceHeaderNode(frameDocument, '.customer-service-title-state', '[data-customer-service-avatar-status]');
         var innerClear = frameDocument.querySelector('[data-customer-service-clear]');
         var clearTarget = modal.querySelector('[data-member-recharge-service-clear]');
 
@@ -2624,6 +2632,7 @@
     function customerServiceMessageElement(message, role) {
         var senderType = customerServiceText(message.sender_type);
         var type = customerServiceText(message.message_type) || 'text';
+        var isAdmin = role === 'admin';
         var isSelf = (role === 'admin' || role === 'agent') ? senderType === 'agent' : senderType === 'member';
         var row = document.createElement('div');
         var wrap = document.createElement('div');
@@ -2631,13 +2640,14 @@
         var name = document.createElement('span');
         var time = document.createElement('span');
         var bubble = document.createElement('div');
+        var recallButton;
         var senderName;
         var previewButton;
         var image;
         var voice;
         var audio;
 
-        if (customerServiceIsSystemMessage(message)) {
+        if (!isAdmin && customerServiceIsSystemMessage(message)) {
             row.className = 'service-thread-system';
             row.setAttribute('data-customer-service-message-id', customerServiceText(message.id));
             bubble.className = 'service-thread-system-pill';
@@ -2647,26 +2657,32 @@
             return row;
         }
 
-        row.className = 'service-thread-message ' + (isSelf ? 'is-self' : 'is-peer');
+        row.className = (isAdmin ? 'customer-service-message ' : 'service-thread-message ') + (isSelf ? 'is-self' : 'is-peer');
         row.setAttribute('data-customer-service-message-id', customerServiceText(message.id));
-        wrap.className = 'service-thread-message-wrap';
-        meta.className = 'service-thread-meta';
+        wrap.className = isAdmin ? 'customer-service-bubble-wrap' : 'service-thread-message-wrap';
+        meta.className = isAdmin ? 'customer-service-meta' : 'service-thread-meta';
         senderName = customerServiceText(message.sender_name);
         if (!senderName && senderType === 'system') {
             senderName = '系统';
         }
         name.textContent = senderName || (isSelf ? '我' : ((role === 'admin' || role === 'agent') ? '会员' : '客服'));
         time.textContent = customerServiceText(message.created_time);
-        bubble.className = 'service-thread-bubble is-' + type;
+        bubble.className = (isAdmin ? 'customer-service-bubble is-' : 'service-thread-bubble is-') + type;
 
         if (type === 'image') {
-            previewButton = document.createElement('button');
+            previewButton = document.createElement(isAdmin ? 'a' : 'button');
             image = document.createElement('img');
-            previewButton.type = 'button';
-            previewButton.className = 'service-thread-image-open';
-            previewButton.setAttribute('data-customer-service-image-preview-open', customerServiceText(message.attachment_url));
-            previewButton.setAttribute('data-customer-service-image-preview-title', '聊天图片');
-            previewButton.setAttribute('aria-label', '预览聊天图片');
+            if (isAdmin) {
+                previewButton.href = customerServiceText(message.attachment_url);
+                previewButton.target = '_blank';
+                previewButton.rel = 'noopener noreferrer';
+            } else {
+                previewButton.type = 'button';
+                previewButton.className = 'service-thread-image-open';
+                previewButton.setAttribute('data-customer-service-image-preview-open', customerServiceText(message.attachment_url));
+                previewButton.setAttribute('data-customer-service-image-preview-title', '聊天图片');
+                previewButton.setAttribute('aria-label', '预览聊天图片');
+            }
             image.src = customerServiceText(message.attachment_url);
             image.alt = '聊天图片';
             image.loading = 'lazy';
@@ -2679,7 +2695,7 @@
         } else if (type === 'voice') {
             voice = document.createElement('div');
             audio = document.createElement('audio');
-            voice.className = 'service-thread-voice';
+            voice.className = isAdmin ? 'customer-service-voice' : 'service-thread-voice';
             voice.innerHTML = '<i class="fa-solid fa-volume-high"></i><span>' + Math.max(1, parseInt(message.voice_duration || 0, 10)) + ' 秒语音</span>';
             audio.controls = true;
             audio.setAttribute('controlsList', 'nodownload noplaybackrate');
@@ -2695,6 +2711,15 @@
 
         meta.appendChild(name);
         meta.appendChild(time);
+        if (role === 'agent' && message && message.can_recall) {
+            recallButton = document.createElement('button');
+            recallButton.type = 'button';
+            recallButton.className = 'service-thread-recall';
+            recallButton.setAttribute('data-customer-service-recall', customerServiceText(message.id));
+            recallButton.setAttribute('aria-label', '撤回该消息');
+            recallButton.textContent = '撤回';
+            meta.appendChild(recallButton);
+        }
         wrap.appendChild(meta);
         wrap.appendChild(bubble);
         row.appendChild(wrap);
@@ -2743,25 +2768,157 @@
     }
 
     function customerServiceScrollToBottom(log) {
+        var targetScrollTop;
+
         if (log) {
-            log.scrollTop = log.scrollHeight;
+            targetScrollTop = Math.max(0, log.scrollHeight - log.clientHeight);
+            log.scrollTop = targetScrollTop;
+            log._customerServiceAutoScrollTop = log.scrollTop;
         }
     }
 
-    function customerServiceScrollToBottomSoon(log) {
-        customerServiceScrollToBottom(log);
+    function customerServiceLogUserInterrupted(log, startedAt) {
+        return !!(
+            log
+            && log._customerServiceUserScrollAt
+            && log._customerServiceUserScrollAt >= startedAt
+        );
+    }
 
-        if (window.requestAnimationFrame) {
-            window.requestAnimationFrame(function () {
-                customerServiceScrollToBottom(log);
-            });
+    function customerServiceBindLogScrollIntent(log) {
+        if (!log || log.getAttribute('data-customer-service-scroll-intent-ready') === '1') {
+            return;
         }
 
-        [120, 320, 700, 1200].forEach(function (delay) {
-            window.setTimeout(function () {
-                customerServiceScrollToBottom(log);
-            }, delay);
+        log.setAttribute('data-customer-service-scroll-intent-ready', '1');
+        ['touchstart', 'pointerdown', 'wheel'].forEach(function (eventName) {
+            log.addEventListener(eventName, function () {
+                log._customerServiceUserScrollAt = Date.now ? Date.now() : new Date().getTime();
+            }, { passive: true });
         });
+    }
+
+    function customerServiceScrollToBottomUntilStable(log, reveal, options) {
+        var settings = options || {};
+        var token;
+        var attempts = 0;
+        var stableCount = 0;
+        var previousHeight = -1;
+        var shouldReveal;
+        var startedAt;
+        var minAttempts;
+        var maxAttempts;
+        var minDuration;
+
+        if (!log) {
+            return;
+        }
+
+        token = (log._customerServiceBottomScrollToken || 0) + 1;
+        log._customerServiceBottomScrollToken = token;
+        shouldReveal = !!reveal || log.getAttribute('data-customer-service-scroll-pending') === '1';
+        startedAt = Date.now ? Date.now() : new Date().getTime();
+        minAttempts = Math.max(1, parseInt(settings.minAttempts || 4, 10));
+        maxAttempts = Math.max(minAttempts, parseInt(settings.maxAttempts || 16, 10));
+        minDuration = Math.max(0, parseInt(settings.minDuration || 0, 10));
+
+        function schedule(next) {
+            if (attempts < 3 && window.requestAnimationFrame) {
+                window.requestAnimationFrame(next);
+                return;
+            }
+            window.setTimeout(next, attempts < 6 ? 80 : 160);
+        }
+
+        function step() {
+            var height;
+
+            if (!log || log._customerServiceBottomScrollToken !== token) {
+                return;
+            }
+
+            if (customerServiceLogUserInterrupted(log, startedAt)) {
+                if (shouldReveal) {
+                    customerServiceRevealLog(log);
+                }
+                return;
+            }
+
+            attempts += 1;
+            customerServiceScrollToBottom(log);
+            if (shouldReveal && attempts >= 2) {
+                customerServiceRevealLog(log);
+                shouldReveal = false;
+            }
+
+            height = log.scrollHeight;
+            if (height === previousHeight) {
+                stableCount += 1;
+            } else {
+                stableCount = 0;
+                previousHeight = height;
+            }
+
+            if (
+                attempts < minAttempts
+                || (attempts < maxAttempts && stableCount < 2)
+                || (attempts < maxAttempts && minDuration > 0 && ((Date.now ? Date.now() : new Date().getTime()) - startedAt < minDuration))
+            ) {
+                schedule(step);
+            }
+        }
+
+        step();
+    }
+
+    function customerServiceScrollToBottomSoon(log) {
+        customerServiceScrollToBottomUntilStable(log, false, {
+            minAttempts: 8,
+            maxAttempts: 18,
+            minDuration: 900
+        });
+    }
+
+    function customerServiceRevealLog(log) {
+        if (log) {
+            log.removeAttribute('data-customer-service-scroll-pending');
+        }
+    }
+
+    function customerServiceInitializeLogScroll(log) {
+        if (!log) {
+            return;
+        }
+
+        customerServiceBindLogScrollIntent(log);
+        customerServiceScrollToBottomUntilStable(log, true, {
+            minAttempts: 14,
+            maxAttempts: 32,
+            minDuration: 2600
+        });
+        window.setTimeout(function () {
+            customerServiceScrollToBottomUntilStable(log, false, {
+                minAttempts: 4,
+                maxAttempts: 12,
+                minDuration: 700
+            });
+        }, 1200);
+        window.setTimeout(function () {
+            customerServiceScrollToBottomUntilStable(log, false, {
+                minAttempts: 4,
+                maxAttempts: 12,
+                minDuration: 700
+            });
+        }, 2400);
+        if (window.addEventListener && log.getAttribute('data-customer-service-page-anchor-ready') !== '1') {
+            log.setAttribute('data-customer-service-page-anchor-ready', '1');
+            window.addEventListener('pageshow', function () {
+                customerServiceScrollToBottomSoon(log);
+            });
+            window.addEventListener('load', function () {
+                customerServiceScrollToBottomSoon(log);
+            }, { once: true });
+        }
     }
 
     function appendCustomerServiceMessagesInPlace(chat, log, messages, role) {
@@ -2796,7 +2953,7 @@
             date = customerServiceText(messages[index].created_date);
             if (date && date !== lastDate) {
                 divider = document.createElement('div');
-                divider.className = 'service-thread-date';
+                divider.className = role === 'admin' ? 'customer-service-date' : 'service-thread-date';
                 divider.textContent = date;
                 log.appendChild(divider);
                 lastDate = date;
@@ -2900,7 +3057,7 @@
 
             if (date && date !== lastDate) {
                 divider = document.createElement('div');
-                divider.className = 'service-thread-date';
+                divider.className = role === 'admin' ? 'customer-service-date' : 'service-thread-date';
                 divider.textContent = date;
                 fragment.appendChild(divider);
                 lastDate = date;
@@ -3544,8 +3701,8 @@
             return;
         }
 
-        titleNode = document.querySelector('.customer-service-title-text');
-        hoursNode = document.querySelector('.customer-service-title-hours');
+        titleNode = findCustomerServiceHeaderNode(document, '.customer-service-title-text', '.service-thread-title');
+        hoursNode = findCustomerServiceHeaderNode(document, '.customer-service-title-hours', '.service-thread-hours');
         targetOrigin = window.location.origin || (window.location.protocol + '//' + window.location.host);
 
         try {
@@ -4791,9 +4948,9 @@
             var isAgentNotice = action.indexOf('.agent.') !== -1 || action.indexOf('.admin.') !== -1;
             var isAdminNavNotice = !!(document.body && document.body.classList && document.body.classList.contains('admin-body'));
             var noticeBody = isAgentNotice ? '会员有新消息，请及时处理。' : '您有新的客服消息，请及时查看。';
-            var pollInterval = isAgentNotice ? 20000 : 30000;
-            var initialPollDelay = isAdminNavNotice ? 5000 : 1000;
-            var minPollSpacing = isAgentNotice ? 10000 : 15000;
+            var pollInterval = 2000;
+            var initialPollDelay = isAdminNavNotice ? 1000 : 800;
+            var minPollSpacing = 1800;
             var lastPollStartedAt = 0;
             var initializedAt = Date.now ? Date.now() : new Date().getTime();
             var adminBaselineReady = !isAdminNavNotice || lastMessageId > 0;
@@ -4931,6 +5088,9 @@
         var activeMessages;
         var sessionListActiveId;
         var forceLatestScroll;
+        var logWasNearBottom;
+        var preserveMessageScroll;
+        var forceMessageAppendScroll;
 
         if (!data) {
             return;
@@ -4969,11 +5129,18 @@
         latestIncomingMessageId = latestCustomerServiceIncomingMessageId(chat, activeMessages);
         lastIncomingMessageId = parseInt(chat.getAttribute('data-last-incoming-message-id') || '0', 10);
         newIncomingCount = countCustomerServiceIncomingMessagesAfter(chat, activeMessages, lastIncomingMessageId);
-        forceLatestScroll = payloadMatchesActiveSession && newIncomingCount > 0;
         baselineReady = chat.getAttribute('data-incoming-message-baseline-ready') === '1';
         log = chat.querySelector('[data-customer-service-log]');
+        logWasNearBottom = customerServiceLogNearBottom(log);
+        forceLatestScroll = payloadMatchesActiveSession && newIncomingCount > 0 && logWasNearBottom;
         agentSilentPoll = role === 'agent' && !renderOptions.forceScroll && currentSessionId === previousSessionId;
-        chatIsReadingLatest = role === 'agent' && serviceAgentChatPanelIsReadable(chat) && (customerServiceLogNearBottom(log) || forceLatestScroll);
+        preserveMessageScroll = !renderOptions.forceScroll
+            && currentSessionId === previousSessionId
+            && !forceLatestScroll;
+        forceMessageAppendScroll = !!renderOptions.forceScroll
+            || currentSessionId !== previousSessionId
+            || forceLatestScroll;
+        chatIsReadingLatest = role === 'agent' && serviceAgentChatPanelIsReadable(chat) && logWasNearBottom;
         shouldPlayIncomingSound = currentSessionId === previousSessionId
             && baselineReady
             && latestIncomingMessageId > lastIncomingMessageId;
@@ -5029,13 +5196,8 @@
         if (payloadMatchesActiveSession) {
             renderCustomerServiceMessages(chat, data.messages || [], {
                 forceScroll: !!renderOptions.forceScroll || currentSessionId !== previousSessionId || forceLatestScroll,
-                forceAppendScroll: payloadMatchesActiveSession && (
-                    !!renderOptions.forceScroll
-                    || forceLatestScroll
-                    || role === 'member'
-                    || (role === 'agent' && serviceAgentChatPanelIsReadable(chat))
-                ),
-                preserveScroll: agentSilentPoll && !forceLatestScroll
+                forceAppendScroll: payloadMatchesActiveSession && forceMessageAppendScroll,
+                preserveScroll: preserveMessageScroll || (agentSilentPoll && !forceLatestScroll)
             });
         }
         renderServiceAgentPresence(chat, data);
@@ -5265,6 +5427,7 @@
             var emojiToggle;
             var emojiPanel;
             var voiceButton;
+            var voiceHoldButton;
             var agentScoreButton;
             var agentScoreForm;
             var agentScoreCloseButtons;
@@ -5282,6 +5445,7 @@
             var pollAction;
             var sendAction;
             var typingAction;
+            var recallAction;
             var streamUrl;
             var role;
             var enabled;
@@ -5328,6 +5492,7 @@
             emojiToggle = chat.querySelector('[data-customer-service-emoji-toggle]');
             emojiPanel = chat.querySelector('[data-customer-service-emoji-panel]');
             voiceButton = chat.querySelector('[data-customer-service-voice]');
+            voiceHoldButton = chat.querySelector('[data-customer-service-voice-hold]');
             agentScoreButton = chat.querySelector('[data-service-agent-score-open]');
             agentScoreForm = chat.querySelector('[data-service-agent-score-form]');
             agentScoreCloseButtons = chat.querySelectorAll('[data-service-agent-score-close]');
@@ -5345,22 +5510,24 @@
             pollAction = chat.getAttribute('data-poll-action') || '';
             sendAction = chat.getAttribute('data-send-action') || '';
             typingAction = chat.getAttribute('data-typing-action') || '';
+            recallAction = chat.getAttribute('data-recall-action') || '';
             streamUrl = chat.getAttribute('data-stream-url') || '';
             role = chat.getAttribute('data-customer-service-role') || 'member';
             enabled = chat.getAttribute('data-enabled') !== '0';
-            pollInterval = role === 'agent' ? 12000 : 15000;
-            fastPollInterval = role === 'agent' ? 5000 : 5000;
+            pollInterval = role === 'agent' ? 8000 : 10000;
+            fastPollInterval = role === 'agent' ? 1000 : 1000;
             initialPollDelay = role === 'agent' ? 400 : 500;
-            minPollSpacing = role === 'agent' ? 4200 : 4200;
+            minPollSpacing = role === 'agent' ? 900 : 900;
             bindCustomerServiceNoticeAudioUnlock();
             if (role === 'agent') {
                 chat.setAttribute('data-service-agent-queue-unread-count', String(serviceAgentQueueUnreadCountFromBadge(chat)));
+                setServiceAgentView(chat, chat.getAttribute('data-agent-active-view') || 'queue');
             }
             chat.setAttribute('data-last-incoming-message-id', String(latestRenderedIncomingMessageId(chat)));
             chat.setAttribute('data-incoming-message-baseline-ready', currentSessionId() !== '0' ? '1' : '0');
             log = chat.querySelector('[data-customer-service-log]');
             if (log) {
-                customerServiceScrollToBottomSoon(log);
+                customerServiceInitializeLogScroll(log);
                 if (role === 'agent') {
                     log.addEventListener('scroll', function () {
                         if (serviceAgentChatPanelIsReadable(chat) && customerServiceLogNearBottom(log)) {
@@ -5370,7 +5537,10 @@
                 }
             }
             if (voiceButton) {
-                voiceButton.setAttribute('data-voice-default-html', voiceButton.innerHTML);
+                voiceButton.setAttribute('aria-pressed', 'false');
+            }
+            if (voiceHoldButton) {
+                voiceHoldButton.title = '按住说话';
             }
             if (input) {
                 var activateCustomerServiceCompose = function () {
@@ -5493,7 +5663,7 @@
 
                         event.preventDefault();
                         if (!scoreAction || sessionId === '0') {
-                            toast('请先选择需要充值的会员。', 'error');
+                            toast('请先选择需要调整积分的会员。', 'error');
                             return;
                         }
 
@@ -5520,7 +5690,7 @@
                             status: currentStatus(),
                             score_amount: String(amount)
                         }).then(function (payload) {
-                            toast(payload.message || '会员积分已充值。', 'success');
+                            toast(payload.message || '会员积分已调整。', 'success');
                             scoreText = serviceAgentScoreFromPayload(payload.data || {});
                             if (scoreText === '') {
                                 scoreText = serviceAgentScoreFromMessage(payload.message || '');
@@ -5564,7 +5734,6 @@
                         }, 80);
                     });
                 }
-                setServiceAgentView(chat, chat.getAttribute('data-agent-active-view') || 'queue');
                 bindServiceAgentDesktopSplitWatcher(chat);
                 Array.prototype.forEach.call(agentViewButtons, function (button) {
                     button.addEventListener('click', function (event) {
@@ -5831,9 +6000,6 @@
             }
 
             function customerServiceStreamAllowed() {
-                // Mobile WebViews on this deployment buffer SSE, so keep chat refresh on fast light polling.
-                return false;
-
                 if (!enabled || !streamUrl || !pollAction || document.hidden || typeof window.EventSource === 'undefined') {
                     return false;
                 }
@@ -6250,9 +6416,53 @@
                 });
             }
 
+            function closeCustomerServiceEmojiPanel() {
+                if (!emojiPanel) {
+                    return;
+                }
+
+                emojiPanel.hidden = true;
+                syncCustomerServiceEmojiToggle(emojiPanel, false);
+            }
+
+            function setCustomerServiceVoiceMode(active) {
+                var nextActive = !!active;
+
+                if (!form || !voiceHoldButton) {
+                    return;
+                }
+
+                form.setAttribute('data-customer-service-voice-mode', nextActive ? '1' : '0');
+                voiceHoldButton.hidden = !nextActive;
+                if (input) {
+                    input.hidden = nextActive;
+                    if (!nextActive) {
+                        syncCustomerServiceInputHeight();
+                    }
+                }
+                if (voiceButton) {
+                    voiceButton.classList.toggle('is-active', nextActive);
+                    voiceButton.setAttribute('aria-pressed', nextActive ? 'true' : 'false');
+                    voiceButton.title = nextActive ? '切换文字输入' : '切换语音输入';
+                    voiceButton.setAttribute('aria-label', nextActive ? '切换文字输入' : '切换语音输入');
+                }
+                if (nextActive) {
+                    closeCustomerServiceEmojiPanel();
+                    if (input && typeof input.blur === 'function') {
+                        input.blur();
+                    }
+                }
+            }
+
+            function toggleCustomerServiceVoiceMode() {
+                setCustomerServiceVoiceMode(!(form && form.getAttribute('data-customer-service-voice-mode') === '1'));
+            }
+
             function triggerCustomerServiceImagePicker(control) {
                 var targetInput = customerServiceImageInput(control);
 
+                setCustomerServiceVoiceMode(false);
+                closeCustomerServiceEmojiPanel();
                 if (targetInput && typeof targetInput.click === 'function') {
                     imageInput = targetInput;
                     targetInput.click();
@@ -6267,6 +6477,7 @@
                     return;
                 }
 
+                setCustomerServiceVoiceMode(false);
                 expanded = !!panel.hidden;
                 panel.hidden = !expanded;
                 syncCustomerServiceEmojiToggle(panel, expanded);
@@ -6298,10 +6509,60 @@
                 }
             }
 
+            function recallCustomerServiceMessage(control) {
+                var messageId = control ? customerServiceText(control.getAttribute('data-customer-service-recall')) : '';
+
+                if (!recallAction || !messageId || control.disabled) {
+                    return;
+                }
+
+                control.disabled = true;
+                appConfirm('确认撤回这条消息吗？', '撤回消息', '撤回', '取消').then(function (confirmed) {
+                    if (!confirmed) {
+                        control.disabled = false;
+                        return;
+                    }
+
+                    customerServicePost(chat, recallAction, {
+                        session_id: currentSessionId(),
+                        status: currentStatus(),
+                        message_id: messageId
+                    }).then(function (payload) {
+                        if (payload.message) {
+                            toast(payload.message, 'success');
+                        }
+                        applyCustomerServicePayload(chat, payload.data || {}, {
+                            preserveActiveSession: role === 'agent'
+                        });
+                        syncCustomerServiceStream();
+                    }).catch(function (error) {
+                        toast(error.message, 'error');
+                    }).finally(function () {
+                        control.disabled = false;
+                    });
+                }).catch(function () {
+                    control.disabled = false;
+                });
+            }
+
             function handleCustomerServiceToolClick(event) {
+                var recallButton = closestCustomerServiceTool(event.target, '[data-customer-service-recall]');
+                var voiceModeButton = closestCustomerServiceTool(event.target, '[data-customer-service-voice]');
                 var imageButton = closestCustomerServiceTool(event.target, '[data-customer-service-image-trigger]');
                 var emojiButton;
                 var emojiItem;
+
+                if (recallButton) {
+                    event.preventDefault();
+                    recallCustomerServiceMessage(recallButton);
+                    return;
+                }
+
+                if (voiceModeButton) {
+                    event.preventDefault();
+                    toggleCustomerServiceVoiceMode();
+                    return;
+                }
 
                 if (imageButton) {
                     event.preventDefault();
@@ -6473,7 +6734,7 @@
 
                 customerServicePost(chat, sendAction, payload, attachment, attachmentName).then(function (response) {
                     sendSucceeded = true;
-                    if (response.message && messageType !== 'text') {
+                    if (response.message && messageType === 'voice') {
                         toast(response.message, 'success');
                     }
                     if (input && messageType === 'text') {
@@ -6535,16 +6796,14 @@
             }
 
             function setVoiceRecording(active) {
-                if (!voiceButton) {
+                if (!voiceHoldButton) {
                     return;
                 }
 
-                voiceButton.classList.toggle('is-recording', !!active);
-                voiceButton.setAttribute('aria-pressed', active ? 'true' : 'false');
-                voiceButton.innerHTML = active ? '松开' : (voiceButton.getAttribute('data-voice-default-html') || '语音');
-                if (voiceButton.tagName.toLowerCase() === 'button') {
-                    voiceButton.title = active ? '松开发送语音' : '按住录音';
-                }
+                voiceHoldButton.classList.toggle('is-recording', !!active);
+                voiceHoldButton.setAttribute('aria-pressed', active ? 'true' : 'false');
+                voiceHoldButton.textContent = active ? '松开发送' : '按住说话';
+                voiceHoldButton.title = active ? '松开发送语音' : '按住说话';
             }
 
             function startVoiceRecording() {
@@ -6645,8 +6904,8 @@
             chat.addEventListener('click', handleCustomerServiceToolClick);
             chat.addEventListener('change', handleCustomerServiceToolChange);
 
-            if (voiceButton) {
-                voiceButton.addEventListener('pointerdown', function (event) {
+            if (voiceHoldButton) {
+                voiceHoldButton.addEventListener('pointerdown', function (event) {
                     event.preventDefault();
 
                     if (mediaRecorder && mediaRecorder.state === 'recording') {
@@ -6654,16 +6913,16 @@
                     }
 
                     voicePressing = true;
-                    if (voiceButton.setPointerCapture && event.pointerId !== undefined) {
+                    if (voiceHoldButton.setPointerCapture && event.pointerId !== undefined) {
                         try {
-                            voiceButton.setPointerCapture(event.pointerId);
+                            voiceHoldButton.setPointerCapture(event.pointerId);
                         } catch (captureError) {
                         }
                     }
                     startVoiceRecording();
                 });
 
-                voiceButton.addEventListener('pointerup', function (event) {
+                voiceHoldButton.addEventListener('pointerup', function (event) {
                     event.preventDefault();
                     voicePressing = false;
                     if (mediaRecorder && mediaRecorder.state === 'recording') {
@@ -6671,7 +6930,7 @@
                     }
                 });
 
-                voiceButton.addEventListener('pointercancel', function (event) {
+                voiceHoldButton.addEventListener('pointercancel', function (event) {
                     event.preventDefault();
                     voicePressing = false;
                     if (mediaRecorder && mediaRecorder.state === 'recording') {
@@ -6679,7 +6938,7 @@
                     }
                 });
 
-                voiceButton.addEventListener('contextmenu', function (event) {
+                voiceHoldButton.addEventListener('contextmenu', function (event) {
                     event.preventDefault();
                 });
             }
@@ -7717,6 +7976,39 @@
             });
         });
     }
+
+    function initAppUploadFileInputs(root) {
+        var scope = root || document;
+        var inputs = scope.querySelectorAll('[data-app-upload-file-input], [data-draw-image-file-input]');
+
+        Array.prototype.forEach.call(inputs, function (input) {
+            var control;
+            var nameNode;
+
+            if (input.getAttribute('data-app-upload-file-ready') === '1') {
+                return;
+            }
+
+            control = input.closest('[data-app-upload-file-control], [data-draw-image-file-control]');
+            nameNode = control ? control.querySelector('[data-app-upload-file-name], [data-draw-image-file-name]') : null;
+            if (!nameNode) {
+                return;
+            }
+
+            function syncFileName() {
+                var emptyText = String(nameNode.getAttribute('data-empty-text') || '未选择任何文件');
+                var fileName = input.files && input.files.length ? String(input.files[0].name || '') : '';
+                var displayText = fileName || emptyText;
+
+                nameNode.textContent = displayText;
+                nameNode.setAttribute('title', displayText);
+            }
+
+            input.setAttribute('data-app-upload-file-ready', '1');
+            input.addEventListener('change', syncFileName);
+            syncFileName();
+        });
+    }
     var serviceAgentPaymentMaxUploadSize = 5 * 1024 * 1024;
     var serviceAgentPaymentCompressTriggerSize = Math.floor(4.6 * 1024 * 1024);
     var serviceAgentPaymentTargetUploadSize = Math.floor(3.8 * 1024 * 1024);
@@ -8117,6 +8409,7 @@
         initJsonCharts(root);
         initPasswordToggles(root);
         initInstallProgressForms(root);
+        initAppUploadFileInputs(root);
 
         if (isAdminBody) {
             initAdminNavigationDrawer(root);
@@ -9589,6 +9882,45 @@
         toast(copied ? '地址已复制' : '复制失败，请手动复制', copied ? 'success' : 'error');
     }
 
+    function copyAppPlainText(text, successMessage) {
+        var textarea;
+        var copied = false;
+
+        text = String(text || '').trim();
+        if (!text) {
+            toast('没有可复制的内容', 'error');
+            return;
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () {
+                toast(successMessage || '已复制', 'success');
+            }, function () {
+                toast('复制失败，请手动复制', 'error');
+            });
+            return;
+        }
+
+        textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', 'readonly');
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        textarea.style.top = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+
+        try {
+            copied = document.execCommand('copy');
+        } catch (error) {
+            copied = false;
+        }
+
+        document.body.removeChild(textarea);
+        toast(copied ? (successMessage || '已复制') : '复制失败，请手动复制', copied ? 'success' : 'error');
+    }
+
     function setMemberRechargeModal(modal, isOpen) {
         var input;
         var hasPaymentRefreshParams;
@@ -10014,6 +10346,16 @@
         var alertTrigger = event.target.closest('[data-alert-message]');
         if (alertTrigger) {
             toast(alertTrigger.getAttribute('data-alert-message') || '', 'info');
+            event.preventDefault();
+            return;
+        }
+
+        var adminCopyText = event.target.closest('[data-admin-copy-text]');
+        if (adminCopyText) {
+            copyAppPlainText(
+                adminCopyText.getAttribute('data-admin-copy-text') || '',
+                adminCopyText.getAttribute('data-admin-copy-success') || ''
+            );
             event.preventDefault();
             return;
         }

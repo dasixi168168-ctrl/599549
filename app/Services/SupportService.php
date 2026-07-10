@@ -402,7 +402,7 @@ class SupportService extends Service
                 $this->markAgentRead((int) $session['id']);
                 $session = $this->sessionById((int) $session['id']);
             }
-            $messages = $this->formatMessages($this->messages((int) $session['id'], 'agent'), 'agent');
+            $messages = $this->formatMessages($this->messages((int) $session['id'], 'agent'), 'agent', $agent);
             if ($markRead) {
                 $sessions = $this->listSessions($status, $agent);
             }
@@ -488,7 +488,7 @@ class SupportService extends Service
                     $session = $freshSession;
                 }
             }
-            $messages = $this->formatMessages($this->messages((int) $session['id'], 'agent'), 'agent');
+            $messages = $this->formatMessages($this->messages((int) $session['id'], 'agent'), 'agent', $agent);
         }
         if ($slimPollEnabled && $sessionsStamp === '') {
             $sessionsStamp = $this->agentSessionsStamp($status, $agent);
@@ -577,6 +577,26 @@ class SupportService extends Service
         return true;
     }
 
+    public function recallAgentMessage($sessionId, array $agent, $messageId)
+    {
+        $this->ensureTables();
+
+        $session = $this->sessionById((int) $sessionId);
+        if (!$session) {
+            throw new RuntimeException('客服会话不存在。');
+        }
+
+        if (!$this->agentCanSeeSession($session, $agent)) {
+            throw new RuntimeException('当前客服账号不能操作该会话。');
+        }
+
+        $this->assertAgentCanWork($session, $agent, 'reply');
+        $this->touchAgentPresence($agent);
+        $this->recallMessageForSender($session, (int) $messageId, 'agent', null, (int) ($agent['id'] ?? 0));
+
+        return true;
+    }
+
     public function addSessionMemberScore($sessionId, array $agent, $amount)
     {
         $this->ensureTables();
@@ -601,7 +621,7 @@ class SupportService extends Service
 
         $this->assertAgentCanWork($session, $agent, 'reply');
         if (!$this->agentIsServing($agent)) {
-            throw new RuntimeException('当前客服账号不在线，请重新登录后再为会员充值积分。');
+            throw new RuntimeException('当前客服账号不在线，请重新登录后再调整会员积分。');
         }
 
         $userId = (int) ($session['user_id'] ?? 0);
@@ -610,7 +630,11 @@ class SupportService extends Service
         }
 
         $this->touchAgentPresence($agent);
-        $savedUser = $this->app->users()->addScore($userId, $amount, array('id' => null));
+        $savedUser = $this->app->users()->addScore($userId, $amount, array(
+            'id' => null,
+            'score_log_source' => 'customer_service',
+            'score_log_operator' => $this->agentName($agent),
+        ));
         $this->app->logs()->system(
             'customer_service',
             '客服调整会员积分：' . $this->agentName($agent) . ' 为 ' . (string) ($savedUser['username'] ?? '') . ' 调整 ' . $amount . ' 积分',
@@ -685,6 +709,159 @@ class SupportService extends Service
         $this->markAgentRead((int) $session['id']);
 
         return true;
+    }
+
+    protected function recallMessageForSender(array $session, $messageId, $senderType, $senderUserId = null, $senderAgentId = null)
+    {
+        $sessionId = (int) ($session['id'] ?? 0);
+        $messageId = (int) $messageId;
+        $senderType = (string) $senderType;
+        if ($sessionId <= 0 || $messageId <= 0) {
+            throw new RuntimeException('请选择要撤回的消息。');
+        }
+
+        $now = $this->now();
+        $this->db()->beginTransaction();
+        try {
+            $this->lockCustomerServiceSession($sessionId);
+            $message = $this->messageById($messageId, true);
+            if (!$message || (int) ($message['session_id'] ?? 0) !== $sessionId) {
+                throw new RuntimeException('消息不存在或不属于当前会话。');
+            }
+
+            if ((string) ($message['sender_type'] ?? '') !== $senderType) {
+                throw new RuntimeException('只能撤回自己发送的消息。');
+            }
+
+            if ($senderType === 'member' && (int) ($message['sender_user_id'] ?? 0) !== (int) $senderUserId) {
+                throw new RuntimeException('只能撤回自己发送的消息。');
+            }
+
+            if ($senderType === 'agent' && (int) ($message['sender_agent_id'] ?? 0) !== (int) $senderAgentId) {
+                throw new RuntimeException('只能撤回自己发送的消息。');
+            }
+
+            if ((string) ($message['user_deleted_at'] ?? '') !== '' && (string) ($message['agent_deleted_at'] ?? '') !== '') {
+                throw new RuntimeException('该消息已撤回。');
+            }
+
+            $this->db()->execute(
+                'UPDATE customer_service_messages
+                 SET user_deleted_at = COALESCE(user_deleted_at, :user_deleted_at),
+                     agent_deleted_at = COALESCE(agent_deleted_at, :agent_deleted_at)
+                 WHERE id = :id',
+                array(
+                    'user_deleted_at' => $now,
+                    'agent_deleted_at' => $now,
+                    'id' => $messageId,
+                )
+            );
+
+            if ($senderType === 'member') {
+                $this->db()->execute(
+                    'UPDATE customer_service_sessions
+                     SET unread_for_admin = GREATEST(unread_for_admin - 1, 0),
+                         member_typing_at = NULL,
+                         updated_at = :updated_at
+                     WHERE id = :id',
+                    array(
+                        'updated_at' => $now,
+                        'id' => $sessionId,
+                    )
+                );
+            } else {
+                $this->db()->execute(
+                    'UPDATE customer_service_sessions
+                     SET unread_for_member = GREATEST(unread_for_member - 1, 0),
+                         agent_typing_at = NULL,
+                         updated_at = :updated_at
+                     WHERE id = :id',
+                    array(
+                        'updated_at' => $now,
+                        'id' => $sessionId,
+                    )
+                );
+            }
+
+            $this->syncSessionLastMessageFromVisibleMessages($sessionId, $now);
+            $this->db()->commit();
+        } catch (\Throwable $exception) {
+            $this->db()->rollBack();
+            throw $exception;
+        }
+
+        $this->clearCustomerServiceSessionCaches($sessionId);
+        $this->setSessionLiveStatus($sessionId, $senderType, '');
+    }
+
+    protected function messageById($messageId, $forUpdate = false)
+    {
+        $sql = 'SELECT *
+                FROM customer_service_messages
+                WHERE id = :id
+                LIMIT 1';
+        if ($forUpdate) {
+            $sql .= ' FOR UPDATE';
+        }
+
+        return $this->db()->fetch($sql, array('id' => (int) $messageId));
+    }
+
+    protected function latestVisibleConversationMessage($sessionId)
+    {
+        return $this->db()->fetch(
+            'SELECT *
+             FROM customer_service_messages
+             WHERE session_id = :session_id
+               AND user_deleted_at IS NULL
+               AND agent_deleted_at IS NULL
+             ORDER BY id DESC
+             LIMIT 1',
+            array('session_id' => (int) $sessionId)
+        );
+    }
+
+    protected function syncSessionLastMessageFromVisibleMessages($sessionId, $updatedAt)
+    {
+        $latest = $this->latestVisibleConversationMessage((int) $sessionId);
+        $message = $latest ? array(
+            'type' => (string) ($latest['message_type'] ?? 'text'),
+            'content' => (string) ($latest['content'] ?? ''),
+            'attachment_url' => (string) ($latest['attachment_url'] ?? ''),
+            'attachment_name' => (string) ($latest['attachment_name'] ?? ''),
+            'voice_duration' => (int) ($latest['voice_duration'] ?? 0),
+        ) : array(
+            'type' => 'text',
+            'content' => '',
+            'attachment_url' => '',
+            'attachment_name' => '',
+            'voice_duration' => 0,
+        );
+
+        $this->db()->execute(
+            'UPDATE customer_service_sessions
+             SET last_message_type = :last_message_type,
+                 last_message_preview = :last_message_preview,
+                 last_message_at = :last_message_at,
+                 updated_at = :updated_at
+             WHERE id = :id',
+            array(
+                'last_message_type' => (string) $message['type'],
+                'last_message_preview' => $latest ? $this->preview($message) : '',
+                'last_message_at' => $latest ? (string) ($latest['created_at'] ?? '') : null,
+                'updated_at' => (string) $updatedAt,
+                'id' => (int) $sessionId,
+            )
+        );
+    }
+
+    protected function clearCustomerServiceSessionCaches($sessionId)
+    {
+        $sessionId = (int) $sessionId;
+        $this->app->cache()->forget('customer_service_session_by_id_' . $sessionId);
+        $this->app->cache()->forget('customer_service_latest_visible_message_' . md5('member|' . $sessionId . '| AND user_deleted_at IS NULL'));
+        $this->app->cache()->forget('customer_service_latest_visible_message_' . md5('agent|' . $sessionId . '| AND agent_deleted_at IS NULL'));
+        $this->app->cache()->forget('customer_service_latest_visible_message_' . md5('admin|' . $sessionId . '|'));
     }
 
     public function deleteSessionFromAgentQueue($sessionId, array $agent)
@@ -2093,6 +2270,7 @@ class SupportService extends Service
         if ($messageType === 'image') {
             $this->assertImageAttachment($tmpName, $mimeType, $extension, $fileSize);
         } else {
+            $mimeType = $this->normalizeVoiceMimeType($tmpName, $mimeType, $extension);
             $this->assertVoiceAttachment($mimeType, $extension, $fileSize);
         }
 
@@ -2336,8 +2514,8 @@ class SupportService extends Service
 
     protected function assertVoiceAttachment($mimeType, $extension, $fileSize)
     {
-        $allowedExtensions = array('webm', 'mp3', 'm4a', 'mp4', 'wav', 'ogg');
-        $allowedMimeTypes = array('audio/webm', 'audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-wav', 'audio/ogg', 'video/webm');
+        $allowedExtensions = $this->voiceAttachmentExtensions();
+        $allowedMimeTypes = $this->voiceAttachmentMimeTypes();
 
         if ($fileSize <= 0 || $fileSize > 8 * 1024 * 1024) {
             throw new RuntimeException('语音大小不能超过 8MB。');
@@ -2346,6 +2524,64 @@ class SupportService extends Service
         if (!in_array($extension, $allowedExtensions, true) || !in_array($mimeType, $allowedMimeTypes, true)) {
             throw new RuntimeException('仅支持 webm、mp3、m4a、mp4、wav、ogg 语音。');
         }
+    }
+
+    protected function normalizeVoiceMimeType($path, $mimeType, $extension)
+    {
+        $mimeType = (string) $mimeType;
+        $extension = strtolower((string) $extension);
+        if (in_array($mimeType, $this->voiceAttachmentMimeTypes(), true)) {
+            return $mimeType;
+        }
+
+        if (!in_array($extension, $this->voiceAttachmentExtensions(), true)) {
+            return $mimeType;
+        }
+
+        $header = @file_get_contents((string) $path, false, null, 0, 32);
+        if (!is_string($header) || $header === '') {
+            return $mimeType;
+        }
+
+        if ($extension === 'wav'
+            && substr($header, 0, 4) === 'RIFF'
+            && substr($header, 8, 4) === 'WAVE'
+        ) {
+            return 'audio/wav';
+        }
+
+        if ($extension === 'webm' && substr($header, 0, 4) === "\x1A\x45\xDF\xA3") {
+            return 'audio/webm';
+        }
+
+        if ($extension === 'ogg' && substr($header, 0, 4) === 'OggS') {
+            return 'audio/ogg';
+        }
+
+        if ($extension === 'mp3'
+            && (substr($header, 0, 3) === 'ID3'
+                || (isset($header[0], $header[1])
+                    && ord($header[0]) === 0xFF
+                    && (ord($header[1]) & 0xE0) === 0xE0))
+        ) {
+            return 'audio/mpeg';
+        }
+
+        if (in_array($extension, array('m4a', 'mp4'), true) && substr($header, 4, 4) === 'ftyp') {
+            return 'audio/mp4';
+        }
+
+        return $mimeType;
+    }
+
+    protected function voiceAttachmentExtensions()
+    {
+        return array('webm', 'mp3', 'm4a', 'mp4', 'wav', 'ogg');
+    }
+
+    protected function voiceAttachmentMimeTypes()
+    {
+        return array('audio/webm', 'audio/mpeg', 'audio/mp4', 'audio/wav', 'audio/x-wav', 'audio/ogg', 'video/webm');
     }
 
     protected function detectMimeType($path)
@@ -2816,15 +3052,21 @@ class SupportService extends Service
         );
     }
 
-    protected function formatMessages(array $rows, $viewer = 'member')
+    protected function formatMessages(array $rows, $viewer = 'member', array $actor = array())
     {
         $messages = array();
         $inviteRewardNotifications = array();
+        $viewer = (string) $viewer;
+        $actorAgentId = (int) ($actor['id'] ?? 0);
         foreach ($rows as $row) {
             $createdAt = (string) ($row['created_at'] ?? '');
             $timestamp = $createdAt !== '' ? strtotime($createdAt) : false;
             $senderType = (string) ($row['sender_type'] ?? 'member');
             $content = (string) ($row['content'] ?? '');
+            $canRecall = $viewer === 'agent'
+                && $senderType === 'agent'
+                && $actorAgentId > 0
+                && (int) ($row['sender_agent_id'] ?? 0) === $actorAgentId;
             if (in_array($senderType, array('agent', 'system'), true)) {
                 $content = $this->normalizeBlockNoticeContent($content);
             }
@@ -2850,6 +3092,7 @@ class SupportService extends Service
                 'attachment_mime' => (string) ($row['attachment_mime'] ?? ''),
                 'attachment_size' => (int) ($row['attachment_size'] ?? 0),
                 'voice_duration' => (int) ($row['voice_duration'] ?? 0),
+                'can_recall' => $canRecall,
                 'created_at' => $timestamp ? date('Y-m-d H:i', $timestamp) : '',
                 'created_date' => $timestamp ? date('Y-m-d', $timestamp) : '',
                 'created_time' => $timestamp ? date('H:i', $timestamp) : '',
@@ -3378,6 +3621,12 @@ class SupportService extends Service
     protected function agentName(array $row)
     {
         $name = trim((string) ($row['assigned_agent_name'] ?? ''));
+        if ($name === '') {
+            $name = trim((string) ($row['display_name'] ?? ''));
+        }
+        if ($name === '') {
+            $name = trim((string) ($row['username'] ?? ''));
+        }
 
         return $name !== '' ? $name : '未接待';
     }

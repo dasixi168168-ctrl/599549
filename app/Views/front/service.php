@@ -84,6 +84,51 @@ $customerServiceIconSvg = static function ($name) {
 
     return '<i class="front-fa-icon front-icon-' . e($key) . '" aria-hidden="true">' . $icons[$key] . '</i>';
 };
+$customerServiceJsChecksum = static function ($value) {
+    $text = (string) ($value ?? '');
+    $utf16 = false;
+    if (function_exists('mb_convert_encoding')) {
+        $utf16 = mb_convert_encoding($text, 'UTF-16BE', 'UTF-8');
+    } elseif (function_exists('iconv')) {
+        $utf16 = iconv('UTF-8', 'UTF-16BE//IGNORE', $text);
+    }
+    if ($utf16 === false) {
+        $utf16 = $text;
+    }
+
+    $hash = 0;
+    $length = strlen($utf16);
+    for ($index = 0; $index < $length; $index += 2) {
+        $code = $index + 1 < $length
+            ? ((ord($utf16[$index]) << 8) + ord($utf16[$index + 1]))
+            : ord($utf16[$index]);
+        $hash = (($hash << 5) - $hash + $code) & 0xffffffff;
+        if ($hash >= 0x80000000) {
+            $hash -= 0x100000000;
+        }
+    }
+
+    return (string) ($hash < 0 ? $hash + 0x100000000 : $hash);
+};
+$customerServiceMessagesState = static function (array $messages) use ($customerServiceJsChecksum) {
+    $parts = array((string) count($messages));
+    foreach ($messages as $message) {
+        $parts[] = implode(':', array(
+            (string) ($message['id'] ?? ''),
+            (string) ($message['sender_type'] ?? ''),
+            (string) ($message['message_type'] ?? ''),
+            (string) ($message['created_date'] ?? ''),
+            (string) ($message['created_time'] ?? ''),
+            $customerServiceJsChecksum($message['content'] ?? ''),
+            $customerServiceJsChecksum($message['attachment_url'] ?? ''),
+            (string) ($message['voice_duration'] ?? ''),
+        ));
+    }
+
+    return implode('|', $parts);
+};
+$customerServiceMessageState = $customerServiceMessagesState($customerServiceMessages);
+$customerServiceMessageCount = count($customerServiceMessages);
 $customerServiceAgentChatUnread = $customerServiceSession ? max(0, (int) ($customerServiceSession['unread_for_admin'] ?? 0)) : 0;
 $customerServiceRequestedAgentView = isset($_GET['agent_view']) ? trim((string) $_GET['agent_view']) : '';
 if (!in_array($customerServiceRequestedAgentView, array('queue', 'chat'), true)) {
@@ -332,10 +377,12 @@ if ($customerServiceUsdtAddress === '') {
                                         <div class="service-agent-payment-empty">未上传</div>
                                     <?php endif; ?>
                                 </div>
-                                <div class="service-agent-payment-upload-row">
-                                    <span class="service-agent-payment-upload-label">选择图片</span>
-                                    <label class="service-agent-payment-upload">
-                                        <input type="file" name="<?php echo e((string) $paymentRow['field']); ?>" accept="image/*,.jpg,.jpeg,.png,.gif,.webp,.bmp,image/jpeg,image/png,image/gif,image/webp,image/bmp,image/x-ms-bmp">
+                                <div class="service-agent-payment-upload-row app-upload-file-row">
+                                    <span class="service-agent-payment-upload-label app-upload-file-label">上传图片</span>
+                                    <label class="service-agent-payment-upload app-upload-file-control" data-app-upload-file-control>
+                                        <span class="app-upload-file-button">选择文件</span>
+                                        <span class="app-upload-file-name" data-app-upload-file-name data-empty-text="未选择任何文件">未选择任何文件</span>
+                                        <input class="app-upload-file-input" type="file" name="<?php echo e((string) $paymentRow['field']); ?>" accept="image/*,.jpg,.jpeg,.png,.gif,.webp,.bmp,image/jpeg,image/png,image/gif,image/webp,image/bmp,image/x-ms-bmp" data-app-upload-file-input>
                                     </label>
                                     <button type="submit" class="service-agent-payment-submit is-<?php echo e((string) $paymentRow['type']); ?>">
                                         <i class="fa-solid fa-upload"></i>
@@ -390,6 +437,7 @@ if ($customerServiceUsdtAddress === '') {
                     data-customer-service-role="agent"
                     data-agent-active-view="<?php echo e($customerServiceAgentView); ?>"
                     data-api-url="<?php echo e(public_url('api.php')); ?>"
+                    data-stream-url="<?php echo e(public_url('customer_service_stream.php')); ?>"
                     data-token="<?php echo e(csrf_token('api')); ?>"
                     data-session-id="<?php echo e((string) $customerServiceSessionId); ?>"
                     data-has-session="<?php echo $customerServiceSession ? '1' : '0'; ?>"
@@ -400,6 +448,7 @@ if ($customerServiceUsdtAddress === '') {
                     data-poll-action="customer_service.agent.poll"
                     data-typing-action="customer_service.typing"
                     data-clear-action="customer_service.agent.clear"
+                    data-recall-action="customer_service.agent.recall"
                     data-delete-action="customer_service.agent.queue_delete"
                     data-block-action="customer_service.agent.block"
                     data-unblock-action="customer_service.agent.unblock"
@@ -644,11 +693,11 @@ if ($customerServiceUsdtAddress === '') {
                                 class="service-thread-action service-thread-action--score"
                                 type="button"
                                 data-service-agent-score-open
-                                aria-label="积分充值"
-                                title="积分充值"
+                                aria-label="调整积分"
+                                title="调整积分"
                             >
                                 <?php echo $customerServiceIconSvg('coins'); ?>
-                                <span>积分充值</span>
+                                <span>调分</span>
                             </button>
                         <?php endif; ?>
                         <span class="service-thread-block-controls" data-service-agent-chat-block-controls <?php echo $customerServiceSession ? '' : 'hidden'; ?>>
@@ -682,7 +731,13 @@ if ($customerServiceUsdtAddress === '') {
                     </div>
                 </div>
 
-                <div class="service-thread-log" data-customer-service-log>
+                <div
+                    class="service-thread-log"
+                    data-customer-service-log
+                    data-customer-service-message-state="<?php echo e($customerServiceMessageState); ?>"
+                    data-customer-service-message-count="<?php echo e((string) $customerServiceMessageCount); ?>"
+                    <?php echo $customerServiceMessageCount > 0 ? 'data-customer-service-scroll-pending="1"' : ''; ?>
+                >
                     <?php if ($customerServiceSession && $customerServiceMessages): ?>
                         <?php foreach ($customerServiceMessages as $message): ?>
                             <?php
@@ -720,6 +775,14 @@ if ($customerServiceUsdtAddress === '') {
                                     <div class="service-thread-meta">
                                         <span><?php echo e((string) ($message['sender_name'] ?? ($isSelf ? '客服' : '会员'))); ?></span>
                                         <span><?php echo e((string) ($message['created_time'] ?? '')); ?></span>
+                                        <?php if (!empty($message['can_recall'])): ?>
+                                            <button
+                                                type="button"
+                                                class="service-thread-recall"
+                                                data-customer-service-recall="<?php echo e((string) ($message['id'] ?? 0)); ?>"
+                                                aria-label="撤回该消息"
+                                            >撤回</button>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="service-thread-bubble is-<?php echo e($messageType); ?>">
                                         <?php if ($messageType === 'image'): ?>
@@ -771,11 +834,12 @@ if ($customerServiceUsdtAddress === '') {
                         <input class="sr-only" type="file" name="attachment" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp" data-customer-service-image>
                         <div class="service-thread-pending" hidden data-customer-service-pending></div>
                         <div class="service-thread-tools">
-                            <button class="service-thread-tool" type="button" data-customer-service-voice aria-label="发送语音" title="发送语音"><?php echo $customerServiceIconSvg('microphone'); ?></button>
-                            <button class="service-thread-tool" type="button" data-customer-service-image-trigger aria-label="发送图片" title="发送图片"><?php echo $customerServiceIconSvg('image'); ?></button>
-                            <button class="service-thread-tool" type="button" data-customer-service-emoji-toggle aria-label="发送表情" title="发送表情" aria-haspopup="dialog" aria-expanded="false"><?php echo $customerServiceIconSvg('face-smile'); ?></button>
+                            <button class="service-thread-tool" type="button" data-customer-service-voice aria-label="切换语音输入" title="切换语音输入" aria-pressed="false"><?php echo $customerServiceIconSvg('microphone'); ?></button>
+                            <button class="service-thread-tool" type="button" data-customer-service-image-trigger aria-label="选择图片" title="选择图片"><?php echo $customerServiceIconSvg('image'); ?></button>
+                            <button class="service-thread-tool" type="button" data-customer-service-emoji-toggle aria-label="选择表情" title="选择表情" aria-haspopup="dialog" aria-expanded="false"><?php echo $customerServiceIconSvg('face-smile'); ?></button>
                         </div>
                         <textarea class="service-thread-input" name="content" rows="1" maxlength="1000" placeholder="输入回复内容..." autocomplete="off" data-customer-service-input></textarea>
+                        <button class="service-thread-voice-hold" type="button" hidden data-customer-service-voice-hold aria-pressed="false">按住说话</button>
                         <button class="service-thread-send" type="submit" aria-label="发送消息"><?php echo $customerServiceIconSvg('paper-plane'); ?></button>
                         <div class="service-thread-emoji-panel" hidden data-customer-service-emoji-panel>
                             <?php foreach ($customerServiceEmojis as $emoji): ?>
@@ -798,11 +862,11 @@ if ($customerServiceUsdtAddress === '') {
             aria-modal="true"
             aria-labelledby="service-agent-score-title"
         >
-            <button class="service-agent-score-backdrop" type="button" data-service-agent-score-close aria-label="关闭积分充值弹窗"></button>
+            <button class="service-agent-score-backdrop" type="button" data-service-agent-score-close aria-label="关闭调整积分弹窗"></button>
             <section class="service-agent-score-card">
                 <div class="service-agent-score-head">
-                    <h2 id="service-agent-score-title">积分充值</h2>
-                    <button type="button" data-service-agent-score-close aria-label="关闭积分充值">
+                    <h2 id="service-agent-score-title">调整积分</h2>
+                    <button type="button" data-service-agent-score-close aria-label="关闭调整积分">
                         <?php echo $customerServiceIconSvg('xmark'); ?>
                     </button>
                 </div>
@@ -820,19 +884,19 @@ if ($customerServiceUsdtAddress === '') {
                     </div>
                     <div class="service-agent-score-actions">
                         <label class="service-agent-score-field">
-                            <span>充值金额</span>
+                            <span>变动积分</span>
                             <input
                                 type="number"
                                 min="-100000000"
                                 max="100000000"
                                 step="1"
                                 inputmode="numeric"
-                                placeholder="请输入充值积分，扣减请用负数"
+                                placeholder="正数为充值，负数为扣减"
                                 data-service-agent-score-amount
                                 required
                             >
                         </label>
-                        <button type="submit" data-service-agent-score-submit>确认充值</button>
+                        <button type="submit" data-service-agent-score-submit>确认调整</button>
                     </div>
                 </form>
             </section>
@@ -871,6 +935,7 @@ if ($customerServiceUsdtAddress === '') {
         data-customer-service
         data-customer-service-role="member"
         data-api-url="<?php echo e(public_url('api.php')); ?>"
+        data-stream-url="<?php echo e(public_url('customer_service_stream.php')); ?>"
         data-token="<?php echo e(csrf_token('api')); ?>"
         data-session-id="<?php echo e((string) $customerServiceSessionId); ?>"
         data-send-action="customer_service.member.send"
@@ -905,7 +970,13 @@ if ($customerServiceUsdtAddress === '') {
                 <span><em data-customer-service-activity-notice-text><?php echo e($customerServiceMemberActivityNotice); ?></em></span>
             </div>
             <?php if ($user): ?>
-                <div class="service-thread-log" data-customer-service-log>
+                <div
+                    class="service-thread-log"
+                    data-customer-service-log
+                    data-customer-service-message-state="<?php echo e($customerServiceMessageState); ?>"
+                    data-customer-service-message-count="<?php echo e((string) $customerServiceMessageCount); ?>"
+                    <?php echo $customerServiceMessageCount > 0 ? 'data-customer-service-scroll-pending="1"' : ''; ?>
+                >
                     <?php if ($customerServiceMessages): ?>
                         <?php foreach ($customerServiceMessages as $message): ?>
                             <?php
@@ -980,11 +1051,12 @@ if ($customerServiceUsdtAddress === '') {
                     <input class="sr-only" type="file" name="attachment" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp" data-customer-service-image>
                     <div class="service-thread-pending" hidden data-customer-service-pending></div>
                     <div class="service-thread-tools">
-                        <button class="service-thread-tool" type="button" data-customer-service-voice aria-label="发送语音" title="发送语音"><?php echo $customerServiceIconSvg('microphone'); ?></button>
-                        <button class="service-thread-tool" type="button" data-customer-service-image-trigger aria-label="发送图片" title="发送图片"><?php echo $customerServiceIconSvg('image'); ?></button>
-                        <button class="service-thread-tool" type="button" data-customer-service-emoji-toggle aria-label="发送表情" title="发送表情" aria-haspopup="dialog" aria-expanded="false"><?php echo $customerServiceIconSvg('face-smile'); ?></button>
+                        <button class="service-thread-tool" type="button" data-customer-service-voice aria-label="切换语音输入" title="切换语音输入" aria-pressed="false"><?php echo $customerServiceIconSvg('microphone'); ?></button>
+                        <button class="service-thread-tool" type="button" data-customer-service-image-trigger aria-label="选择图片" title="选择图片"><?php echo $customerServiceIconSvg('image'); ?></button>
+                        <button class="service-thread-tool" type="button" data-customer-service-emoji-toggle aria-label="选择表情" title="选择表情" aria-haspopup="dialog" aria-expanded="false"><?php echo $customerServiceIconSvg('face-smile'); ?></button>
                     </div>
                     <textarea class="service-thread-input" name="content" rows="1" maxlength="1000" placeholder="输入消息..." autocomplete="off" data-customer-service-input></textarea>
+                    <button class="service-thread-voice-hold" type="button" hidden data-customer-service-voice-hold aria-pressed="false">按住说话</button>
                     <button class="service-thread-send" type="submit" aria-label="发送消息"><?php echo $customerServiceIconSvg('paper-plane'); ?></button>
                     <div class="service-thread-emoji-panel" hidden data-customer-service-emoji-panel>
                         <?php foreach ($customerServiceEmojis as $emoji): ?>

@@ -441,6 +441,12 @@ try {
             ));
             break;
 
+        case 'customer_service.member.recall':
+            if (!$user) {
+                throw new RuntimeException('请先登录后再使用在线客服。');
+            }
+            throw new RuntimeException('会员端已取消消息撤回。');
+
         case 'customer_service.member.payment_settings':
             if (!$user) {
                 throw new RuntimeException('请先登录后再查看充值二维码。');
@@ -665,6 +671,28 @@ try {
                     (string) input('status', 'all'),
                     $customerServiceAgent,
                     true
+                ),
+            ));
+            break;
+
+        case 'customer_service.agent.recall':
+            $customerServiceAgent = app()->support()->currentAgent();
+            if (!$customerServiceAgent) {
+                $customerServiceAgentLoginResponse();
+            }
+            app()->support()->recallAgentMessage(
+                (int) input('session_id', 0),
+                $customerServiceAgent,
+                (int) input('message_id', 0)
+            );
+            json_response(array(
+                'success' => true,
+                'message' => '消息已撤回。',
+                'data' => app()->support()->agentSessionPayload(
+                    (int) input('session_id', 0),
+                    $customerServiceAgent,
+                    false,
+                    (string) input('status', 'all')
                 ),
             ));
             break;

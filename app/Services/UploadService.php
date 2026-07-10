@@ -59,6 +59,30 @@ class UploadService extends Service
 
         $sql = 'SELECT * FROM uploads WHERE status = 1';
         $params = array();
+        $sql .= $this->uploadFilterSql($filters, $params);
+
+        $sql .= ' ORDER BY id DESC LIMIT 120';
+
+        return $this->db()->fetchAll($sql, $params);
+    }
+
+    public function countUploads(array $filters = array())
+    {
+        if (!$this->tableExists('uploads')) {
+            return 0;
+        }
+
+        $sql = 'SELECT COUNT(*) AS total_count FROM uploads WHERE status = 1';
+        $params = array();
+        $sql .= $this->uploadFilterSql($filters, $params);
+        $row = $this->db()->fetch($sql, $params);
+
+        return max(0, (int) ($row['total_count'] ?? 0));
+    }
+
+    protected function uploadFilterSql(array $filters, array &$params)
+    {
+        $sql = '';
         $keyword = trim((string) ($filters['keyword'] ?? ''));
         $businessType = trim((string) ($filters['business_type'] ?? ''));
 
@@ -72,9 +96,69 @@ class UploadService extends Service
             $params['business_type'] = $businessType;
         }
 
-        $sql .= ' ORDER BY id DESC LIMIT 120';
+        return $sql;
+    }
 
-        return $this->db()->fetchAll($sql, $params);
+    public function uploadById($id)
+    {
+        if (!$this->tableExists('uploads')) {
+            return null;
+        }
+
+        $row = $this->db()->fetch(
+            'SELECT * FROM uploads WHERE id = :id LIMIT 1',
+            array('id' => (int) $id)
+        );
+
+        return is_array($row) ? $row : null;
+    }
+
+    public function deleteUploadedImage($id, array $actor)
+    {
+        if (!$this->tableExists('uploads')) {
+            throw new RuntimeException('当前数据库还没有附件上传表，请先刷新后台完成补表。');
+        }
+
+        $uploadId = (int) $id;
+        if ($uploadId <= 0) {
+            throw new RuntimeException('图片记录无效。');
+        }
+
+        $row = $this->uploadById($uploadId);
+        if (!$row || (int) ($row['status'] ?? 0) !== 1) {
+            throw new RuntimeException('图片不存在或已删除。');
+        }
+
+        $filePath = trim((string) ($row['file_path'] ?? ''));
+        $absolutePath = $this->uploadedPublicPathToAbsolutePath($filePath);
+
+        $updatedAt = $this->now();
+        $this->db()->execute(
+            'UPDATE uploads
+             SET status = 0, updated_at = :updated_at
+             WHERE id = :id
+             LIMIT 1',
+            array(
+                'id' => $uploadId,
+                'updated_at' => $updatedAt,
+            )
+        );
+
+        if ($absolutePath !== '' && is_file($absolutePath) && !@unlink($absolutePath)) {
+            $this->db()->execute(
+                'UPDATE uploads
+                 SET status = 1, updated_at = :updated_at
+                 WHERE id = :id
+                 LIMIT 1',
+                array(
+                    'id' => $uploadId,
+                    'updated_at' => $this->now(),
+                )
+            );
+            throw new RuntimeException('图片文件删除失败，请检查文件权限。');
+        }
+
+        return $row;
     }
 
     public function saveUploadedFile($fieldName, $businessType, array $actor, array $options = array())
@@ -208,6 +292,40 @@ class UploadService extends Service
         );
 
         return $this->db()->fetch('SELECT * FROM uploads WHERE id = :id LIMIT 1', array('id' => $uploadId));
+    }
+
+    protected function uploadedPublicPathToAbsolutePath($filePath)
+    {
+        $filePath = trim((string) $filePath);
+        if ($filePath === '') {
+            throw new RuntimeException('图片访问路径为空，不能删除。');
+        }
+
+        $path = (string) (parse_url($filePath, PHP_URL_PATH) ?: $filePath);
+        $publicBase = rtrim((string) \public_base_path(), '/');
+        if ($publicBase !== '' && $publicBase !== '/' && strpos($path, $publicBase . '/') === 0) {
+            $path = substr($path, strlen($publicBase) + 1);
+        }
+
+        $relativePath = ltrim(str_replace('\\', '/', $path), '/');
+        if (strpos($relativePath, 'uploads/') !== 0 || strpos($relativePath, '..') !== false) {
+            throw new RuntimeException('只允许删除站内上传目录中的图片。');
+        }
+
+        $absolutePath = $this->app->basePath('public/' . $relativePath);
+        $uploadBase = $this->app->basePath('public/uploads');
+        $realUploadBase = realpath($uploadBase);
+        $realTarget = realpath($absolutePath);
+
+        if ($realTarget === false) {
+            return $absolutePath;
+        }
+
+        if ($realUploadBase === false || strpos($realTarget, $realUploadBase . DIRECTORY_SEPARATOR) !== 0) {
+            throw new RuntimeException('图片路径校验失败，已阻止删除。');
+        }
+
+        return $realTarget;
     }
 
     protected function shouldOptimizeUploadedImage(array $options)
