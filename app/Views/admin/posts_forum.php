@@ -112,72 +112,21 @@ $normalizeIssueTail = static function ($issueNo) {
 
     return str_pad($tail, 3, '0', STR_PAD_LEFT);
 };
-$waveRed = array(1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46);
-$waveBlue = array(3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48);
-$latestRegionDrawDate = is_array($latestRegionDraw) ? (string) ($latestRegionDraw['draw_date'] ?? '') : '';
-$padDrawNumber = static function ($value) {
-    $number = (int) $value;
-
-    return $number < 10 ? '0' . $number : (string) $number;
-};
-$waveColorClass = static function (int $value) use ($waveRed, $waveBlue) {
-    if (in_array($value, $waveRed, true)) {
-        return 'is-red';
-    }
-
-    if (in_array($value, $waveBlue, true)) {
-        return 'is-blue';
-    }
-
-    return 'is-green';
-};
-$renderAdminDrawBall = static function (?int $value) use ($padDrawNumber, $waveColorClass, $latestRegionDrawDate) {
-    $ballClass = $value === null ? 'is-empty' : $waveColorClass($value);
-    $numberText = $value === null ? '--' : $padDrawNumber($value);
-    $zodiacText = $value === null ? '--' : (app()->prediction()->drawZodiacByNumber($value, $latestRegionDrawDate) ?: '--');
-
-    return '<div class="admin-editor-live-ball ' . e($ballClass) . '">' .
-        '<div class="admin-editor-live-ball-code">' . e($numberText) . '</div>' .
-        '<div class="admin-editor-live-ball-zodiac">' . e($zodiacText) . '</div>' .
-        '</div>';
-};
 $issueSuffixText = html_entity_decode('&#26399;', ENT_QUOTES, 'UTF-8');
-$latestRegionIssueText = '--' . $issueSuffixText;
 $postTitleIssueText = '--' . $issueSuffixText;
 $managedCurrentIssueTail = $normalizeIssueTail((string) ($managedCurrentIssue['issue_prefix_tail'] ?? ($managedCurrentIssue['issue_no'] ?? '')));
 if ($managedCurrentIssueTail !== '--') {
     $postTitleIssueText = $managedCurrentIssueTail . $issueSuffixText;
 }
-$latestRegionBallsHtml = '';
 $stripPostIssuePrefix = static function ($title) {
     return trim((string) preg_replace('/^(?:\s*\d{1,6}\s*(?:期|鏈[^\s:：]{0,6}|链[^\s:：]{0,6}|閺[^\s:：]{0,6})\s*[:：]?\s*)+/u', '', trim((string) $title)));
 };
 
 if (is_array($latestRegionDraw)) {
     $issueTail = $normalizeIssueTail($latestRegionDraw['issue_no'] ?? '');
-    $drawNumbers = isset($latestRegionDraw['numbers']) && is_array($latestRegionDraw['numbers'])
-        ? array_values($latestRegionDraw['numbers'])
-        : json_decode((string) ($latestRegionDraw['numbers_json'] ?? '[]'), true);
-    $drawNumbers = is_array($drawNumbers) ? array_values($drawNumbers) : array();
-    $specialNumber = (int) ($latestRegionDraw['special_number'] ?? 0);
-    $latestRegionIssueText = $issueTail !== '--' ? ($issueTail . $issueSuffixText) : $latestRegionIssueText;
     if ($postTitleIssueText === '--' . $issueSuffixText && $issueTail !== '--') {
         $postTitleIssueText = $issueTail . $issueSuffixText;
     }
-
-    foreach ($drawNumbers as $drawNumber) {
-        $drawNumber = (int) $drawNumber;
-        if ($drawNumber > 0) {
-            $latestRegionBallsHtml .= $renderAdminDrawBall($drawNumber);
-        }
-    }
-
-    $latestRegionBallsHtml .= '<span class="admin-editor-live-ball-separator">+</span>';
-    $latestRegionBallsHtml .= $renderAdminDrawBall($specialNumber > 0 ? $specialNumber : null);
-}
-
-if ($latestRegionBallsHtml === '') {
-    $latestRegionBallsHtml = '<span class="admin-help">请先更新当前分区开奖号码</span>';
 }
 
 $postCount = count($posts);
@@ -582,10 +531,10 @@ $generatorTopBadgeClass = static function (array $option) {
     return 'is-slate';
 };
 ?>
-<section class="admin-split-grid admin-posts-stack mt-4">
+<section class="admin-split-grid admin-posts-stack">
     <?php if ($showPostManageSection): ?>
     <div>
-        <div class="admin-card front-card admin-posts-classic-card" id="post-manage-card">
+        <div class="admin-posts-classic-card" id="post-manage-card">
             <div class="admin-posts-card-titlebar">
                 <?php echo $postNavigationFrameHtml; ?>
             </div>
@@ -1901,7 +1850,7 @@ $generatorTopBadgeClass = static function (array $option) {
     <?php endif; ?>
 
     <?php if ($showPostGeneratorSection): ?>
-    <div class="admin-card front-card admin-posts-generator-card" id="post-generator-card">
+    <div class="admin-posts-generator-card" id="post-generator-card">
         <div class="admin-posts-card-titlebar">
             <?php echo $postNavigationFrameHtml; ?>
         </div>
@@ -2175,7 +2124,7 @@ $generatorTopBadgeClass = static function (array $option) {
         <?php endif; ?>
     </div>
     <?php elseif ($showPostFormSection): ?>
-    <div class="admin-card front-card" id="post-form-card">
+    <div id="post-form-card">
         <div class="admin-posts-card-titlebar">
             <?php echo $postNavigationFrameHtml; ?>
         </div>

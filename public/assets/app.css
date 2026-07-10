@@ -22914,6 +22914,1592 @@ body.admin-page-draws .admin-draws-card .tox .tox-toolbar__primary,
     }
 }
 
+/* Admin shared header consistency v20: one top header contract for every backend page. */
+body.admin-body {
+    --admin-header-height: 60px !important;
+    --admin-header-z-index: 130 !important;
+    --admin-drawer-backdrop-z-index: 150 !important;
+    --admin-drawer-z-index: 170 !important;
+    --admin-header-safe-top: env(safe-area-inset-top, 0px) !important;
+    --admin-header-padding-x: 14px !important;
+    --admin-header-padding-y: 1px !important;
+    --admin-header-gap: 8px !important;
+    --admin-header-identity-width: 258px !important;
+    --admin-header-brand-width: 168px !important;
+    --admin-header-account-width: 172px !important;
+    --admin-header-button-width: 88px !important;
+    --admin-header-button-height: 34px !important;
+    --admin-header-menu-button-size: 38px !important;
+    --admin-header-menu-icon-size: 18px !important;
+    --admin-header-title-action-width: 74px !important;
+    --admin-header-draw-meta-width: 48px !important;
+    --admin-header-draw-card-height: 57px !important;
+    --admin-header-draw-card-padding-x: 9px !important;
+    --admin-header-draw-card-gap: 8px !important;
+    --admin-header-draw-card-radius: 12px !important;
+    --admin-header-draw-ball-size: 30px !important;
+    --admin-header-draw-code-row: 30px !important;
+    --admin-header-draw-label-row: 15px !important;
+    --admin-header-draw-row-gap: 1px !important;
+    --admin-header-draw-ball-gap: 3px !important;
+    --admin-header-draw-plus-width: 14px !important;
+    --admin-header-draw-region-height: 24px !important;
+    --admin-header-draw-region-font-size: 15px !important;
+    --admin-header-draw-issue-font-size: 15px !important;
+    --admin-header-draw-code-font-size: 15px !important;
+    --admin-header-draw-zodiac-font-size: 13px !important;
+    --admin-header-draw-plus-font-size: 22px !important;
+    --admin-header-draw-balls-width: calc((var(--admin-header-draw-ball-size) * 7) + var(--admin-header-draw-plus-width) + (var(--admin-header-draw-ball-gap) * 7)) !important;
+    --admin-header-draw-card-width: calc(var(--admin-header-draw-meta-width) + var(--admin-header-draw-card-gap) + var(--admin-header-draw-balls-width) + (var(--admin-header-draw-card-padding-x) * 2)) !important;
+    --admin-mobile-inline-nav-width: 156px !important;
+}
+
+body.admin-body .admin-frame-header,
+body.admin-body .admin-frame-header.has-page-actions {
+    box-sizing: border-box !important;
+    position: fixed !important;
+    top: var(--admin-header-safe-top) !important;
+    right: 0 !important;
+    left: 0 !important;
+    z-index: var(--admin-header-z-index) !important;
+    display: grid !important;
+    align-items: center !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: var(--admin-header-height) !important;
+    min-height: var(--admin-header-height) !important;
+    max-height: var(--admin-header-height) !important;
+    margin: 0 !important;
+    padding: var(--admin-header-padding-y) var(--admin-header-padding-x) !important;
+    column-gap: var(--admin-header-gap) !important;
+    row-gap: 0 !important;
+    border: 0 !important;
+    border-bottom: 1px solid var(--admin-border, #d9e2ee) !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, .08) !important;
+    overflow: hidden !important;
+    contain: none !important;
+}
+
+body.admin-body .admin-frame-identity {
+    grid-area: identity !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 10px !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+}
+
+body.admin-body .admin-frame-brand {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    flex: 0 0 auto !important;
+    gap: 1px !important;
+    width: max-content !important;
+    max-width: var(--admin-header-brand-width) !important;
+    min-width: 0 !important;
+    padding: 1px 0 !important;
+    overflow: hidden !important;
+}
+
+body.admin-body .admin-frame-brand-title {
+    margin: 0 !important;
+    color: #0f172a !important;
+    font-size: 20.5px !important;
+    line-height: 1.08 !important;
+    font-weight: 900 !important;
+    letter-spacing: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+body.admin-body .admin-frame-brand-site {
+    margin: 0 !important;
+    color: #e9a700 !important;
+    font-size: 14px !important;
+    line-height: 1.15 !important;
+    font-weight: 900 !important;
+    letter-spacing: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+body.admin-body .admin-frame-account {
+    display: grid !important;
+    grid-template-rows: repeat(2, minmax(0, auto)) !important;
+    align-content: center !important;
+    justify-content: start !important;
+    justify-items: start !important;
+    flex: 0 1 var(--admin-header-account-width) !important;
+    gap: 1px !important;
+    width: var(--admin-header-account-width) !important;
+    max-width: var(--admin-header-account-width) !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    color: #334155 !important;
+    text-align: left !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+}
+
+body.admin-body .admin-frame-account-row,
+body.admin-body .admin-frame-account-role,
+body.admin-body .admin-frame-account-name {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 0 !important;
+    width: max-content !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 14px !important;
+    font-size: 12px !important;
+    line-height: 1.15 !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+}
+
+body.admin-body .admin-frame-account-label {
+    display: inline-flex !important;
+    color: #64748b !important;
+    font-size: 11px !important;
+    line-height: 1.15 !important;
+    font-weight: 800 !important;
+    letter-spacing: 0 !important;
+    white-space: nowrap !important;
+}
+
+body.admin-body .admin-frame-account-label::after {
+    content: "：" !important;
+}
+
+body.admin-body .admin-frame-account-value {
+    display: block !important;
+    min-width: 0 !important;
+    max-width: 112px !important;
+    color: #0f172a !important;
+    font-size: 12px !important;
+    line-height: 1.15 !important;
+    font-weight: 900 !important;
+    letter-spacing: 0 !important;
+    text-align: left !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+body.admin-body .admin-frame-account.is-clickable {
+    appearance: none !important;
+    border: 1px solid transparent !important;
+    border-radius: 10px !important;
+    background: transparent !important;
+    cursor: pointer !important;
+}
+
+body.admin-body .admin-frame-account.is-clickable:hover,
+body.admin-body .admin-frame-account.is-clickable:focus-visible {
+    border-color: #bfdbfe !important;
+    background: #f8fbff !important;
+    box-shadow: 0 8px 18px rgba(37, 99, 235, .1) !important;
+    outline: none !important;
+}
+
+body.admin-body .admin-header-draw-slot {
+    grid-area: draw !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 0 !important;
+    height: var(--admin-header-draw-card-height) !important;
+    min-height: var(--admin-header-draw-card-height) !important;
+    max-height: var(--admin-header-draw-card-height) !important;
+    overflow: hidden !important;
+}
+
+body.admin-body .admin-header-draw-card {
+    box-sizing: border-box !important;
+    display: grid !important;
+    grid-template-columns: var(--admin-header-draw-meta-width) var(--admin-header-draw-balls-width) !important;
+    align-items: center !important;
+    align-content: center !important;
+    width: var(--admin-header-draw-card-width) !important;
+    min-width: var(--admin-header-draw-card-width) !important;
+    max-width: 100% !important;
+    min-height: var(--admin-header-draw-card-height) !important;
+    height: var(--admin-header-draw-card-height) !important;
+    margin: 0 !important;
+    padding: 0 var(--admin-header-draw-card-padding-x) !important;
+    border: 1px solid #b8d1f6 !important;
+    border-radius: var(--admin-header-draw-card-radius) !important;
+    background: linear-gradient(180deg, #f4f8ff 0%, #e6f0ff 100%) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .85), 0 10px 22px rgba(37, 99, 235, .12) !important;
+    column-gap: var(--admin-header-draw-card-gap) !important;
+    overflow: hidden !important;
+}
+
+body.admin-body .admin-header-draw-meta,
+body.admin-body .admin-header-draw-region,
+body.admin-body .admin-header-draw-issue {
+    width: var(--admin-header-draw-meta-width) !important;
+    min-width: var(--admin-header-draw-meta-width) !important;
+    max-width: var(--admin-header-draw-meta-width) !important;
+}
+
+body.admin-body .admin-header-draw-meta {
+    display: grid !important;
+    grid-template-rows: var(--admin-header-draw-code-row) var(--admin-header-draw-label-row) !important;
+    align-items: center !important;
+    justify-items: center !important;
+    align-content: center !important;
+    gap: var(--admin-header-draw-row-gap) !important;
+    height: calc(var(--admin-header-draw-code-row) + var(--admin-header-draw-label-row) + var(--admin-header-draw-row-gap)) !important;
+}
+
+body.admin-body .admin-header-draw-region {
+    box-sizing: border-box !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: var(--admin-header-draw-region-height) !important;
+    min-height: var(--admin-header-draw-region-height) !important;
+    padding: 0 5px !important;
+    border-radius: 999px !important;
+    background: linear-gradient(135deg, #1d4ed8, #2563eb) !important;
+    color: #ffffff !important;
+    box-shadow: 0 6px 14px rgba(37, 99, 235, .18) !important;
+    font-size: var(--admin-header-draw-region-font-size) !important;
+    line-height: 1 !important;
+    font-weight: 900 !important;
+    white-space: nowrap !important;
+}
+
+body.admin-body .admin-header-draw-issue {
+    display: block !important;
+    color: #0f172a !important;
+    font-size: var(--admin-header-draw-issue-font-size) !important;
+    line-height: 1 !important;
+    font-weight: 900 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    font-variant-numeric: tabular-nums !important;
+    font-feature-settings: "tnum" 1 !important;
+}
+
+body.admin-body .admin-header-draw-balls {
+    display: grid !important;
+    grid-template-columns: repeat(6, var(--admin-header-draw-ball-size)) var(--admin-header-draw-plus-width) var(--admin-header-draw-ball-size) !important;
+    align-items: start !important;
+    justify-content: flex-start !important;
+    column-gap: var(--admin-header-draw-ball-gap) !important;
+    row-gap: 0 !important;
+    width: var(--admin-header-draw-balls-width) !important;
+    min-width: var(--admin-header-draw-balls-width) !important;
+    max-width: var(--admin-header-draw-balls-width) !important;
+    overflow: hidden !important;
+}
+
+body.admin-body .admin-header-draw-ball {
+    display: grid !important;
+    justify-items: center !important;
+    align-items: center !important;
+    align-content: center !important;
+    width: var(--admin-header-draw-ball-size) !important;
+    min-width: var(--admin-header-draw-ball-size) !important;
+    max-width: var(--admin-header-draw-ball-size) !important;
+    height: calc(var(--admin-header-draw-code-row) + var(--admin-header-draw-label-row) + var(--admin-header-draw-row-gap)) !important;
+    flex: 0 0 var(--admin-header-draw-ball-size) !important;
+    grid-template-rows: var(--admin-header-draw-code-row) var(--admin-header-draw-label-row) !important;
+    gap: var(--admin-header-draw-row-gap) !important;
+    color: #94a3b8 !important;
+    overflow: visible !important;
+}
+
+body.admin-body .admin-header-draw-ball-code {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: var(--admin-header-draw-ball-size) !important;
+    min-width: var(--admin-header-draw-ball-size) !important;
+    height: var(--admin-header-draw-ball-size) !important;
+    min-height: var(--admin-header-draw-ball-size) !important;
+    border: 1px solid currentColor !important;
+    border-radius: 999px !important;
+    background: #ffffff !important;
+    color: inherit !important;
+    box-shadow: 0 3px 8px rgba(15, 23, 42, .08) !important;
+    font-size: var(--admin-header-draw-code-font-size) !important;
+    line-height: 1 !important;
+    font-weight: 900 !important;
+    font-variant-numeric: tabular-nums !important;
+    font-feature-settings: "tnum" 1 !important;
+}
+
+body.admin-body .admin-header-draw-ball-zodiac {
+    color: currentColor !important;
+    width: 100% !important;
+    height: var(--admin-header-draw-label-row) !important;
+    font-size: var(--admin-header-draw-zodiac-font-size) !important;
+    line-height: 1 !important;
+    font-weight: 800 !important;
+    overflow: visible !important;
+}
+
+body.admin-body .admin-header-draw-ball.is-red {
+    --admin-header-draw-ball-body: #f43f5e;
+    --admin-header-draw-ball-body-deep: #dc2626;
+    --admin-header-draw-ball-body-dark: #991b1b;
+    --admin-header-draw-ball-glow: rgba(244, 63, 94, .22);
+    color: #dc2626 !important;
+}
+
+body.admin-body .admin-header-draw-ball.is-green {
+    --admin-header-draw-ball-body: #22c55e;
+    --admin-header-draw-ball-body-deep: #16a34a;
+    --admin-header-draw-ball-body-dark: #047857;
+    --admin-header-draw-ball-glow: rgba(34, 197, 94, .2);
+    color: #16a34a !important;
+}
+
+body.admin-body .admin-header-draw-ball.is-blue {
+    --admin-header-draw-ball-body: #3b82f6;
+    --admin-header-draw-ball-body-deep: #2563eb;
+    --admin-header-draw-ball-body-dark: #1d4ed8;
+    --admin-header-draw-ball-glow: rgba(59, 130, 246, .22);
+    color: #2563eb !important;
+}
+
+body.admin-body .admin-header-draw-ball:not(.is-empty) .admin-header-draw-ball-code {
+    border: 1px solid rgba(255, 255, 255, .58) !important;
+    color: #111827 !important;
+    background:
+        radial-gradient(circle at 50% 48%, #ffffff 0 42%, rgba(255, 255, 255, .98) 43% 48%, rgba(255, 255, 255, .16) 49%, transparent 50%),
+        radial-gradient(circle at 32% 19%, rgba(255, 255, 255, .74) 0 7%, transparent 8%),
+        radial-gradient(circle at 43% 36%, var(--admin-header-draw-ball-body) 0 44%, var(--admin-header-draw-ball-body-deep) 72%, var(--admin-header-draw-ball-body-dark) 100%) !important;
+    box-shadow:
+        0 1px 2px rgba(15, 23, 42, .16),
+        0 0 7px var(--admin-header-draw-ball-glow),
+        inset 0 1px 0 rgba(255, 255, 255, .66),
+        inset 0 -3px 5px rgba(15, 23, 42, .14) !important;
+    font-weight: 700 !important;
+    text-shadow: none !important;
+}
+
+body.admin-body .admin-header-draw-ball-plus {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: var(--admin-header-draw-plus-width) !important;
+    min-width: var(--admin-header-draw-plus-width) !important;
+    max-width: var(--admin-header-draw-plus-width) !important;
+    padding: 0 !important;
+    align-self: start !important;
+    height: var(--admin-header-draw-code-row) !important;
+    font-size: var(--admin-header-draw-plus-font-size) !important;
+    line-height: 1 !important;
+    font-weight: 900 !important;
+}
+
+body.admin-body .admin-frame-actions {
+    grid-area: actions !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 7px !important;
+    min-width: 0 !important;
+}
+
+body.admin-body .admin-frame-actions .admin-frame-btn,
+body.admin-body .admin-frame-title-actions button,
+body.admin-body .admin-frame-title-actions a,
+body.admin-body .admin-frame-title-actions .admin-button,
+body.admin-body .admin-frame-title-actions .forecast-pricing-save {
+    box-sizing: border-box !important;
+    height: var(--admin-header-button-height) !important;
+    min-height: var(--admin-header-button-height) !important;
+    max-height: var(--admin-header-button-height) !important;
+    border-radius: 9px !important;
+    font-size: 12px !important;
+    line-height: 1 !important;
+    font-weight: 900 !important;
+    letter-spacing: 0 !important;
+    white-space: nowrap !important;
+}
+
+body.admin-body .admin-frame-actions .admin-frame-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 var(--admin-header-button-width) !important;
+    gap: 6px !important;
+    width: var(--admin-header-button-width) !important;
+    min-width: var(--admin-header-button-width) !important;
+    max-width: var(--admin-header-button-width) !important;
+    padding: 0 12px !important;
+    color: #ffffff !important;
+    text-decoration: none !important;
+    overflow: hidden !important;
+    transform: none !important;
+}
+
+body.admin-body .admin-frame-title-actions {
+    grid-area: pageActions !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    justify-self: end !important;
+    gap: 6px !important;
+    width: var(--admin-header-title-action-width) !important;
+    min-width: var(--admin-header-title-action-width) !important;
+    max-width: var(--admin-header-title-action-width) !important;
+    overflow: hidden !important;
+}
+
+body.admin-body .admin-frame-title-actions button,
+body.admin-body .admin-frame-title-actions a,
+body.admin-body .admin-frame-title-actions .admin-button,
+body.admin-body .admin-frame-title-actions .forecast-pricing-save {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 var(--admin-header-title-action-width) !important;
+    width: var(--admin-header-title-action-width) !important;
+    min-width: var(--admin-header-title-action-width) !important;
+    max-width: var(--admin-header-title-action-width) !important;
+    padding: 0 12px !important;
+    border-color: var(--admin-ui-green) !important;
+    background: linear-gradient(135deg, #22c55e 0%, var(--admin-ui-green) 100%) !important;
+    color: #ffffff !important;
+    box-shadow: 0 8px 14px rgba(5, 150, 105, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+}
+
+body.admin-body .admin-mobile-nav-toggle {
+    box-sizing: border-box !important;
+    display: none !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 0 0 var(--admin-header-menu-button-size) !important;
+    width: var(--admin-header-menu-button-size) !important;
+    min-width: var(--admin-header-menu-button-size) !important;
+    max-width: var(--admin-header-menu-button-size) !important;
+    height: var(--admin-header-button-height) !important;
+    min-height: var(--admin-header-button-height) !important;
+    max-height: var(--admin-header-button-height) !important;
+    padding: 0 !important;
+    border: 1px solid #bfdbfe !important;
+    border-radius: 9px !important;
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+    box-shadow: 0 8px 18px rgba(37, 99, 235, .1) !important;
+}
+
+body.admin-body .admin-mobile-nav-toggle-icon {
+    width: var(--admin-header-menu-icon-size) !important;
+    min-width: var(--admin-header-menu-icon-size) !important;
+    max-width: var(--admin-header-menu-icon-size) !important;
+    height: 14px !important;
+}
+
+body.admin-body .admin-mobile-nav-toggle-icon span {
+    height: 2px !important;
+    border-radius: 999px !important;
+}
+
+body.admin-body .admin-mobile-nav-toggle > span:not(.admin-mobile-nav-toggle-icon):not(.admin-nav-unread) {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    white-space: nowrap !important;
+}
+
+@media (min-width: 861px) {
+    body.admin-body .admin-stage {
+        display: grid !important;
+        grid-template-rows: minmax(0, 1fr) !important;
+        padding-top: calc(var(--admin-header-height) + var(--admin-header-safe-top)) !important;
+        contain: none !important;
+        transform: none !important;
+    }
+
+    body.admin-body .admin-workspace {
+        grid-row: 1 !important;
+        padding-top: 0 !important;
+    }
+
+    body.admin-body .admin-mobile-nav-toggle {
+        display: none !important;
+    }
+
+    body.admin-body .admin-frame-header {
+        grid-template-columns: minmax(var(--admin-header-identity-width), max-content) minmax(280px, 1fr) var(--admin-header-title-action-width) max-content !important;
+        grid-template-areas: "identity draw . actions" !important;
+    }
+
+    body.admin-body .admin-frame-header.has-page-actions {
+        grid-template-columns: minmax(var(--admin-header-identity-width), max-content) minmax(280px, 1fr) var(--admin-header-title-action-width) max-content !important;
+        grid-template-areas: "identity draw pageActions actions" !important;
+    }
+}
+
+@media (min-width: 861px) and (max-width: 1120px) {
+    body.admin-body {
+        --admin-header-identity-width: 238px !important;
+        --admin-header-brand-width: 148px !important;
+        --admin-header-account-width: 150px !important;
+        --admin-header-button-width: 78px !important;
+        --admin-header-title-action-width: 66px !important;
+    }
+}
+
+@media (max-width: 860px) {
+    body.admin-body {
+        --admin-mobile-header-offset: 98px !important;
+        --admin-header-padding-x: 8px !important;
+        --admin-header-padding-y: 6px !important;
+        --admin-header-gap: 6px !important;
+        --admin-header-button-height: 34px !important;
+        --admin-header-button-width: auto !important;
+        --admin-header-menu-button-size: 38px !important;
+        --admin-header-menu-icon-size: 18px !important;
+        --admin-header-title-action-width: 60px !important;
+        --admin-header-draw-meta-width: 40px !important;
+        --admin-header-draw-card-height: 48px !important;
+        --admin-header-draw-ball-size: 24px !important;
+        --admin-header-draw-code-row: 24px !important;
+        --admin-header-draw-label-row: 14px !important;
+        --admin-header-draw-ball-gap: 2px !important;
+        --admin-header-draw-plus-width: 10px !important;
+        --admin-header-draw-card-padding-x: 4px !important;
+        --admin-header-draw-card-gap: 4px !important;
+        --admin-header-draw-card-radius: 10px !important;
+        --admin-header-draw-region-height: 20px !important;
+        --admin-header-draw-region-font-size: 13px !important;
+        --admin-header-draw-issue-font-size: 13px !important;
+        --admin-header-draw-code-font-size: 14px !important;
+        --admin-header-draw-zodiac-font-size: 12px !important;
+        --admin-header-draw-plus-font-size: 18px !important;
+        --admin-mobile-action-button-height: 32px !important;
+        height: auto !important;
+        min-height: 100vh !important;
+        min-height: 100dvh !important;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+    }
+
+    body.admin-body .admin-frame-header,
+    body.admin-body .admin-frame-header.has-page-actions {
+        position: fixed !important;
+        inset: var(--admin-header-safe-top) 0 auto 0 !important;
+        top: var(--admin-header-safe-top) !important;
+        z-index: var(--admin-header-z-index) !important;
+        flex: 0 0 auto !important;
+        grid-template-columns: var(--admin-header-menu-button-size) minmax(0, 1fr) max-content !important;
+        grid-template-areas:
+            "menu identity actions"
+            "draw draw draw" !important;
+        width: 100% !important;
+        max-width: none !important;
+        height: auto !important;
+        min-height: var(--admin-mobile-header-offset) !important;
+        max-height: none !important;
+        padding: var(--admin-header-padding-y) var(--admin-header-padding-x) !important;
+        column-gap: var(--admin-header-gap) !important;
+        row-gap: 3px !important;
+        contain: none !important;
+    }
+
+    body.admin-body .admin-shell {
+        padding-top: 0 !important;
+        overflow: visible !important;
+        contain: none !important;
+        transform: none !important;
+    }
+
+    body.admin-body .admin-stage {
+        display: block !important;
+        height: auto !important;
+        min-height: 100vh !important;
+        min-height: 100dvh !important;
+        padding-top: calc(var(--admin-mobile-header-offset) + var(--admin-header-safe-top)) !important;
+        overflow: visible !important;
+        contain: none !important;
+        transform: none !important;
+    }
+
+    body.admin-body .admin-workspace {
+        display: block !important;
+        height: auto !important;
+        min-height: 0 !important;
+        padding-top: 0 !important;
+        overflow: visible !important;
+    }
+
+    body.admin-body .admin-main {
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+        contain: none !important;
+        transform: none !important;
+    }
+
+    body.admin-body .admin-content-shell {
+        contain: none !important;
+        transform: none !important;
+    }
+
+    body.admin-body .admin-mobile-nav-toggle {
+        grid-area: menu !important;
+        display: inline-flex !important;
+    }
+
+    body.admin-body .admin-frame-identity {
+        width: 100% !important;
+        max-width: 100% !important;
+        gap: 6px !important;
+    }
+
+    body.admin-body .admin-frame-brand {
+        flex: 0 0 88px !important;
+        max-width: 88px !important;
+    }
+
+    body.admin-body .admin-frame-brand-title {
+        font-size: 17px !important;
+        line-height: 1.05 !important;
+    }
+
+    body.admin-body .admin-frame-brand-site {
+        font-size: 11px !important;
+        line-height: 1.05 !important;
+    }
+
+    body.admin-body .admin-frame-account {
+        flex: 0 1 98px !important;
+        width: max-content !important;
+        max-width: 98px !important;
+    }
+
+    body.admin-body .admin-frame-account-row,
+    body.admin-body .admin-frame-account-role,
+    body.admin-body .admin-frame-account-name {
+        min-height: 14px !important;
+        font-size: 11px !important;
+        line-height: 1.15 !important;
+    }
+
+    body.admin-body .admin-frame-account-value {
+        max-width: 62px !important;
+        font-size: 10.5px !important;
+        line-height: 1.15 !important;
+        font-weight: 500 !important;
+    }
+
+    body.admin-body .admin-frame-actions {
+        gap: 5px !important;
+    }
+
+    body.admin-body .admin-frame-actions .admin-frame-btn {
+        flex: 0 0 auto !important;
+        width: auto !important;
+        min-width: 52px !important;
+        max-width: none !important;
+        padding: 0 8px !important;
+    }
+
+    body.admin-body .admin-header-draw-slot {
+        justify-content: flex-start !important;
+        width: var(--admin-header-draw-card-width) !important;
+        max-width: var(--admin-header-draw-card-width) !important;
+        height: var(--admin-header-draw-card-height) !important;
+        min-height: var(--admin-header-draw-card-height) !important;
+        max-height: var(--admin-header-draw-card-height) !important;
+    }
+
+    body.admin-body .admin-header-draw-card {
+        width: var(--admin-header-draw-card-width) !important;
+        min-width: var(--admin-header-draw-card-width) !important;
+        max-width: var(--admin-header-draw-card-width) !important;
+        min-height: var(--admin-header-draw-card-height) !important;
+        height: var(--admin-header-draw-card-height) !important;
+    }
+
+    body.admin-body .admin-frame-header.has-page-actions .admin-frame-title-actions {
+        position: absolute !important;
+        top: calc(var(--admin-header-padding-y) + var(--admin-header-button-height) + 3px + ((var(--admin-header-draw-card-height) - var(--admin-mobile-action-button-height)) / 2)) !important;
+        right: var(--admin-header-padding-x) !important;
+        left: auto !important;
+        height: var(--admin-mobile-action-button-height) !important;
+        overflow: visible !important;
+    }
+
+    body.admin-body .admin-frame-title-actions button,
+    body.admin-body .admin-frame-title-actions a,
+    body.admin-body .admin-frame-title-actions .admin-button,
+    body.admin-body .admin-frame-title-actions .forecast-pricing-save {
+        height: var(--admin-mobile-action-button-height) !important;
+        min-height: var(--admin-mobile-action-button-height) !important;
+        max-height: var(--admin-mobile-action-button-height) !important;
+        flex-basis: var(--admin-header-title-action-width) !important;
+        width: var(--admin-header-title-action-width) !important;
+        min-width: var(--admin-header-title-action-width) !important;
+        max-width: var(--admin-header-title-action-width) !important;
+        padding: 0 8px !important;
+    }
+}
+
+@media (max-width: 420px) {
+    body.admin-body {
+        --admin-header-draw-card-padding-x: 3px !important;
+        --admin-header-draw-ball-gap: 1px !important;
+        --admin-header-draw-plus-width: 9px !important;
+    }
+
+    body.admin-body .admin-frame-identity {
+        gap: 3px !important;
+    }
+
+    body.admin-body .admin-frame-brand {
+        flex-basis: 78px !important;
+        max-width: 78px !important;
+    }
+
+    body.admin-body .admin-frame-brand-title {
+        font-size: 16px !important;
+    }
+
+    body.admin-body .admin-frame-brand-site {
+        font-size: 10px !important;
+    }
+
+    body.admin-body .admin-frame-account {
+        flex-basis: 90px !important;
+        max-width: 90px !important;
+    }
+
+    body.admin-body .admin-frame-account-row,
+    body.admin-body .admin-frame-account-role,
+    body.admin-body .admin-frame-account-name,
+    body.admin-body .admin-frame-account-label,
+    body.admin-body .admin-frame-account-value {
+        font-size: 10px !important;
+        line-height: 1.08 !important;
+    }
+
+    body.admin-body .admin-frame-account-value {
+        max-width: 58px !important;
+    }
+}
+
+@media (min-width: 700px) and (max-width: 860px) {
+    body.admin-body {
+        --admin-mobile-header-offset: 64px !important;
+        --admin-header-padding-x: 6px !important;
+        --admin-header-padding-y: 4px !important;
+        --admin-header-gap: 4px !important;
+        --admin-header-button-height: 32px !important;
+        --admin-header-menu-button-size: 36px !important;
+        --admin-header-menu-icon-size: 17px !important;
+        --admin-header-title-action-width: 62px !important;
+        --admin-header-draw-meta-width: 38px !important;
+        --admin-header-draw-card-height: 44px !important;
+        --admin-header-draw-card-padding-x: 4px !important;
+        --admin-header-draw-card-gap: 4px !important;
+        --admin-header-draw-card-radius: 10px !important;
+        --admin-header-draw-ball-size: 22px !important;
+        --admin-header-draw-code-row: 22px !important;
+        --admin-header-draw-label-row: 13px !important;
+        --admin-header-draw-ball-gap: 1px !important;
+        --admin-header-draw-plus-width: 8px !important;
+        --admin-header-draw-region-height: 18px !important;
+        --admin-header-draw-region-font-size: 12px !important;
+        --admin-header-draw-issue-font-size: 12px !important;
+        --admin-header-draw-code-font-size: 13px !important;
+        --admin-header-draw-zodiac-font-size: 11px !important;
+        --admin-header-draw-plus-font-size: 16px !important;
+    }
+
+    body.admin-body .admin-frame-header {
+        grid-template-columns: var(--admin-header-menu-button-size) minmax(222px, max-content) minmax(168px, 1fr) var(--admin-header-title-action-width) max-content !important;
+        grid-template-areas: "menu identity draw . actions" !important;
+        min-height: var(--admin-mobile-header-offset) !important;
+        max-height: var(--admin-mobile-header-offset) !important;
+        row-gap: 0 !important;
+    }
+
+    body.admin-body .admin-frame-header.has-page-actions {
+        grid-template-columns: var(--admin-header-menu-button-size) minmax(222px, max-content) minmax(168px, 1fr) var(--admin-header-title-action-width) max-content !important;
+        grid-template-areas: "menu identity draw pageActions actions" !important;
+    }
+
+    body.admin-body .admin-frame-title-actions,
+    body.admin-body .admin-frame-header.has-page-actions .admin-frame-title-actions {
+        position: static !important;
+        top: auto !important;
+        right: auto !important;
+        grid-area: pageActions !important;
+        height: var(--admin-header-button-height) !important;
+        overflow: hidden !important;
+    }
+
+    body.admin-body .admin-header-draw-slot {
+        justify-content: center !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+}
+
+@media (min-width: 820px) and (max-width: 860px) {
+    body.admin-body .admin-mobile-nav-toggle {
+        display: none !important;
+    }
+
+    body.admin-body.admin-nav-drawer-open {
+        overflow: auto !important;
+    }
+
+    body.admin-body .admin-frame-header {
+        grid-template-columns: minmax(222px, max-content) minmax(180px, 1fr) var(--admin-header-title-action-width) max-content !important;
+        grid-template-areas: "identity draw . actions" !important;
+    }
+
+    body.admin-body .admin-frame-header.has-page-actions {
+        grid-template-columns: minmax(222px, max-content) minmax(180px, 1fr) var(--admin-header-title-action-width) max-content !important;
+        grid-template-areas: "identity draw pageActions actions" !important;
+    }
+
+    body.admin-body .admin-workspace {
+        display: grid !important;
+        grid-template-columns: var(--admin-mobile-inline-nav-width) minmax(0, 1fr) !important;
+        align-items: start !important;
+        overflow: visible !important;
+    }
+
+    body.admin-body .admin-sidebar[data-admin-nav-drawer] {
+        position: sticky !important;
+        top: var(--admin-mobile-header-offset) !important;
+        z-index: 10 !important;
+        display: block !important;
+        width: var(--admin-mobile-inline-nav-width) !important;
+        min-width: var(--admin-mobile-inline-nav-width) !important;
+        max-width: var(--admin-mobile-inline-nav-width) !important;
+        height: auto !important;
+        max-height: calc(100vh - var(--admin-mobile-header-offset) - 6px) !important;
+        max-height: calc(100dvh - var(--admin-mobile-header-offset) - 6px) !important;
+        padding: 8px !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        border-right: 1px solid var(--admin-border, #d9e2ee) !important;
+        border-bottom: 0 !important;
+        background: #f8fbff !important;
+        box-shadow: none !important;
+        transform: none !important;
+        transition: none !important;
+    }
+
+    body.admin-body .admin-sidebar[data-admin-nav-drawer] .admin-nav {
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-auto-rows: 40px !important;
+        gap: 6px !important;
+    }
+
+    body.admin-body .admin-sidebar[data-admin-nav-drawer] .admin-nav-link {
+        min-height: 40px !important;
+        height: 40px !important;
+        max-height: 40px !important;
+        padding: 0 9px !important;
+        border-radius: 10px !important;
+        font-size: 13px !important;
+    }
+
+    body.admin-body .admin-drawer-head,
+    body.admin-body .admin-drawer-backdrop,
+    body.admin-body.admin-nav-drawer-open .admin-drawer-backdrop {
+        display: none !important;
+    }
+
+    body.admin-body .admin-main {
+        min-width: 0 !important;
+        overflow: visible !important;
+    }
+}
+
+@media (max-width: 819px) {
+    body.admin-body .admin-sidebar[data-admin-nav-drawer] {
+        z-index: var(--admin-drawer-z-index) !important;
+        pointer-events: auto !important;
+    }
+
+    body.admin-body .admin-drawer-backdrop {
+        z-index: var(--admin-drawer-backdrop-z-index) !important;
+        pointer-events: auto !important;
+    }
+
+    body.admin-body.admin-nav-drawer-open .admin-drawer-backdrop {
+        display: block !important;
+    }
+}
+
+/* Admin shared menu navigation standard v22: one contract for the 10 backend menu pages. */
+body.admin-body.admin-main-menu-page {
+    --admin-workspace-gap: 3px !important;
+    --admin-header-clearance: calc(var(--admin-header-height, 60px) + var(--admin-header-safe-top, 0px)) !important;
+    --admin-sidebar-width: 176px !important;
+    --admin-sidebar-padding: 8px !important;
+    --admin-nav-row-height: 42px !important;
+    --admin-nav-row-gap: 7px !important;
+    --admin-card-padding: 10px !important;
+    background: #eef3fb !important;
+}
+
+body.admin-body.admin-main-menu-page :is(.admin-shell, .admin-stage, .admin-workspace, .admin-main, .admin-content-shell) {
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+}
+
+body.admin-body.admin-main-menu-page .admin-frame-divider {
+    display: none !important;
+}
+
+body.admin-body.admin-main-menu-page :is(.admin-workspace, .admin-main, .admin-content-shell) {
+    background: #eef3fb !important;
+}
+
+body.admin-body.admin-main-menu-page .admin-sidebar[data-admin-nav-drawer] {
+    box-sizing: border-box !important;
+    width: var(--admin-sidebar-width) !important;
+    min-width: var(--admin-sidebar-width) !important;
+    max-width: var(--admin-sidebar-width) !important;
+    flex: 0 0 var(--admin-sidebar-width) !important;
+    padding: var(--admin-sidebar-padding) !important;
+    background: #f8fbff !important;
+    border-right: 1px solid rgba(160, 187, 222, 0.45) !important;
+}
+
+body.admin-body.admin-main-menu-page .admin-sidebar[data-admin-nav-drawer] :is(.admin-nav, .admin-shared-nav) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: var(--admin-nav-row-gap) !important;
+}
+
+body.admin-body.admin-main-menu-page .admin-sidebar[data-admin-nav-drawer] .admin-nav-link {
+    box-sizing: border-box !important;
+    display: grid !important;
+    grid-template-columns: 21px minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    column-gap: 9px !important;
+    width: 100% !important;
+    min-height: var(--admin-nav-row-height) !important;
+    height: var(--admin-nav-row-height) !important;
+    max-height: var(--admin-nav-row-height) !important;
+    padding: 0 10px !important;
+    border: 1px solid rgba(172, 196, 228, 0.72) !important;
+    border-radius: 10px !important;
+    background: #fff !important;
+    color: #0f2446 !important;
+    font-size: 13.5px !important;
+    font-weight: 850 !important;
+    line-height: 1.15 !important;
+    white-space: nowrap !important;
+    box-shadow: 0 7px 16px rgba(43, 83, 145, 0.05) !important;
+}
+
+body.admin-body.admin-main-menu-page .admin-sidebar[data-admin-nav-drawer] .admin-nav-link:hover {
+    border-color: rgba(79, 129, 235, 0.55) !important;
+    color: #1d55d8 !important;
+    transform: translateY(-1px) !important;
+}
+
+body.admin-body.admin-main-menu-page .admin-sidebar[data-admin-nav-drawer] .admin-nav-link.is-active {
+    border-color: rgba(231, 159, 16, 0.7) !important;
+    background: linear-gradient(135deg, #ffd34d 0%, #f5aa07 100%) !important;
+    color: #17213a !important;
+    box-shadow: 0 9px 18px rgba(229, 157, 14, 0.2) !important;
+}
+
+body.admin-body.admin-main-menu-page .admin-sidebar[data-admin-nav-drawer] .admin-menu-icon {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 21px !important;
+    height: 21px !important;
+    border-radius: 8px !important;
+    background: rgba(41, 108, 235, 0.09) !important;
+    color: #2563eb !important;
+}
+
+body.admin-body.admin-main-menu-page .admin-sidebar[data-admin-nav-drawer] .admin-nav-link.is-active .admin-menu-icon {
+    background: rgba(255, 255, 255, 0.5) !important;
+    color: #9b6100 !important;
+}
+
+body.admin-body.admin-main-menu-page .admin-sidebar[data-admin-nav-drawer] .admin-menu-icon svg {
+    width: 15px !important;
+    height: 15px !important;
+}
+
+body.admin-body.admin-main-menu-page .admin-sidebar[data-admin-nav-drawer] .admin-menu-label {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+body.admin-body.admin-main-menu-page .admin-content-shell {
+    display: block !important;
+    padding: var(--admin-workspace-gap) !important;
+}
+
+body.admin-body.admin-main-menu-page .admin-content-shell > .admin-page-surface {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-height: 100% !important;
+    margin: 0 !important;
+    border: 1px solid rgba(188, 207, 232, 0.72) !important;
+    border-radius: 10px !important;
+    background: #fff !important;
+    overflow: hidden !important;
+    box-shadow: 0 10px 26px rgba(31, 56, 92, 0.06) !important;
+}
+
+body.admin-body.admin-main-menu-page .admin-page-surface > .admin-page-body {
+    padding: var(--admin-workspace-gap) !important;
+    background: #f6f8fb !important;
+}
+
+body.admin-body.admin-main-menu-page .admin-page-body > :first-child,
+body.admin-body.admin-page-dashboard .command-dashboard,
+body.admin-body.admin-page-settings .settings-command-center,
+body.admin-body.admin-page-home .forecast-admin-shell,
+body.admin-body.admin-page-users .member-console,
+body.admin-body.admin-page-support .support-workbench {
+    margin-top: 0 !important;
+}
+
+body.admin-body.admin-main-menu-page:not(.admin-page-support):not(.admin-page-dashboard) :is(.admin-page-body > .admin-section:not(:first-child), .admin-card + .admin-card, .admin-section + .admin-section, .mt-4) {
+    margin-top: 8px !important;
+}
+
+body.admin-body.admin-main-menu-page:not(.admin-page-support):not(.admin-page-dashboard) .admin-card {
+    padding: var(--admin-card-padding) !important;
+    border-radius: 9px !important;
+}
+
+body.admin-body.admin-main-menu-page:not(.admin-page-support):not(.admin-page-dashboard) :is(.admin-card-title, .admin-card-subtitle) {
+    letter-spacing: 0 !important;
+}
+
+body.admin-body.admin-main-menu-page:not(.admin-page-support):not(.admin-page-dashboard) .admin-card-title {
+    font-size: 18px !important;
+    line-height: 1.18 !important;
+}
+
+body.admin-body.admin-main-menu-page:not(.admin-page-support):not(.admin-page-dashboard) .admin-card-subtitle {
+    margin-top: 5px !important;
+    padding-left: 0 !important;
+    font-size: 12.5px !important;
+    line-height: 1.45 !important;
+}
+
+body.admin-body.admin-main-menu-page:not(.admin-page-support) :is(.admin-filter-grid, .admin-form-actions) {
+    gap: 8px !important;
+}
+
+@media (min-width: 861px) {
+    body.admin-body.admin-main-menu-page .admin-stage {
+        height: 100vh !important;
+        height: 100dvh !important;
+        min-height: 0 !important;
+        padding-top: var(--admin-header-clearance) !important;
+        padding-right: 0 !important;
+        padding-bottom: 0 !important;
+        padding-left: 0 !important;
+        overflow: hidden !important;
+    }
+
+    body.admin-body.admin-main-menu-page .admin-workspace {
+        display: flex !important;
+        align-items: stretch !important;
+        gap: var(--admin-workspace-gap) !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        padding: var(--admin-workspace-gap) !important;
+        overflow: hidden !important;
+    }
+
+    body.admin-body.admin-main-menu-page .admin-main {
+        flex: 1 1 auto !important;
+        height: 100% !important;
+        min-height: 0 !important;
+        overflow: auto !important;
+    }
+
+    body.admin-body.admin-main-menu-page :is(.admin-content-shell, .admin-content-shell > .admin-page-surface) {
+        min-height: 100% !important;
+    }
+}
+
+@media (min-width: 820px) and (max-width: 860px) {
+    body.admin-body.admin-main-menu-page {
+        --admin-sidebar-width: var(--admin-mobile-inline-nav-width, 156px) !important;
+        --admin-sidebar-padding: 7px !important;
+        --admin-nav-row-height: 40px !important;
+        --admin-nav-row-gap: 6px !important;
+    }
+
+    body.admin-body.admin-main-menu-page .admin-stage {
+        padding-top: calc(var(--admin-mobile-header-offset) + var(--admin-header-safe-top)) !important;
+    }
+
+    body.admin-body.admin-main-menu-page .admin-workspace {
+        display: grid !important;
+        grid-template-columns: var(--admin-sidebar-width) minmax(0, 1fr) !important;
+        gap: var(--admin-workspace-gap) !important;
+        padding: var(--admin-workspace-gap) !important;
+        align-items: stretch !important;
+    }
+
+    body.admin-body.admin-main-menu-page .admin-sidebar[data-admin-nav-drawer] {
+        position: sticky !important;
+        top: calc(var(--admin-mobile-header-offset) + var(--admin-header-safe-top) + var(--admin-workspace-gap)) !important;
+        left: auto !important;
+        transform: none !important;
+        height: calc(100dvh - var(--admin-mobile-header-offset) - var(--admin-header-safe-top) - (var(--admin-workspace-gap) * 2)) !important;
+        max-height: none !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        box-shadow: none !important;
+        z-index: 20 !important;
+    }
+}
+
+@media (max-width: 819px) {
+    body.admin-body.admin-main-menu-page {
+        --admin-sidebar-width: var(--admin-nav-drawer-width, min(76vw, 284px)) !important;
+        --admin-card-padding: 8px !important;
+        --admin-nav-row-height: 40px !important;
+        --admin-nav-row-gap: 5px !important;
+    }
+}
+
+@media (max-width: 860px) {
+    body.admin-body.admin-main-menu-page .admin-stage {
+        padding-top: calc(var(--admin-mobile-header-offset) + var(--admin-header-safe-top)) !important;
+    }
+
+    body.admin-body.admin-main-menu-page :is(.admin-main, .admin-page-surface > .admin-page-body) {
+        overflow: visible !important;
+    }
+}
+
+/* Admin posts page: keep the shared page surface as the only outer card. */
+body.admin-body.admin-page-posts .admin-page-body > .admin-posts-stack,
+body.admin-body.admin-page-posts .admin-posts-stack,
+body.admin-body.admin-page-posts .admin-posts-stack > div {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-stack {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 8px !important;
+}
+
+body.admin-body.admin-page-posts :is(#post-manage-card, #post-generator-card, #post-form-card) {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    contain: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+body.admin-body.admin-page-posts :is(#post-manage-card, #post-generator-card, #post-form-card)::before {
+    display: none !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-card-titlebar {
+    position: static !important;
+    top: auto !important;
+    z-index: auto !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 0 7px !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+body.admin-body.admin-page-posts #post-generator-card > .admin-posts-card-titlebar {
+    width: 100% !important;
+    margin: 0 0 7px !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-common-nav-frame,
+body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-posts-nav-shell,
+body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-posts-nav-table {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-common-nav-frame::after {
+    display: none !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-posts-nav-shell {
+    display: block !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-posts-nav-table {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) !important;
+    grid-template-rows: none !important;
+    align-items: center !important;
+    justify-items: stretch !important;
+    align-content: center !important;
+    gap: 6px 8px !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-filter-chip-group {
+    box-sizing: border-box !important;
+    display: grid !important;
+    align-items: center !important;
+    justify-content: stretch !important;
+    justify-items: stretch !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    gap: 6px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    overflow: visible !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-posts-region-switch {
+    grid-template-columns: repeat(2, minmax(58px, 74px)) !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-posts-action-group {
+    grid-template-columns: repeat(4, minmax(78px, 1fr)) !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-filter-chip {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    max-height: 30px !important;
+    padding: 0 9px !important;
+    border-radius: 9px !important;
+    font-size: 12.5px !important;
+    font-weight: 850 !important;
+    line-height: 1.1 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    transform: none !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-posts-region-switch .admin-filter-chip {
+    height: 30px !important;
+    min-height: 30px !important;
+    max-height: 30px !important;
+    gap: 5px !important;
+    font-size: 13px !important;
+    font-weight: 900 !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-posts-region-switch .admin-filter-chip::before {
+    width: 16px !important;
+    height: 16px !important;
+    font-size: 13px !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-filter-chip + .admin-filter-chip::after {
+    display: none !important;
+}
+
+body.admin-body.admin-page-posts :is(.admin-posts-classic-toolbar, .admin-posts-classic-manage-form, #post-generator-card .admin-posts-generator-form, #post-form-card form[data-post-form]) {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-classic-toolbar,
+body.admin-body.admin-page-posts #post-generator-card .admin-posts-generator-form.mt-4,
+body.admin-body.admin-page-posts #post-form-card form.mt-4[data-post-form] {
+    display: grid !important;
+    gap: 6px !important;
+    margin-top: 0 !important;
+}
+
+body.admin-body.admin-page-posts #post-form-card .admin-card-subtitle {
+    margin: 0 0 7px !important;
+    padding: 0 !important;
+    color: #51667f !important;
+    font-size: 12.5px !important;
+    font-weight: 500 !important;
+    line-height: 1.42 !important;
+}
+
+body.admin-body.admin-page-posts :is(.admin-posts-classic-toolbar-row--generator-settings, .admin-posts-classic-toolbar-row--auto-reply-settings, .admin-posts-classic-toolbar-row--post-settings-table, .admin-posts-classic-filterbar, .admin-posts-classic-table-wrap, .admin-post-lock-settings-frame) {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+}
+
+body.admin-body.admin-page-posts :is(.admin-posts-classic-toolbar-row--generator-settings, .admin-posts-classic-toolbar-row--auto-reply-settings, .admin-posts-classic-toolbar-row--post-settings-table, .admin-post-lock-settings-frame) {
+    padding: 7px !important;
+    border: 1px solid #dbe7f3 !important;
+    border-radius: 8px !important;
+    background: #f8fbff !important;
+    box-shadow: none !important;
+}
+
+body.admin-body.admin-page-posts :is(.admin-posts-manage-generator-preset-table, .admin-posts-auto-reply-table, .admin-post-lock-settings-grid) {
+    gap: 6px !important;
+}
+
+body.admin-body.admin-page-posts :is(.admin-posts-generator-preset-card, .admin-post-lock-settings-card) {
+    min-height: 50px !important;
+    border-radius: 7px !important;
+    box-shadow: none !important;
+}
+
+body.admin-body.admin-page-posts :is(.admin-posts-generator-preset-cell.is-head, .admin-post-lock-settings-card-title) {
+    min-height: 22px !important;
+    padding: 4px 7px !important;
+    font-size: 11.5px !important;
+    font-weight: 750 !important;
+    line-height: 1.2 !important;
+}
+
+body.admin-body.admin-page-posts :is(.admin-posts-generator-preset-cell.is-control, .admin-post-lock-settings-card-body) {
+    min-height: 28px !important;
+    padding: 4px 7px !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-classic-filter-frame {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 6px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    border: 1px solid #dbe7f3 !important;
+    border-radius: 8px !important;
+    background: #f8fbff !important;
+    box-shadow: none !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-classic-filter-grid {
+    gap: 0 !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-classic-filter-head {
+    min-height: 24px !important;
+    height: 24px !important;
+    padding: 3px 6px !important;
+    font-size: 11.5px !important;
+    font-weight: 750 !important;
+    line-height: 18px !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-classic-filter-control {
+    min-height: 32px !important;
+    height: 32px !important;
+    padding: 3px 6px !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-classic-filter-action {
+    align-self: stretch !important;
+    min-height: 32px !important;
+}
+
+body.admin-body.admin-page-posts :is(.admin-posts-classic-filter-control .admin-select, .admin-posts-classic-filter-control .admin-input, .admin-posts-classic-query, .admin-posts-classic-toolbar-btn, .admin-posts-classic-row-btn) {
+    min-height: 28px !important;
+    height: 28px !important;
+    padding: 0 8px !important;
+    border-radius: 7px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-classic-toolbar-row.is-secondary {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 6px !important;
+    min-height: 32px !important;
+    padding: 0 !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-classic-toolbar-meta,
+body.admin-body.admin-page-posts .admin-posts-classic-toolbar-summary-side {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+}
+
+body.admin-body.admin-page-posts :is(.admin-posts-classic-toolbar-summary, .admin-posts-classic-toolbar-summary-item, .admin-posts-classic-toolbar-pager) {
+    font-size: 12px !important;
+    font-weight: 650 !important;
+    line-height: 1.25 !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-classic-table-wrap {
+    margin-top: 6px !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+}
+
+body.admin-body.admin-page-posts :is(.admin-posts-classic-table th, .admin-posts-legacy-table th) {
+    height: 32px !important;
+    padding: 6px 7px !important;
+    font-size: 11.5px !important;
+    font-weight: 800 !important;
+    line-height: 1.22 !important;
+}
+
+body.admin-body.admin-page-posts :is(.admin-posts-classic-table td, .admin-posts-legacy-table td) {
+    padding: 6px 7px !important;
+    font-size: 12.5px !important;
+    font-weight: 600 !important;
+    line-height: 1.32 !important;
+}
+
+body.admin-body.admin-page-posts :is(.admin-posts-classic-title-content, .admin-posts-classic-seq-stack, .admin-posts-classic-title-material-actions) {
+    gap: 4px !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-classic-title-row {
+    gap: 4px 6px !important;
+    margin: 0 !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-classic-chip {
+    min-height: 20px !important;
+    padding: 2px 6px !important;
+    border-radius: 999px !important;
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    line-height: 1.2 !important;
+}
+
+body.admin-body.admin-page-posts .admin-posts-classic-content-line {
+    font-size: 13px !important;
+    font-weight: 750 !important;
+    line-height: 1.32 !important;
+}
+
+body.admin-body.admin-page-posts .admin-pagination {
+    margin-top: 6px !important;
+}
+
+@media (max-width: 860px) {
+    body.admin-body.admin-page-posts .admin-posts-stack {
+        gap: 7px !important;
+    }
+
+    body.admin-body.admin-page-posts .admin-posts-card-titlebar {
+        margin-bottom: 6px !important;
+    }
+
+    body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-posts-nav-table {
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 5px !important;
+    }
+
+    body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-posts-region-switch,
+    body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-posts-action-group {
+        width: 100% !important;
+    }
+
+    body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-posts-region-switch {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-posts-action-group {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-filter-chip {
+        height: 29px !important;
+        min-height: 29px !important;
+        max-height: 29px !important;
+        padding: 0 7px !important;
+        font-size: 12px !important;
+    }
+
+    body.admin-body.admin-page-posts :is(.admin-posts-classic-toolbar-row--generator-settings, .admin-posts-classic-toolbar-row--auto-reply-settings, .admin-posts-classic-toolbar-row--post-settings-table, .admin-post-lock-settings-frame) {
+        padding: 6px !important;
+    }
+
+    body.admin-body.admin-page-posts .admin-posts-classic-filter-frame {
+        padding: 5px !important;
+    }
+
+    body.admin-body.admin-page-posts .admin-posts-classic-table-wrap {
+        margin-top: 5px !important;
+    }
+}
+
 /* Shared upload file control: keep image upload inputs visually consistent. */
 :where(body.admin-body) .app-upload-file-field {
     display: grid;

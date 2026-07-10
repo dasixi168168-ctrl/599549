@@ -14,73 +14,21 @@ if ($adminHeaderLiveDraw === null) {
         $adminHeaderLiveDraw = null;
     }
 }
-$adminHeaderLiveNormalizeIssueTail = static function ($issueNo) {
-    $text = trim((string) $issueNo);
-    if ($text === '' || !preg_match('/^\d+$/', $text)) {
-        return '--';
-    }
-
-    $tail = strlen($text) > 3 ? substr($text, -3) : $text;
-
-    return str_pad($tail, 3, '0', STR_PAD_LEFT);
-};
-$adminHeaderLivePadNumber = static function ($value) {
-    $number = (int) $value;
-
-    return $number < 10 ? '0' . $number : (string) $number;
-};
-$adminHeaderLiveWaveColorClass = static function ($value) {
-    $number = (int) $value;
-    if (in_array($number, array(1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46), true)) {
-        return 'is-red';
-    }
-    if (in_array($number, array(3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48), true)) {
-        return 'is-blue';
-    }
-
-    return 'is-green';
-};
-$adminHeaderLiveDrawDate = is_array($adminHeaderLiveDraw) ? trim((string) ($adminHeaderLiveDraw['draw_date'] ?? '')) : '';
-$adminHeaderLiveRenderBall = static function ($value) use ($adminHeaderLivePadNumber, $adminHeaderLiveWaveColorClass, $adminHeaderLiveDrawDate) {
-    $value = $value === null ? null : (int) $value;
-    $ballClass = $value === null ? 'is-empty' : $adminHeaderLiveWaveColorClass($value);
-    $numberText = $value === null ? '--' : $adminHeaderLivePadNumber($value);
-    $zodiacText = $value === null ? '--' : (app()->prediction()->drawZodiacByNumber($value, $adminHeaderLiveDrawDate) ?: '--');
-
-    return '<div class="admin-header-draw-ball ' . e($ballClass) . '">' .
-        '<div class="admin-header-draw-ball-code">' . e($numberText) . '</div>' .
-        '<div class="admin-header-draw-ball-zodiac">' . e($zodiacText) . '</div>' .
-        '</div>';
-};
-$adminHeaderLiveIssueText = '--期';
-$adminHeaderLiveBallsHtml = '';
-if (is_array($adminHeaderLiveDraw)) {
-    $adminHeaderLiveIssueText = $adminHeaderLiveNormalizeIssueTail($adminHeaderLiveDraw['issue_no'] ?? '') . '期';
-    $adminHeaderLiveNumbers = isset($adminHeaderLiveDraw['numbers']) && is_array($adminHeaderLiveDraw['numbers'])
-        ? array_values($adminHeaderLiveDraw['numbers'])
-        : json_decode((string) ($adminHeaderLiveDraw['numbers_json'] ?? '[]'), true);
-    $adminHeaderLiveNumbers = is_array($adminHeaderLiveNumbers) ? array_values($adminHeaderLiveNumbers) : array();
-    for ($adminHeaderLiveIndex = 0; $adminHeaderLiveIndex < 6; $adminHeaderLiveIndex += 1) {
-        $adminHeaderLiveValue = array_key_exists($adminHeaderLiveIndex, $adminHeaderLiveNumbers) ? (int) $adminHeaderLiveNumbers[$adminHeaderLiveIndex] : null;
-        $adminHeaderLiveBallsHtml .= $adminHeaderLiveRenderBall($adminHeaderLiveValue > 0 ? $adminHeaderLiveValue : null);
-    }
-    $adminHeaderLiveBallsHtml .= '<div class="admin-header-draw-ball-plus">+</div>';
-    $adminHeaderLiveSpecialNumber = (int) ($adminHeaderLiveDraw['special_number'] ?? 0);
-    $adminHeaderLiveBallsHtml .= $adminHeaderLiveRenderBall($adminHeaderLiveSpecialNumber > 0 ? $adminHeaderLiveSpecialNumber : null);
-}
-if ($adminHeaderLiveBallsHtml === '') {
-    for ($adminHeaderLiveIndex = 0; $adminHeaderLiveIndex < 6; $adminHeaderLiveIndex += 1) {
-        $adminHeaderLiveBallsHtml .= $adminHeaderLiveRenderBall(null);
-    }
-    $adminHeaderLiveBallsHtml .= '<div class="admin-header-draw-ball-plus">+</div>';
-    $adminHeaderLiveBallsHtml .= $adminHeaderLiveRenderBall(null);
-}
-$adminHeaderDrawHtml = '<div class="admin-header-draw-card" data-admin-header-draw data-region="' . e($adminHeaderRegion) . '">' .
-    '<div class="admin-header-draw-meta">' .
-    '<span class="admin-header-draw-region">' . e($adminHeaderRegion === 'hongkong' ? '香港' : '澳门') . '</span>' .
-    '<span class="admin-header-draw-issue">' . e($adminHeaderLiveIssueText) . '</span>' .
-    '</div><div class="admin-header-draw-balls">' . $adminHeaderLiveBallsHtml . '</div></div>';
+$adminHeaderDrawHtml = admin_render_shared_draw_card($adminHeaderLiveDraw, $adminHeaderRegion, array(
+    'data_admin_header_draw' => true,
+));
 $currentAdmin = is_array($currentAdmin ?? null) ? $currentAdmin : array();
+$adminFrameAccountRoleText = isset($currentAdmin['role_name']) ? (string) $currentAdmin['role_name'] : '管理员';
+$adminFrameAccountUsernameText = isset($currentAdmin['username']) ? (string) $currentAdmin['username'] : '-';
+$adminFrameAccountHtml =
+    '<span class="admin-frame-account-row admin-frame-account-role">' .
+    '<span class="admin-frame-account-label">当前</span>' .
+    '<strong class="admin-frame-account-value">' . e($adminFrameAccountRoleText) . '</strong>' .
+    '</span>' .
+    '<span class="admin-frame-account-row admin-frame-account-name">' .
+    '<span class="admin-frame-account-label">账号</span>' .
+    '<span class="admin-frame-account-value">' . e($adminFrameAccountUsernameText) . '</span>' .
+    '</span>';
 $adminAccountCanManage = false;
 $adminAccountRoles = array();
 $adminAccountAdmins = array();
@@ -109,10 +57,6 @@ foreach ($adminAccountRoles as $adminAccountRole) {
     if ($roleId === $adminAccountCurrentRoleId) {
         $adminAccountDefaultRoleId = $roleId;
     }
-}
-$pageTitleShellClass = 'admin-page-title admin-page-title-shell';
-if ($pageTitleActionHtml !== '') {
-    $pageTitleShellClass .= ' admin-page-title-shell--with-action';
 }
 $activeMenuCode = isset($activeMenuCode) ? (string) $activeMenuCode : '';
 $menuItems = is_array($adminMenuItems ?? null) ? $adminMenuItems : array();
@@ -183,7 +127,10 @@ $adminBodyPage = preg_replace('/[^a-z0-9_-]+/i', '-', strtolower((string) $activ
 if ($adminBodyPage !== '') {
     $adminBodyClasses[] = 'admin-page-' . trim((string) $adminBodyPage, '-');
 }
-$adminCssUrl = asset('app.css?v=20260707-admin-modal-standard-01');
+if (isset($sidebarMenuSpec[$activeMenuCode])) {
+    $adminBodyClasses[] = 'admin-main-menu-page';
+}
+$adminCssUrl = asset('app.css?v=20260709-draw-image-batch-01');
 $adminJsUrl = asset('app.js?v=20260707-admin-modal-standard-01');
 $needsAdminTinyMce = isset($needsAdminTinyMce) ? (bool) $needsAdminTinyMce : $activeMenuCode === 'draws';
 $enableAdminUiSystem = false;
@@ -313,41 +260,34 @@ if ($enableAdminUiSystem) {
 <body class="<?php echo e(trim(implode(' ', $adminBodyClasses) . ($enableAdminUiSystem ? ' ui-admin-page' : ''))); ?>">
 <div class="admin-shell">
     <div class="admin-stage">
-        <header class="admin-frame-header<?php echo $enableAdminUiSystem ? ' ui-admin-header' : ''; ?>" role="banner">
+        <header class="admin-frame-header<?php echo $pageTitleActionHtml !== '' ? ' has-page-actions' : ''; ?><?php echo $enableAdminUiSystem ? ' ui-admin-header' : ''; ?>" role="banner">
             <button class="admin-frame-btn admin-mobile-nav-toggle" type="button" data-admin-nav-drawer-toggle aria-controls="admin-nav-drawer" aria-expanded="false" aria-label="打开后台导航">
                 <span class="admin-mobile-nav-toggle-icon" aria-hidden="true"><span></span><span></span><span></span></span>
                 <span>菜单</span>
             </button>
-            <div class="admin-frame-brand" aria-label="后台管理">
-                <div class="admin-frame-brand-title">后台管理</div>
-                <div class="admin-frame-brand-site"><?php echo e(admin_management_name_setting(site_setting('site.name', app()->config('app', 'site_name', '')))); ?></div>
-            </div>
-            <?php if ($adminAccountCanManage): ?>
-                <button class="admin-frame-account is-clickable" type="button" data-admin-account-modal-open aria-haspopup="dialog" aria-controls="admin-account-modal" aria-expanded="false" aria-label="打开管理账号设置">
-                    <span class="admin-frame-account-row admin-frame-account-role">
-                        <span class="admin-frame-account-label">当前</span>
-                        <strong class="admin-frame-account-value"><?php echo e(isset($currentAdmin['role_name']) ? (string) $currentAdmin['role_name'] : '管理员'); ?></strong>
-                    </span>
-                    <span class="admin-frame-account-row admin-frame-account-name">
-                        <span class="admin-frame-account-label">账号</span>
-                        <span class="admin-frame-account-value"><?php echo e(isset($currentAdmin['username']) ? (string) $currentAdmin['username'] : '-'); ?></span>
-                    </span>
-                </button>
-            <?php else: ?>
-                <div class="admin-frame-account" aria-label="当前后台账号">
-                    <div class="admin-frame-account-row admin-frame-account-role">
-                        <span class="admin-frame-account-label">当前</span>
-                        <strong class="admin-frame-account-value"><?php echo e(isset($currentAdmin['role_name']) ? (string) $currentAdmin['role_name'] : '管理员'); ?></strong>
-                    </div>
-                    <div class="admin-frame-account-row admin-frame-account-name">
-                        <span class="admin-frame-account-label">账号</span>
-                        <span class="admin-frame-account-value"><?php echo e(isset($currentAdmin['username']) ? (string) $currentAdmin['username'] : '-'); ?></span>
-                    </div>
+            <div class="admin-frame-identity" aria-label="后台身份信息">
+                <div class="admin-frame-brand" aria-label="后台管理">
+                    <div class="admin-frame-brand-title">后台管理</div>
+                    <div class="admin-frame-brand-site"><?php echo e(admin_management_name_setting(site_setting('site.name', app()->config('app', 'site_name', '')))); ?></div>
                 </div>
-            <?php endif; ?>
+                <?php if ($adminAccountCanManage): ?>
+                    <button class="admin-frame-account is-clickable" type="button" data-admin-account-modal-open aria-haspopup="dialog" aria-controls="admin-account-modal" aria-expanded="false" aria-label="打开管理账号设置">
+                        <?php echo $adminFrameAccountHtml; ?>
+                    </button>
+                <?php else: ?>
+                    <div class="admin-frame-account" aria-label="当前后台账号">
+                        <?php echo $adminFrameAccountHtml; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
             <div class="admin-header-draw-slot" aria-label="<?php echo e($adminHeaderRegion === 'hongkong' ? '香港开奖结果' : '澳门开奖结果'); ?>">
                 <?php echo $adminHeaderDrawHtml; ?>
             </div>
+            <?php if ($pageTitleActionHtml !== ''): ?>
+                <div class="admin-frame-title-actions<?php echo $enableAdminUiSystem ? ' ui-admin-actions' : ''; ?>" aria-label="当前页面操作">
+                    <?php echo $pageTitleActionHtml; ?>
+                </div>
+            <?php endif; ?>
             <nav class="admin-frame-actions<?php echo $enableAdminUiSystem ? ' ui-admin-actions' : ''; ?>" aria-label="后台快捷操作">
                 <a class="admin-frame-btn is-blue" href="<?php echo e(public_url('index.php')); ?>" target="_blank" rel="noopener noreferrer">
                     <span class="admin-frame-btn-icon"><?php echo $buttonIconSvg('home'); ?></span>
@@ -368,7 +308,7 @@ if ($enableAdminUiSystem) {
                     <span>后台导航</span>
                     <button type="button" data-admin-nav-drawer-close>关闭</button>
                 </div>
-                <nav class="admin-nav">
+                <nav class="admin-nav admin-shared-nav" aria-label="后台菜单导航">
                     <?php foreach ($sidebarItems as $menuItem): ?>
                         <?php
                         $menuCode = (string) ($menuItem['code'] ?? '');
@@ -600,15 +540,6 @@ if ($enableAdminUiSystem) {
 
             <main class="admin-main">
                 <div class="admin-content-shell">
-                    <div class="<?php echo e($pageTitleShellClass . ($enableAdminUiSystem ? ' ui-admin-header' : '')); ?>">
-                        <div class="admin-page-title-text-slot">
-                            <span class="admin-page-title-dot"></span>
-                            <span class="admin-page-title-label"><?php echo e($pageHeading); ?></span>
-                        </div>
-                        <?php if ($pageTitleActionHtml !== ''): ?>
-                            <div class="admin-page-title-action-slot"><?php echo $pageTitleActionHtml; ?></div>
-                        <?php endif; ?>
-                    </div>
                     <?php if (!empty($flashMessage['message'])): ?>
                         <div hidden data-app-notice-seed data-app-notice-type="<?php echo e(isset($flashMessage['type']) ? (string) $flashMessage['type'] : 'info'); ?>" data-app-notice-message="<?php echo e((string) $flashMessage['message']); ?>"></div>
                     <?php endif; ?><?php if (!empty($pageError)): ?>

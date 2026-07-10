@@ -220,6 +220,110 @@ function truncate_text($value, $length = 48)
     return mb_substr($value, 0, $length, 'UTF-8') . '...';
 }
 
+function admin_draw_region_key($region)
+{
+    return (string) $region === 'hongkong' ? 'hongkong' : 'macau';
+}
+
+function admin_draw_region_label($region)
+{
+    return admin_draw_region_key($region) === 'hongkong' ? '香港' : '澳门';
+}
+
+function admin_draw_issue_tail($issueNo)
+{
+    $text = trim((string) $issueNo);
+    if ($text === '' || !preg_match('/^\d+$/', $text)) {
+        return '--';
+    }
+
+    $tail = strlen($text) > 3 ? substr($text, -3) : $text;
+
+    return str_pad($tail, 3, '0', STR_PAD_LEFT);
+}
+
+function admin_draw_pad_number($value)
+{
+    $number = (int) $value;
+
+    return $number < 10 ? '0' . $number : (string) $number;
+}
+
+function admin_draw_wave_color_class($value)
+{
+    $number = (int) $value;
+    if (in_array($number, array(1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46), true)) {
+        return 'is-red';
+    }
+
+    if (in_array($number, array(3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48), true)) {
+        return 'is-blue';
+    }
+
+    return 'is-green';
+}
+
+function admin_render_draw_ball($value, $drawDate = '')
+{
+    $value = $value === null ? null : (int) $value;
+    $ballClass = $value === null ? 'is-empty' : admin_draw_wave_color_class($value);
+    $numberText = $value === null ? '--' : admin_draw_pad_number($value);
+    $zodiacText = $value === null ? '--' : (app()->prediction()->drawZodiacByNumber($value, (string) $drawDate) ?: '--');
+
+    return '<div class="admin-header-draw-ball ' . e($ballClass) . '">' .
+        '<div class="admin-header-draw-ball-code">' . e($numberText) . '</div>' .
+        '<div class="admin-header-draw-ball-zodiac">' . e($zodiacText) . '</div>' .
+        '</div>';
+}
+
+function admin_render_shared_draw_card($draw, $region, array $options = array())
+{
+    $region = admin_draw_region_key($region);
+    $draw = is_array($draw) ? $draw : null;
+    $drawDate = $draw !== null ? trim((string) ($draw['draw_date'] ?? '')) : '';
+    $issueText = '--期';
+    $ballsHtml = '';
+
+    if ($draw !== null) {
+        $issueText = admin_draw_issue_tail($draw['issue_no'] ?? '') . '期';
+        $numbers = isset($draw['numbers']) && is_array($draw['numbers'])
+            ? array_values($draw['numbers'])
+            : json_decode((string) ($draw['numbers_json'] ?? '[]'), true);
+        $numbers = is_array($numbers) ? array_values($numbers) : array();
+
+        for ($index = 0; $index < 6; $index += 1) {
+            $value = array_key_exists($index, $numbers) ? (int) $numbers[$index] : null;
+            $ballsHtml .= admin_render_draw_ball($value > 0 ? $value : null, $drawDate);
+        }
+
+        $ballsHtml .= '<div class="admin-header-draw-ball-plus">+</div>';
+        $specialNumber = (int) ($draw['special_number'] ?? 0);
+        $ballsHtml .= admin_render_draw_ball($specialNumber > 0 ? $specialNumber : null, $drawDate);
+    }
+
+    if ($ballsHtml === '') {
+        for ($index = 0; $index < 6; $index += 1) {
+            $ballsHtml .= admin_render_draw_ball(null, $drawDate);
+        }
+        $ballsHtml .= '<div class="admin-header-draw-ball-plus">+</div>';
+        $ballsHtml .= admin_render_draw_ball(null, $drawDate);
+    }
+
+    $classes = trim('admin-header-draw-card admin-shared-draw-card ' . (string) ($options['extra_class'] ?? ''));
+    $attributes = 'data-region="' . e($region) . '"';
+    if (!empty($options['data_admin_header_draw'])) {
+        $attributes = 'data-admin-header-draw ' . $attributes;
+    }
+
+    return '<div class="' . e($classes) . '" ' . $attributes . '>' .
+        '<div class="admin-header-draw-meta">' .
+        '<span class="admin-header-draw-region">' . e(admin_draw_region_label($region)) . '</span>' .
+        '<span class="admin-header-draw-issue">' . e($issueText) . '</span>' .
+        '</div>' .
+        '<div class="admin-header-draw-balls">' . $ballsHtml . '</div>' .
+        '</div>';
+}
+
 function ensure_installed_or_redirect()
 {
     $scriptName = isset($_SERVER['SCRIPT_NAME']) ? (string) $_SERVER['SCRIPT_NAME'] : '';
