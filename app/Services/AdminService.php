@@ -3209,61 +3209,97 @@ class AdminService extends Service
 
     public function listManagedUsers(array $filters = array())
     {
+        $page = $this->listManagedUsersPage($filters);
+
+        return (array) ($page['items'] ?? array());
+    }
+
+    public function listManagedUsersPage(array $filters = array())
+    {
         $memberRoleKeys = $this->app->users()->memberRoleKeys();
         $memberRoleSql = "'" . implode("','", array_map('addslashes', $memberRoleKeys)) . "'";
-        $sql = 'SELECT users.*,
-                       roles.role_key,
-                       roles.role_name,
-                       COALESCE(
-                           (
-                               SELECT NULLIF(login_logs.login_ip, \'\')
-                               FROM login_logs
-                               WHERE login_logs.user_id = users.id
-                                 AND login_logs.login_status = :register_login_status_ip
-                               ORDER BY login_logs.id ASC
-                               LIMIT 1
-                           ),
-                           NULLIF(users.last_login_ip, \'\'),
-                           \'\'
-                       ) AS register_ip,
-                       COALESCE(
-                           (
-                               SELECT NULLIF(login_logs.login_province, \'\')
-                               FROM login_logs
-                               WHERE login_logs.user_id = users.id
-                                 AND login_logs.login_status = :register_login_status_province
-                               ORDER BY login_logs.id ASC
-                               LIMIT 1
-                           ),
-                           NULLIF(users.login_province, \'\'),
-                           \'\'
-                       ) AS register_province
-                FROM users
-                INNER JOIN roles ON roles.id = users.role_id
-                WHERE roles.role_key IN (' . $memberRoleSql . ')';
-        $params = array('register_login_status_ip' => 'success', 'register_login_status_province' => 'success');
+        $selectSql = 'SELECT users.*,
+                             roles.role_key,
+                             roles.role_name,
+                             COALESCE(
+                                 (
+                                     SELECT NULLIF(login_logs.login_ip, \'\')
+                                     FROM login_logs
+                                     WHERE login_logs.user_id = users.id
+                                       AND login_logs.login_status = :register_login_status_ip
+                                     ORDER BY login_logs.id ASC
+                                     LIMIT 1
+                                 ),
+                                 NULLIF(users.last_login_ip, \'\'),
+                                 \'\'
+                             ) AS register_ip,
+                             COALESCE(
+                                 (
+                                     SELECT NULLIF(login_logs.login_province, \'\')
+                                     FROM login_logs
+                                     WHERE login_logs.user_id = users.id
+                                       AND login_logs.login_status = :register_login_status_province
+                                     ORDER BY login_logs.id ASC
+                                     LIMIT 1
+                                 ),
+                                 NULLIF(users.login_province, \'\'),
+                                 \'\'
+                             ) AS register_province';
+        $fromSql = ' FROM users
+                     INNER JOIN roles ON roles.id = users.role_id
+                     WHERE roles.role_key IN (' . $memberRoleSql . ')';
+        $countParams = array();
+        $listParams = array('register_login_status_ip' => 'success', 'register_login_status_province' => 'success');
         $keyword = trim((string) ($filters['keyword'] ?? ''));
         $roleKey = trim((string) ($filters['role_key'] ?? ''));
         $status = trim((string) ($filters['status'] ?? ''));
+        $pageNo = max(1, (int) ($filters['page_no'] ?? 1));
+        $perPage = max(20, min(60, (int) ($filters['per_page'] ?? 40)));
 
         if ($keyword !== '') {
-            $sql .= ' AND (users.username LIKE :keyword OR users.email LIKE :keyword OR users.bio LIKE :keyword)';
-            $params['keyword'] = '%' . $keyword . '%';
+            $fromSql .= ' AND (users.username LIKE :keyword_username OR users.email LIKE :keyword_email OR users.bio LIKE :keyword_bio)';
+            $countParams['keyword_username'] = '%' . $keyword . '%';
+            $countParams['keyword_email'] = '%' . $keyword . '%';
+            $countParams['keyword_bio'] = '%' . $keyword . '%';
+            $listParams['keyword_username'] = $countParams['keyword_username'];
+            $listParams['keyword_email'] = $countParams['keyword_email'];
+            $listParams['keyword_bio'] = $countParams['keyword_bio'];
         }
 
         if ($roleKey !== '' && in_array($roleKey, $memberRoleKeys, true)) {
-            $sql .= ' AND roles.role_key = :role_key';
-            $params['role_key'] = $roleKey;
+            $fromSql .= ' AND roles.role_key = :role_key';
+            $countParams['role_key'] = $roleKey;
+            $listParams['role_key'] = $roleKey;
         }
 
         if (in_array($status, array('active', 'disabled'), true)) {
-            $sql .= ' AND users.status = :status';
-            $params['status'] = $status;
+            $fromSql .= ' AND users.status = :status';
+            $countParams['status'] = $status;
+            $listParams['status'] = $status;
         }
 
-        $sql .= ' ORDER BY users.created_at DESC LIMIT 120';
+        $totalRow = $this->db()->fetch('SELECT COUNT(*) AS total_count' . $fromSql, $countParams);
+        $total = $totalRow ? (int) ($totalRow['total_count'] ?? 0) : 0;
+        $pageCount = max(1, (int) ceil($total / $perPage));
+        $pageNo = min($pageNo, $pageCount);
+        $offset = ($pageNo - 1) * $perPage;
+        $rows = $this->db()->fetchAll(
+            $selectSql . $fromSql . ' ORDER BY users.created_at DESC LIMIT ' . $perPage . ' OFFSET ' . $offset,
+            $listParams
+        );
+        $rows = $this->enrichManagedUserRows($rows);
 
-        $rows = $this->db()->fetchAll($sql, $params);
+        return array(
+            'items' => $rows,
+            'total' => $total,
+            'page_no' => $pageNo,
+            'per_page' => $perPage,
+            'page_count' => $pageCount,
+        );
+    }
+
+    protected function enrichManagedUserRows(array $rows)
+    {
         $pageViewLocations = $this->managedUserPageViewLocationFallbacks($rows);
         foreach ($rows as $index => $row) {
             $registerIp = trim((string) ($row['register_ip'] ?? ''));
@@ -3701,6 +3737,7 @@ class AdminService extends Service
                 'user_status' => (string) ($row['user_status'] ?? ''),
                 'created_at' => (string) ($row['created_at'] ?? ''),
                 'created_at_sort' => strtotime((string) ($row['created_at'] ?? '')) ?: 0,
+                'source_label' => '后台调分',
                 'note' => $note,
             );
         }
@@ -3709,6 +3746,7 @@ class AdminService extends Service
             $legacyRows = $this->db()->fetchAll(
                 'SELECT admin_logs.id,
                         admin_logs.target_id AS user_id,
+                        admin_logs.user_id AS operator_id,
                         admin_logs.description AS summary,
                         admin_logs.created_at,
                         users.username,
@@ -3744,21 +3782,27 @@ class AdminService extends Service
 
             foreach ($legacyRows as $row) {
                 $summary = trim((string) ($row['summary'] ?? ''));
+                $sourceLabel = strpos($summary, '接待端客服调分') === 0 ? '接待端客服' : '后台调分';
                 $amount = 0;
                 if (preg_match('/=>\s*([+-]?\d+)/u', $summary, $matches)) {
                     $amount = (int) $matches[1];
+                }
+                $scoreAfter = null;
+                if (preg_match('/剩余\s*([+-]?\d+)/u', $summary, $matches)) {
+                    $scoreAfter = (int) $matches[1];
                 }
                 $records[] = array(
                     'id' => (int) ($row['id'] ?? 0),
                     'user_id' => (int) ($row['user_id'] ?? 0),
                     'username' => (string) (($row['username'] ?? '') ?: '会员已删除'),
                     'score_amount' => $amount,
-                    'score_after' => null,
+                    'score_after' => $scoreAfter,
                     'current_score' => ($row['username'] ?? '') !== '' ? (int) ($row['current_score'] ?? 0) : null,
                     'status' => (string) (($row['username'] ?? '') !== '' ? '成功' : '会员已删除'),
                     'user_status' => (string) ($row['user_status'] ?? ''),
                     'created_at' => (string) ($row['created_at'] ?? ''),
                     'created_at_sort' => strtotime((string) ($row['created_at'] ?? '')) ?: 0,
+                    'source_label' => $sourceLabel,
                     'note' => $summary !== '' ? $summary : '后台积分调整',
                 );
             }

@@ -836,7 +836,16 @@ class UserService extends Service
             'id' => $userId,
         ));
 
-        $this->app->logs()->admin('members', 'charge', '调整会员积分：' . $user['username'] . ' => ' . $amount, 'user', (string) $userId, $actor['id']);
+        $actorId = array_key_exists('id', $actor) ? $actor['id'] : null;
+        $scoreLogSource = trim((string) ($actor['score_log_source'] ?? ''));
+        if ($scoreLogSource === 'customer_service') {
+            $scoreLogOperator = trim((string) ($actor['score_log_operator'] ?? '客服'));
+            $scoreLogDescription = '接待端客服调分：' . $scoreLogOperator . ' 为 ' . $user['username'] . ' => ' . (int) $amount . '，剩余 ' . $newScore;
+        } else {
+            $scoreLogDescription = '调整会员积分：' . $user['username'] . ' => ' . (int) $amount;
+        }
+
+        $this->app->logs()->admin('members', 'charge', $scoreLogDescription, 'user', (string) $userId, $actorId);
 
         return $this->findById($userId);
     }

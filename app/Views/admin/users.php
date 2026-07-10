@@ -2,6 +2,13 @@
 $users = isset($users) && is_array($users) ? $users : array();
 $userRoles = isset($userRoles) && is_array($userRoles) ? $userRoles : array();
 $userFilters = isset($userFilters) && is_array($userFilters) ? $userFilters : array();
+$userPage = isset($userPage) && is_array($userPage) ? $userPage : array(
+    'items' => $users,
+    'total' => count($users),
+    'page_no' => 1,
+    'per_page' => count($users) > 0 ? count($users) : 40,
+    'page_count' => 1,
+);
 $passwordResetRequests = isset($passwordResetRequests) && is_array($passwordResetRequests) ? $passwordResetRequests : array();
 $consumptionRecords = isset($consumptionRecords) && is_array($consumptionRecords) ? $consumptionRecords : array();
 $userCanManage = !empty($userCanManage);
@@ -12,6 +19,25 @@ $currentResetStatus = (string) ($userFilters['reset_status'] ?? '');
 $currentUserPanel = isset($userPanel) ? (string) $userPanel : 'members';
 if (!in_array($currentUserPanel, array('register_rules', 'members', 'consumption'), true)) {
     $currentUserPanel = 'members';
+}
+$userPageNo = max(1, (int) ($userPage['page_no'] ?? 1));
+$userPageCount = max(1, (int) ($userPage['page_count'] ?? 1));
+$userTotalCount = max(0, (int) ($userPage['total'] ?? count($users)));
+$memberPaginationQueryBase = array(
+    'page' => 'users',
+    'user_panel' => 'members',
+);
+if ($currentKeyword !== '') {
+    $memberPaginationQueryBase['keyword'] = $currentKeyword;
+}
+if ($currentRole !== '') {
+    $memberPaginationQueryBase['role_key'] = $currentRole;
+}
+if ($currentStatus !== '') {
+    $memberPaginationQueryBase['status'] = $currentStatus;
+}
+if ($currentResetStatus !== '') {
+    $memberPaginationQueryBase['reset_status'] = $currentResetStatus;
 }
 $registerBonus = max(0, (int) ($registerBonus ?? 88));
 $registerLimitDays = max(0, min(365, (int) ($registerLimitDays ?? 1)));
@@ -123,7 +149,7 @@ $memberPanelUrl = static function ($panel) use ($currentKeyword, $currentRole, $
 
     <nav class="member-console-tabs" aria-label="会员管理切换">
         <a class="<?php echo $currentUserPanel === 'members' ? 'is-active' : ''; ?>" href="<?php echo e($memberPanelUrl('members')); ?>">会员列表</a>
-        <a class="<?php echo $currentUserPanel === 'consumption' ? 'is-active' : ''; ?>" href="<?php echo e($memberPanelUrl('consumption')); ?>">消费记录</a>
+        <a class="<?php echo $currentUserPanel === 'consumption' ? 'is-active' : ''; ?>" href="<?php echo e($memberPanelUrl('consumption')); ?>">积分流水</a>
         <a class="<?php echo $currentUserPanel === 'register_rules' ? 'is-active' : ''; ?>" href="<?php echo e($memberPanelUrl('register_rules')); ?>">注册规则设置</a>
     </nav>
 
@@ -288,18 +314,18 @@ $memberPanelUrl = static function ($panel) use ($currentKeyword, $currentRole, $
                                     <div class="member-score-cell">
                                         <strong><?php echo e(number_format((int) ($row['score'] ?? 0))); ?></strong>
                                         <?php if ($userCanManage): ?>
-                                            <button class="ui-admin-btn" type="button" data-member-recharge-open="<?php echo e($rechargeModalId); ?>">充值</button>
+                                            <button class="ui-admin-btn" type="button" data-member-recharge-open="<?php echo e($rechargeModalId); ?>">调分</button>
                                             <div class="member-recharge-modal admin-modal" id="<?php echo e($rechargeModalId); ?>" data-member-recharge-modal hidden>
                                                 <div class="member-recharge-backdrop admin-modal-backdrop" data-member-recharge-close></div>
                                                 <div class="member-recharge-card admin-modal-card admin-modal-card--sm" role="dialog" aria-modal="true" aria-labelledby="<?php echo e($rechargeModalId); ?>-title">
                                                     <div class="member-recharge-head admin-modal-head">
                                                         <div class="admin-modal-heading">
                                                             <div class="admin-modal-title-row">
-                                                                <h2 class="admin-modal-title" id="<?php echo e($rechargeModalId); ?>-title">积分充值</h2>
+                                                                <h2 class="admin-modal-title" id="<?php echo e($rechargeModalId); ?>-title">调整积分</h2>
                                                             </div>
                                                         </div>
                                                         <div class="admin-modal-head-actions">
-                                                            <button class="ui-admin-btn admin-modal-close" type="button" aria-label="关闭积分充值" data-member-recharge-close>
+                                                            <button class="ui-admin-btn admin-modal-close" type="button" aria-label="关闭调整积分" data-member-recharge-close>
                                                                 <i class="fa-solid fa-xmark"></i>
                                                             </button>
                                                         </div>
@@ -326,7 +352,7 @@ $memberPanelUrl = static function ($panel) use ($currentKeyword, $currentRole, $
                                                             </div>
                                                         </div>
                                                         <label class="member-recharge-field">
-                                                            <span>充值金额</span>
+                                                            <span>变动积分</span>
                                                             <input
                                                                 type="number"
                                                                 name="score_amount"
@@ -335,13 +361,13 @@ $memberPanelUrl = static function ($panel) use ($currentKeyword, $currentRole, $
                                                                 max="100000000"
                                                                 step="1"
                                                                 inputmode="numeric"
-                                                                placeholder="请输入充值积分，扣减请用负数"
+                                                                placeholder="正数为充值，负数为扣减"
                                                                 required
                                                                 data-member-recharge-input
                                                             >
                                                         </label>
                                                         <label class="member-recharge-field">
-                                                            <span>充值说明</span>
+                                                            <span>变动说明</span>
                                                             <input
                                                                 name="score_note"
                                                                 value=""
@@ -351,7 +377,7 @@ $memberPanelUrl = static function ($panel) use ($currentKeyword, $currentRole, $
                                                         </label>
                                                         <div class="member-recharge-actions">
                                                             <button class="ui-admin-btn" type="button" data-member-recharge-close>取消</button>
-                                                            <button class="ui-admin-btn ui-admin-btn-primary" type="submit">确认充值</button>
+                                                            <button class="ui-admin-btn ui-admin-btn-primary" type="submit">确认调整</button>
                                                         </div>
                                                     </form>
                                                 </div>
@@ -433,7 +459,7 @@ $memberPanelUrl = static function ($panel) use ($currentKeyword, $currentRole, $
                                                                 <input type="number" name="score" value="<?php echo e((string) ((int) ($row['score'] ?? 0))); ?>" step="1">
                                                             </label>
                                                             <label>
-                                                                <span>累计充值</span>
+                                                                <span>累计充值积分</span>
                                                                 <strong><?php echo e(number_format((int) ($row['recharge_score_total'] ?? 0))); ?> 积分</strong>
                                                             </label>
                                                             <label>
@@ -508,6 +534,19 @@ $memberPanelUrl = static function ($panel) use ($currentKeyword, $currentRole, $
                         </tbody>
                     </table>
                 </div>
+                <?php if ($userPageCount > 1): ?>
+                    <div class="admin-pagination">
+                        <div class="admin-pagination-meta">共 <?php echo e((string) $userTotalCount); ?> 个会员，第 <?php echo e((string) $userPageNo); ?> / <?php echo e((string) $userPageCount); ?> 页</div>
+                        <div class="admin-pagination-links">
+                            <?php if ($userPageNo > 1): ?>
+                                <a class="admin-button is-light" href="<?php echo e(public_url('admin.php') . '?' . http_build_query(array_merge($memberPaginationQueryBase, array('page_no' => $userPageNo - 1)))); ?>">上一页</a>
+                            <?php endif; ?>
+                            <?php if ($userPageNo < $userPageCount): ?>
+                                <a class="admin-button is-light" href="<?php echo e(public_url('admin.php') . '?' . http_build_query(array_merge($memberPaginationQueryBase, array('page_no' => $userPageNo + 1)))); ?>">下一页</a>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
             <?php else: ?>
                 <div class="member-console-empty">当前没有符合条件的会员。</div>
             <?php endif; ?>
@@ -517,9 +556,10 @@ $memberPanelUrl = static function ($panel) use ($currentKeyword, $currentRole, $
         <?php if ($currentUserPanel === 'consumption'): ?>
         <article class="member-console-card ui-admin-card is-consumption">
             <div class="member-console-head">
-                <span class="member-console-pill is-blue">消费记录</span>
+                <span class="member-console-pill is-blue">积分流水</span>
                 <strong>会员积分变动</strong>
             </div>
+            <div class="admin-tip">积分流水记录后台和接待端对会员积分的充值、扣减；累计充值积分统计当前会员账户上的累计充值字段，不等同于全历史流水合计。</div>
 
             <?php if ($consumptionRecords): ?>
                 <div class="member-consumption-wrap ui-admin-table-wrap">
@@ -527,11 +567,12 @@ $memberPanelUrl = static function ($panel) use ($currentKeyword, $currentRole, $
                         <thead>
                         <tr>
                             <th>会员昵称</th>
-                            <th>充值积分</th>
-                            <th>充值后剩余积分</th>
+                            <th>积分变动</th>
+                            <th>变动后积分</th>
                             <th>状态</th>
-                            <th>充值时间</th>
-                            <th>充值说明</th>
+                            <th>来源</th>
+                            <th>变动时间</th>
+                            <th>变动说明</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -542,6 +583,8 @@ $memberPanelUrl = static function ($panel) use ($currentKeyword, $currentRole, $
                             $recordScoreAfter = $record['score_after'] ?? null;
                             $recordScoreAfterText = $recordScoreAfter === null ? '--' : number_format((int) $recordScoreAfter);
                             $recordStatus = (string) ($record['status'] ?? '成功');
+                            $recordSource = (string) (($record['source_label'] ?? '') ?: '后台调分');
+                            $recordSourceClass = strpos($recordSource, '接待端') !== false ? 'is-service' : 'is-admin';
                             ?>
                             <tr>
                                 <td>
@@ -557,6 +600,7 @@ $memberPanelUrl = static function ($panel) use ($currentKeyword, $currentRole, $
                                 </td>
                                 <td><?php echo e($recordScoreAfterText); ?></td>
                                 <td><em class="<?php echo $recordStatus === '成功' ? 'is-active' : 'is-disabled'; ?>"><?php echo e($recordStatus); ?></em></td>
+                                <td><span class="member-consumption-source <?php echo e($recordSourceClass); ?>"><?php echo e($recordSource); ?></span></td>
                                 <td><?php echo e(format_datetime($record['created_at'] ?? null)); ?></td>
                                 <td><?php echo e((string) ($record['note'] ?? '-')); ?></td>
                             </tr>
@@ -565,7 +609,7 @@ $memberPanelUrl = static function ($panel) use ($currentKeyword, $currentRole, $
                     </table>
                 </div>
             <?php else: ?>
-                <div class="member-console-empty">暂无会员消费记录。</div>
+                <div class="member-console-empty">暂无会员积分流水。</div>
             <?php endif; ?>
         </article>
         <?php endif; ?>

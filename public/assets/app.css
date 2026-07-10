@@ -19872,6 +19872,31 @@ body.admin-page-users .member-consumption-score.is-minus {
     color: #2563eb;
 }
 
+body.admin-page-users .member-consumption-source {
+    display: inline-flex;
+    min-height: 24px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+body.admin-page-users .member-consumption-source.is-admin {
+    border: 1px solid #bfdbfe;
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+body.admin-page-users .member-consumption-source.is-service {
+    border: 1px solid #fed7aa;
+    background: #fff7ed;
+    color: #c2410c;
+}
+
 body.admin-page-users .member-consumption-table em {
     display: inline-flex;
     min-height: 24px;

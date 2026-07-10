@@ -1252,14 +1252,19 @@ switch ($page) {
             'role_key' => isset($_GET['role_key']) ? trim((string) $_GET['role_key']) : '',
             'status' => isset($_GET['status']) ? trim((string) $_GET['status']) : '',
             'reset_status' => isset($_GET['reset_status']) ? trim((string) $_GET['reset_status']) : '',
+            'page_no' => isset($_GET['page_no']) ? max(1, (int) $_GET['page_no']) : 1,
         );
         $userPanel = isset($_GET['user_panel']) ? trim((string) $_GET['user_panel']) : 'members';
         if (!in_array($userPanel, array('register_rules', 'members', 'consumption'), true)) {
             $userPanel = 'members';
         }
+        $managedUserPage = $userPanel === 'members'
+            ? app()->admins()->listManagedUsersPage($userFilters)
+            : array('items' => array(), 'total' => 0, 'page_no' => 1, 'per_page' => 40, 'page_count' => 1);
         $viewData['userFilters'] = $userFilters;
         $viewData['userPanel'] = $userPanel;
-        $viewData['users'] = $userPanel === 'members' ? app()->admins()->listManagedUsers($userFilters) : array();
+        $viewData['userPage'] = $managedUserPage;
+        $viewData['users'] = $userPanel === 'members' ? (array) ($managedUserPage['items'] ?? array()) : array();
         $viewData['consumptionRecords'] = $userPanel === 'consumption' ? app()->admins()->listManagedUserConsumptionRecords(80) : array();
         $viewData['userRoles'] = $userPanel === 'members' ? app()->admins()->managedUserRoles() : array();
         $viewData['passwordResetRequests'] = $userPanel === 'members' ? app()->admins()->listManagedPasswordResetRequests(array('status' => $userFilters['reset_status'])) : array();
