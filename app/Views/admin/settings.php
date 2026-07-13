@@ -7,11 +7,6 @@ $macauTitle = (string) ($settingsForm['browser_region_title_macau'] ?? '');
 $hongkongTitle = (string) ($settingsForm['browser_region_title_hongkong'] ?? '');
 $adminBrowserTitle = (string) ($settingsForm['admin_browser_title'] ?? '');
 $adminManagementName = (string) ($settingsForm['admin_management_name'] ?? '');
-$frontTitlePreview = $siteTitle !== '' ? $siteTitle : $siteName;
-$frontHomePreview = $frontTitlePreview !== '' ? $frontTitlePreview : '前台浏览器标题';
-$macauPreview = trim($frontHomePreview . ($macauTitle !== '' ? ' - ' . $macauTitle : ''));
-$hongkongPreview = trim($frontHomePreview . ($hongkongTitle !== '' ? ' - ' . $hongkongTitle : ''));
-$adminPreview = trim('系统设置' . ($adminBrowserTitle !== '' ? ' - ' . $adminBrowserTitle : ''));
 ?>
 
 <?php if ($settingsCanManage): ?>
@@ -21,7 +16,6 @@ $adminPreview = trim('系统设置' . ($adminBrowserTitle !== '' ? ' - ' . $admi
     method="post"
     action="<?php echo e(public_url('api.php')); ?>"
     data-ajax-form
-    data-admin-settings-composer
 >
     <input type="hidden" name="action" value="admin.settings.save">
     <input type="hidden" name="_token" value="<?php echo e(csrf_token('api')); ?>">
@@ -38,34 +32,6 @@ $adminPreview = trim('系统设置' . ($adminBrowserTitle !== '' ? ' - ' . $admi
 
     <section class="settings-workbench">
         <div class="settings-main-column">
-            <article class="settings-preview-card">
-                <div class="settings-preview-head">
-                    <span>实时预览</span>
-                </div>
-                <div class="settings-preview-list">
-                    <div>
-                        <span>前台首页</span>
-                        <strong data-settings-preview="frontTitle"><?php echo e($frontHomePreview); ?></strong>
-                    </div>
-                    <div>
-                        <span>澳门页面</span>
-                        <strong data-settings-preview="macauTitle"><?php echo e($macauPreview !== '' ? $macauPreview : '前台标题 - 澳门区域标题'); ?></strong>
-                    </div>
-                    <div>
-                        <span>香港页面</span>
-                        <strong data-settings-preview="hongkongTitle"><?php echo e($hongkongPreview !== '' ? $hongkongPreview : '前台标题 - 香港区域标题'); ?></strong>
-                    </div>
-                    <div>
-                        <span>后台页面</span>
-                        <strong data-settings-preview="adminTitle"><?php echo e($adminPreview !== '' ? $adminPreview : '系统设置 - 后台浏览器标题'); ?></strong>
-                    </div>
-                    <div>
-                        <span>后台左侧名称</span>
-                        <strong data-settings-preview="adminName"><?php echo e($adminManagementName !== '' ? $adminManagementName : '后台管理名称'); ?></strong>
-                    </div>
-                </div>
-            </article>
-
             <article class="settings-panel is-front">
                 <div class="settings-panel-head">
                     <span>前台公开信息</span>

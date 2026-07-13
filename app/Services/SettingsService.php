@@ -57,19 +57,40 @@ class SettingsService extends Service
     public function setMany($group, array $items, array $publicKeys = array())
     {
         $now = $this->now();
+        $existingIds = array();
+
+        if ($items !== array()) {
+            $params = array();
+            $placeholders = array();
+            foreach (array_keys($items) as $index => $key) {
+                $paramKey = 'setting_key_' . $index;
+                $placeholders[] = ':' . $paramKey;
+                $params[$paramKey] = (string) $key;
+            }
+
+            $rows = $this->db()->fetchAll(
+                'SELECT id, setting_key FROM settings WHERE setting_key IN (' . implode(',', $placeholders) . ')',
+                $params
+            );
+
+            foreach ($rows as $row) {
+                $settingKey = (string) ($row['setting_key'] ?? '');
+                if ($settingKey !== '') {
+                    $existingIds[$settingKey] = (int) ($row['id'] ?? 0);
+                }
+            }
+        }
 
         foreach ($items as $key => $value) {
-            $exists = $this->db()->fetch('SELECT id FROM settings WHERE setting_key = :setting_key LIMIT 1', array(
-                'setting_key' => $key,
-            ));
+            $settingId = (int) ($existingIds[(string) $key] ?? 0);
 
-            if ($exists) {
+            if ($settingId > 0) {
                 $this->db()->execute('UPDATE settings SET setting_value = :setting_value, setting_group = :setting_group, is_public = :is_public, updated_at = :updated_at WHERE id = :id', array(
                     'setting_value' => (string) $value,
                     'setting_group' => $group,
                     'is_public' => in_array($key, $publicKeys, true) ? 1 : 0,
                     'updated_at' => $now,
-                    'id' => $exists['id'],
+                    'id' => $settingId,
                 ));
             } else {
                 $this->db()->execute('INSERT INTO settings (setting_key, setting_group, setting_value, is_public, created_at, updated_at) VALUES (:setting_key, :setting_group, :setting_value, :is_public, :created_at, :updated_at)', array(

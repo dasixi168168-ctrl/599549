@@ -136,6 +136,11 @@ if ($user) {
                  LIMIT 30",
                 array('user_id' => $user['id'])
             );
+            try {
+                $purchaseRecords = app()->posts()->attachDisplayTitlePayloads($purchaseRecords, 'post_id', 'archived');
+            } catch (\Throwable $displayTitleException) {
+                // Preserve the purchase list when optional title metadata is unavailable.
+            }
         } catch (\Throwable $exception) {
             $purchaseRecords = array();
         }

@@ -3876,14 +3876,19 @@ class AdminService extends Service
 
     protected function managedUserCarrierLabel(array $candidateIps)
     {
+        $hasPublicIp = false;
         foreach ($candidateIps as $candidateIp) {
+            $candidateIp = trim((string) $candidateIp);
+            if ($candidateIp !== '' && filter_var($candidateIp, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false) {
+                $hasPublicIp = true;
+            }
             $carrier = trim((string) Security::carrierFromIpAddress($candidateIp));
             if ($carrier !== '' && !in_array($carrier, array('未知运营商', '内网', '本地网络'), true)) {
                 return $carrier;
             }
         }
 
-        return '未知运营商';
+        return $hasPublicIp ? '公网网络' : '未知运营商';
     }
 
     protected function mergeManagedUserLocationFallback(array $current, array $incoming)
@@ -4519,10 +4524,12 @@ class AdminService extends Service
 
     public function listManagedUserLoginLogs($userId, $limit = 20)
     {
-        return $this->db()->fetchAll(
+        $rows = $this->db()->fetchAll(
             'SELECT * FROM login_logs WHERE user_id = :user_id ORDER BY created_at DESC LIMIT ' . (int) $limit,
             array('user_id' => (int) $userId)
         );
+
+        return $this->enrichLoginAreaRows($rows);
     }
 
     public function listManagedUserBanRecords($userId, $limit = 20)

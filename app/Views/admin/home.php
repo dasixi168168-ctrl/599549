@@ -50,8 +50,8 @@ $forecastPriceText = static function ($value) {
         <?php endif; ?>
 
         <section class="forecast-discount-board">
-            <div class="forecast-api-url-panel">
-                <div class="forecast-api-url-panel-head">
+            <div class="forecast-config-panel forecast-api-url-panel">
+                <div class="forecast-config-panel-head forecast-api-url-panel-head">
                     <span class="forecast-admin-kicker is-blue">开奖接口</span>
                     <small>澳门 / 香港实时与历史数据源</small>
                 </div>
@@ -112,109 +112,121 @@ $forecastPriceText = static function ($value) {
                     </fieldset>
                 </div>
             </div>
-            <div class="forecast-section-head">
-                <span class="forecast-admin-kicker is-blue">基础参数</span>
-                <small>参与人数、近 n-m 期开奖历史记录和会员每日次数</small>
-            </div>
-            <div class="forecast-basic-table">
-                <div class="forecast-basic-table-head">
-                    <span>
-                        <strong>参与人数递增</strong>
-                    </span>
-                    <span>
-                        <strong>分析周期 n-m</strong>
-                    </span>
-                    <span>
-                        <strong>会员每日次数</strong>
-                    </span>
+            <section class="forecast-config-panel forecast-basic-panel">
+                <div class="forecast-config-panel-head forecast-section-head">
+                    <span class="forecast-admin-kicker is-blue">基础参数</span>
+                    <small>人数增量 · n-m期范围 · 每日限次</small>
                 </div>
-                <div class="forecast-basic-table-row">
-                    <label class="forecast-basic-control">
-                        <input
-                            type="number"
-                            name="participation_increment"
-                            min="0"
-                            max="9999"
-                            step="1"
-                            value="<?php echo e((string) $forecastParticipationIncrement); ?>"
-                            aria-label="参与人数递增"
-                            <?php echo $homeCanManage ? '' : 'readonly'; ?>
-                        >
-                    </label>
-                    <div class="forecast-basic-control forecast-basic-control-period">
-                        <label class="forecast-analysis-period-field">
-                            <span>最小期数</span>
-                            <input
-                                type="number"
-                                name="analysis_period_min"
-                                min="1"
-                                max="10000"
-                                step="1"
-                                value="<?php echo e((string) $forecastAnalysisPeriodMin); ?>"
-                                <?php echo $homeCanManage ? '' : 'readonly'; ?>
-                            >
-                        </label>
-                        <label class="forecast-analysis-period-field">
-                            <span>最大期数</span>
-                            <input
-                                type="number"
-                                name="analysis_period_max"
-                                min="1"
-                                max="10000"
-                                step="1"
-                                value="<?php echo e((string) $forecastAnalysisPeriodMax); ?>"
-                                <?php echo $homeCanManage ? '' : 'readonly'; ?>
-                            >
-                        </label>
-                    </div>
-                    <label class="forecast-basic-control">
-                        <input
-                            type="number"
-                            name="member_daily_limit"
-                            min="1"
-                            max="9999"
-                            step="1"
-                            value="<?php echo e((string) $forecastMemberDailyLimit); ?>"
-                            aria-label="会员每日次数"
-                            <?php echo $homeCanManage ? '' : 'readonly'; ?>
-                        >
-                    </label>
-                </div>
-            </div>
-            <div class="forecast-discount-copy">
-                <span class="forecast-admin-kicker is-gold">类型优惠</span>
-                <small>按选中类型数量计算折扣</small>
-            </div>
-            <div class="forecast-discount-grid">
-                <?php foreach (array('1' => '选一项', '2' => '选两项', '3' => '选三项', '4' => '选四项') as $countKey => $countLabel): ?>
-                    <label>
-                        <span>
-                            <strong><?php echo e($countLabel); ?></strong>
-                            <small><?php echo $countKey === '1' ? '无优惠' : '按百分比计价'; ?></small>
+                <div class="forecast-basic-table">
+                    <label class="forecast-control-card">
+                        <span class="forecast-control-card-head">
+                            <strong>参与人数增量</strong>
                         </span>
-                        <input
-                            type="number"
-                            name="discounts[<?php echo e($countKey); ?>]"
-                            min="1"
-                            max="100"
-                            step="1"
-                            value="<?php echo e((string) (int) ($forecastPricingDiscounts[$countKey] ?? 100)); ?>"
-                            data-forecast-discount="<?php echo e($countKey); ?>"
-                            <?php echo $homeCanManage ? '' : 'disabled'; ?>
-                        >
+                        <span class="forecast-control-card-body">
+                            <input
+                                type="number"
+                                name="participation_increment"
+                                min="0"
+                                max="9999"
+                                step="1"
+                                value="<?php echo e((string) $forecastParticipationIncrement); ?>"
+                                aria-label="参与人数增量（人）"
+                                <?php echo $homeCanManage ? '' : 'readonly'; ?>
+                            >
+                            <span class="forecast-control-unit">人</span>
+                        </span>
                     </label>
-                <?php endforeach; ?>
-            </div>
+                    <div class="forecast-control-card">
+                        <span class="forecast-control-card-head">
+                            <strong>分析期数</strong>
+                        </span>
+                        <div class="forecast-control-card-body forecast-basic-control-period">
+                            <span class="forecast-analysis-period-range">
+                                <input
+                                    type="number"
+                                    name="analysis_period_min"
+                                    min="1"
+                                    max="10000"
+                                    step="1"
+                                    value="<?php echo e((string) $forecastAnalysisPeriodMin); ?>"
+                                    aria-label="分析起始期数 n"
+                                    <?php echo $homeCanManage ? '' : 'readonly'; ?>
+                                >
+                                <span class="forecast-analysis-period-separator" aria-hidden="true">-</span>
+                                <input
+                                    type="number"
+                                    name="analysis_period_max"
+                                    min="1"
+                                    max="10000"
+                                    step="1"
+                                    value="<?php echo e((string) $forecastAnalysisPeriodMax); ?>"
+                                    aria-label="分析结束期数 m"
+                                    <?php echo $homeCanManage ? '' : 'readonly'; ?>
+                                >
+                                <span class="forecast-control-unit">期</span>
+                            </span>
+                        </div>
+                    </div>
+                    <label class="forecast-control-card">
+                        <span class="forecast-control-card-head">
+                            <strong>会员每日上限</strong>
+                        </span>
+                        <span class="forecast-control-card-body">
+                            <input
+                                type="number"
+                                name="member_daily_limit"
+                                min="1"
+                                max="9999"
+                                step="1"
+                                value="<?php echo e((string) $forecastMemberDailyLimit); ?>"
+                                aria-label="会员每日上限（次）"
+                                <?php echo $homeCanManage ? '' : 'readonly'; ?>
+                            >
+                            <span class="forecast-control-unit">次</span>
+                        </span>
+                    </label>
+                </div>
+            </section>
+            <section class="forecast-config-panel forecast-discount-panel">
+                <div class="forecast-config-panel-head forecast-discount-copy">
+                    <span class="forecast-admin-kicker is-gold">类型优惠</span>
+                    <small>按选中类型数量计算折扣</small>
+                </div>
+                <div class="forecast-discount-grid">
+                    <?php foreach (array('1' => '选一项', '2' => '选两项', '3' => '选三项', '4' => '选四项') as $countKey => $countLabel): ?>
+                        <label class="forecast-control-card">
+                            <span class="forecast-control-card-head">
+                                <strong><?php echo e($countLabel); ?></strong>
+                                <small><?php echo $countKey === '1' ? '无优惠' : '按百分比计价'; ?></small>
+                            </span>
+                            <span class="forecast-control-card-body">
+                                <input
+                                    type="number"
+                                    name="discounts[<?php echo e($countKey); ?>]"
+                                    min="1"
+                                    max="100"
+                                    step="1"
+                                    value="<?php echo e((string) (int) ($forecastPricingDiscounts[$countKey] ?? 100)); ?>"
+                                    aria-label="<?php echo e($countLabel); ?>计价比例（百分比）"
+                                    data-forecast-discount="<?php echo e($countKey); ?>"
+                                    <?php echo $homeCanManage ? '' : 'disabled'; ?>
+                                >
+                                <span class="forecast-control-unit">%</span>
+                            </span>
+                        </label>
+                    <?php endforeach; ?>
+                </div>
+            </section>
         </section>
 
         <section class="forecast-admin-layout">
             <div class="forecast-option-stack">
                 <?php foreach ($forecastPricingGroups as $typeKey => $group): ?>
-                    <article class="forecast-option-panel is-<?php echo e((string) $typeKey); ?>">
-                        <div class="forecast-option-panel-head">
+                    <article class="forecast-config-panel forecast-option-panel is-<?php echo e((string) $typeKey); ?>">
+                        <div class="forecast-config-panel-head forecast-option-panel-head">
                             <div>
                                 <span><?php echo e((string) ($group['label'] ?? $typeKey)); ?>价格</span>
-                                <small>调整前台 AI预测选项积分</small>
+                                <small>单项价格 · 单位：积分</small>
                             </div>
                         </div>
                         <div class="forecast-option-table">
@@ -236,10 +248,11 @@ $forecastPriceText = static function ($value) {
                                             max="999999"
                                             step="0.01"
                                             value="<?php echo e($optionPrice); ?>"
+                                            aria-label="<?php echo e($optionLabel); ?>价格（积分）"
                                             data-forecast-price-input
                                             <?php echo $homeCanManage ? '' : 'readonly'; ?>
                                         >
-                                        <span>积分</span>
+                                        <span class="forecast-control-unit">积分</span>
                                     </label>
                                 </div>
                             <?php endforeach; ?>

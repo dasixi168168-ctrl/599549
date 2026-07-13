@@ -1284,14 +1284,18 @@ $memberForumGuideBodyHtml = static function ($key) use ($memberForumGuideRules) 
                                     $purchasePostUrl = public_url('post.php') . '?id=' . urlencode((string) $purchaseRecord['post_id']);
                                     $purchaseRegionText = (string) ($purchaseRecord['region'] ?? '') === 'hongkong' ? '香港' : '澳门';
                                     $purchaseStatus = (string) ($purchaseRecord['status'] ?? '');
-                                    $purchaseTitle = (string) ($purchaseRecord['title'] ?? '已购买帖子');
+                                    $purchaseTitle = trim((string) ($purchaseRecord['display_title_text'] ?? ''));
+                                    if ($purchaseTitle === '') {
+                                        $purchaseTitle = (string) ($purchaseRecord['title'] ?? '已购买帖子');
+                                    }
+                                    $purchaseTitleHtml = trim((string) ($purchaseRecord['display_title_html'] ?? ''));
                                     $purchaseStateText = $purchaseStatus === 'deleted' ? '已下架' : '查看内容';
                                     $purchaseStateClass = $purchaseStatus === 'deleted' ? ' is-offline' : ' is-view';
                                     $purchaseCardUrl = $purchaseStatus === 'deleted' ? $memberTabUrl('purchases') : $purchasePostUrl;
                                     ?>
                                     <a class="member-purchase-card" href="<?php echo e($purchaseCardUrl); ?>" data-member-purchase-card data-purchase-status="<?php echo e($purchaseStatus); ?>" data-purchase-post-url="<?php echo e($purchasePostUrl); ?>" data-purchase-title="<?php echo e($purchaseTitle); ?>">
                                         <span class="member-purchase-head">
-                                            <span class="member-purchase-title"><?php echo e($purchaseTitle); ?></span>
+                                            <span class="member-purchase-title"><?php echo $purchaseTitleHtml !== '' ? $purchaseTitleHtml : e($purchaseTitle); ?></span>
                                             <span class="member-purchase-state<?php echo e($purchaseStateClass); ?>"><?php echo e($purchaseStateText); ?></span>
                                         </span>
                                         <span class="member-purchase-meta">
