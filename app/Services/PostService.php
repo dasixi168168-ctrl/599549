@@ -12,38 +12,17 @@ class PostService extends Service
     {
         $segments = $this->displayTitleSegments($post);
         $titleBody = $segments['prefix'] . $segments['middle'] . $segments['author'];
-        $issueText = $segments['issue'];
+        $issuePrefixText = $this->formatIssuePrefixText($segments['issue']);
 
         if ($titleBody === '') {
-            return $issueText;
+            return $issuePrefixText;
         }
 
-        if ($issueText === '') {
+        if ($issuePrefixText === '') {
             return $titleBody;
         }
 
-        return $issueText . ': ' . $titleBody;
-    }
-
-    public function displayModalTitle(array $post)
-    {
-        $segments = $this->displayTitleSegments($post);
-        $titleBody = trim((string) (
-            ($segments['prefix'] ?? '')
-            . ($segments['middle'] ?? '')
-            . ($segments['author'] ?? '')
-        ));
-        $issuePrefixText = $this->displayIssuePrefixText($post);
-
-        if ($issuePrefixText !== '') {
-            return $issuePrefixText . $titleBody;
-        }
-
-        if ($titleBody !== '') {
-            return $titleBody;
-        }
-
-        return $this->displayTitle($post);
+        return $issuePrefixText . $titleBody;
     }
 
     public function displayTitleSegments(array $post)
@@ -573,7 +552,92 @@ class PostService extends Service
 
     public function displayIssuePrefixText(array $post)
     {
-        $issueTail = $this->displayIssueTail($post);
+        return $this->formatIssuePrefixText($this->displayIssueTail($post));
+    }
+
+    public function displayArchivedIssueTail(array $post, $nextIssueFallback = '')
+    {
+        $openedIssueTail = $this->latestOpenedIssueTailFromContent((string) ($post['full_content'] ?? ''));
+        if ($openedIssueTail !== '') {
+            return $openedIssueTail;
+        }
+
+        $nextIssueTail = $this->normalizeIssueTail((string) $nextIssueFallback);
+        if ($nextIssueTail !== '' && (int) $nextIssueTail > 0) {
+            return str_pad((string) ((int) $nextIssueTail - 1), strlen($nextIssueTail), '0', STR_PAD_LEFT);
+        }
+
+        return $this->normalizeIssueTail($this->latestIssueTextByRegion((string) ($post['region'] ?? 'macau')));
+    }
+
+    public function displayIssueTailForRecordTime($region, $recordAt, $fallbackIssueText = '')
+    {
+        $region = (string) $region === 'hongkong' ? 'hongkong' : 'macau';
+        $recordAt = trim((string) $recordAt);
+        $fallbackTail = $this->normalizeIssueTail((string) $fallbackIssueText);
+
+        if ($recordAt === '' || strtotime($recordAt) === false) {
+            return $fallbackTail;
+        }
+        $recordDate = date('Y-m-d', strtotime($recordAt));
+
+        if ($this->tableExists('lottery_issues')) {
+            try {
+                $issue = $this->db()->fetch(
+                    'SELECT issue_no
+                     FROM lottery_issues
+                     WHERE region = :region
+                       AND COALESCE(actual_open_at, planned_open_at) IS NOT NULL
+                       AND DATE(COALESCE(actual_open_at, planned_open_at)) = :record_date
+                     ORDER BY COALESCE(actual_open_at, planned_open_at) DESC,
+                              CAST(issue_no AS UNSIGNED) DESC,
+                              id DESC
+                     LIMIT 1',
+                    array(
+                        'region' => $region,
+                        'record_date' => $recordDate,
+                    )
+                );
+
+                $issueTail = $issue ? $this->normalizeIssueTail((string) ($issue['issue_no'] ?? '')) : '';
+                if ($issueTail !== '') {
+                    return $issueTail;
+                }
+            } catch (\Throwable $exception) {
+            }
+        }
+
+        if ($this->tableExists('lottery_draws')) {
+            try {
+                $draw = $this->db()->fetch(
+                    'SELECT issue_no
+                     FROM lottery_draws
+                     WHERE region = :region
+                       AND draw_date = :draw_date
+                     ORDER BY CAST(issue_no AS UNSIGNED) DESC, id DESC
+                     LIMIT 1',
+                    array(
+                        'region' => $region,
+                        'draw_date' => $recordDate,
+                    )
+                );
+                if ($draw && trim((string) ($draw['issue_no'] ?? '')) !== '') {
+                    return $this->normalizeIssueTail((string) $draw['issue_no']);
+                }
+            } catch (\Throwable $exception) {
+            }
+        }
+
+        if ($fallbackTail !== '') {
+            return $fallbackTail;
+        }
+
+        return $this->normalizeIssueTail($this->latestIssueTextByRegion($region));
+    }
+
+    public function formatIssuePrefixText($issueNo)
+    {
+        $issueTail = $this->normalizeIssueTail($issueNo);
         if ($issueTail === '') {
             return '';
         }
@@ -1301,21 +1365,28 @@ class PostService extends Service
         };
     }
 
-    public function displayTitleHtml(array $post, array $previousColors = array())
+    public function displayTitleHtml(array $post, array $previousColors = array(), $issueTextOverride = null)
     {
         $segments = $this->displayTitleSegments($post);
+        if ($issueTextOverride !== null) {
+            $segments['issue'] = $this->normalizeIssueTail((string) $issueTextOverride);
+        }
         $colors = $this->displayTitleSegmentColors($post, $previousColors);
         $titleStyle = $this->displayTitleTextStyle($post);
-        $html = '';
+        $titleStyleAttribute = $titleStyle !== ''
+            ? ' style="' . htmlspecialchars($titleStyle, ENT_QUOTES, 'UTF-8') . '"'
+            : '';
+        $issueHtml = '';
+        $bodyInnerHtml = '';
+        $bodyText = '';
 
         if ($segments['issue'] !== '') {
-            $issueText = htmlspecialchars($segments['issue'], ENT_QUOTES, 'UTF-8');
-            $html .= $titleStyle !== ''
-                ? '<span style="' . htmlspecialchars($titleStyle, ENT_QUOTES, 'UTF-8') . '">' . $issueText . '</span>'
-                : $issueText;
-            if ($segments['prefix'] !== '' || $segments['middle'] !== '' || $segments['author'] !== '') {
-                $html .= ': ';
-            }
+            $issueText = htmlspecialchars(
+                $this->formatIssuePrefixText($segments['issue']),
+                ENT_QUOTES,
+                'UTF-8'
+            );
+            $issueHtml = '<span class="post-display-title-issue">' . $issueText . '</span>';
         }
 
         foreach (array('prefix', 'middle', 'author') as $segmentKey) {
@@ -1324,31 +1395,110 @@ class PostService extends Service
                 continue;
             }
 
-            $style = (string) ($colors[$segmentKey] ?? '');
-            if ($titleStyle !== '') {
-                $style .= $titleStyle;
-            }
-            if ($style !== '') {
-                if ((string) ($colors[$segmentKey] ?? '') !== '') {
-                    $style = 'color:' . (string) ($colors[$segmentKey] ?? '') . ';' . $titleStyle;
-                }
-                $segmentHtml = $segmentKey === 'middle'
-                    ? $this->formatTypeTitleNumbersHtml($segmentText)
-                    : htmlspecialchars($segmentText, ENT_QUOTES, 'UTF-8');
-                $html .= '<span style="' . htmlspecialchars($style, ENT_QUOTES, 'UTF-8') . '">' . $segmentHtml . '</span>';
-                continue;
-            }
-
-            $html .= $segmentKey === 'middle'
+            $segmentHtml = $segmentKey === 'middle'
                 ? $this->formatTypeTitleNumbersHtml($segmentText)
                 : htmlspecialchars($segmentText, ENT_QUOTES, 'UTF-8');
+            $segmentColor = (string) ($colors[$segmentKey] ?? '');
+            $segmentStyleAttribute = $segmentColor !== ''
+                ? ' style="color:' . htmlspecialchars($segmentColor, ENT_QUOTES, 'UTF-8') . ';"'
+                : '';
+            $bodyInnerHtml .= '<span class="post-display-title-segment is-' . $segmentKey . '"'
+                . $segmentStyleAttribute
+                . '>'
+                . $segmentHtml
+                . '</span>';
+            $bodyText .= $segmentText;
         }
+
+        $bodyHtml = $bodyInnerHtml !== ''
+            ? '<span class="post-display-title post-display-title--body"' . $titleStyleAttribute . '>' . $bodyInnerHtml . '</span>'
+            : '';
+        $fullInnerHtml = $issueHtml . $bodyInnerHtml;
+        $html = $fullInnerHtml !== ''
+            ? '<span class="post-display-title post-display-title--full"' . $titleStyleAttribute . '>' . $fullInnerHtml . '</span>'
+            : '';
+        $plainText = trim((string) (
+            ($segments['issue'] !== ''
+                ? $this->formatIssuePrefixText($segments['issue'])
+                : '')
+            . $bodyText
+        ));
 
         return array(
             'html' => $html,
+            'body_html' => $bodyHtml,
+            'plain_text' => $plainText,
+            'body_text' => $bodyText,
+            'text_style' => $titleStyle,
             'colors' => $colors,
             'segments' => $segments,
         );
+    }
+
+    public function attachDisplayTitlePayloads(array $rows, $postIdKey = 'post_id', $issueMode = '')
+    {
+        $postIds = array();
+        foreach ($rows as $row) {
+            $postId = (int) ($row[$postIdKey] ?? 0);
+            if ($postId > 0) {
+                $postIds[$postId] = $postId;
+            }
+        }
+
+        if ($postIds === array()) {
+            return $rows;
+        }
+
+        $postIdSql = implode(',', array_values($postIds));
+        $posts = $this->db()->fetchAll(
+            "SELECT posts.*,
+                    COALESCE(NULLIF(post_meta.author_nickname, ''), users.username) AS author_name,
+                    COALESCE(post_meta.title_prefix_text, '') AS title_prefix_text,
+                    COALESCE(post_meta.title_middle_text, '') AS title_middle_text,
+                    COALESCE(post_meta.title_prefix_color_mode, '') AS title_prefix_color_mode,
+                    COALESCE(post_meta.title_prefix_color_value, '') AS title_prefix_color_value,
+                    COALESCE(post_meta.title_middle_color_mode, '') AS title_middle_color_mode,
+                    COALESCE(post_meta.title_middle_color_value, '') AS title_middle_color_value,
+                    COALESCE(post_meta.author_nickname_color_mode, '') AS author_nickname_color_mode,
+                    COALESCE(post_meta.author_nickname_color_value, '') AS author_nickname_color_value,
+                    COALESCE(post_meta.title_font_size, '') AS title_font_size,
+                    COALESCE(post_meta.title_font_weight, '') AS title_font_weight
+             FROM posts
+             INNER JOIN users ON users.id = posts.author_id
+             LEFT JOIN post_manage_meta post_meta ON post_meta.post_id = posts.id
+             WHERE posts.id IN (" . $postIdSql . ")"
+        );
+        $postsById = array();
+        foreach ($posts as $post) {
+            $postId = (int) ($post['id'] ?? 0);
+            if ($postId > 0) {
+                $postsById[$postId] = $post;
+            }
+        }
+
+        foreach ($rows as &$row) {
+            $postId = (int) ($row[$postIdKey] ?? 0);
+            $post = $postsById[$postId] ?? array();
+            $issueOverride = null;
+            if ($post !== array() && (string) $issueMode === 'archived') {
+                $recordAt = trim((string) ($row['created_at'] ?? $row['deleted_at'] ?? ''));
+                $fallbackIssueText = trim((string) ($row['manage_deleted_issue_text'] ?? $row['deleted_issue_text'] ?? ''));
+                $issueOverride = $recordAt !== ''
+                    ? $this->displayIssueTailForRecordTime((string) ($post['region'] ?? $row['region'] ?? 'macau'), $recordAt, $fallbackIssueText)
+                    : '';
+                if ($issueOverride === '') {
+                    $issueOverride = $this->displayArchivedIssueTail($post, $fallbackIssueText);
+                }
+            }
+            $payload = $post !== array()
+                ? $this->displayTitleHtml($post, array(), $issueOverride)
+                : array();
+            $row['display_title_text'] = trim((string) ($payload['plain_text'] ?? ''));
+            $row['display_title_html'] = trim((string) ($payload['html'] ?? ''));
+        }
+        unset($row);
+
+        return $rows;
     }
 
     protected function formatTypeTitleNumbersHtml($text)
@@ -1382,15 +1532,32 @@ class PostService extends Service
 
     public function displayTitleTextStyle(array $post)
     {
-        $size = $this->normalizeDisplayTitleFontSize((string) ($post['title_font_size'] ?? $post['manage_title_font_size'] ?? ''));
-        $weight = $this->normalizeDisplayTitleFontWeight((string) ($post['title_font_weight'] ?? $post['manage_title_font_weight'] ?? ''));
+        $sizeValue = (string) ($post['title_font_size'] ?? $post['manage_title_font_size'] ?? '');
+        $weightValue = (string) ($post['title_font_weight'] ?? $post['manage_title_font_weight'] ?? '');
+        if (trim($sizeValue) === '' || trim($weightValue) === '') {
+            try {
+                $generatorConfig = $this->app->admins()->managedPostGeneratorConfig(
+                    (string) ($post['region'] ?? 'macau')
+                );
+                if (trim($sizeValue) === '') {
+                    $sizeValue = (string) ($generatorConfig['title_font_size'] ?? '');
+                }
+                if (trim($weightValue) === '') {
+                    $weightValue = (string) ($generatorConfig['title_font_weight'] ?? '');
+                }
+            } catch (\Throwable $exception) {
+                // Keep the legacy container fallback when generator settings are unavailable.
+            }
+        }
+        $size = $this->normalizeDisplayTitleFontSize($sizeValue);
+        $weight = $this->normalizeDisplayTitleFontWeight($weightValue);
         $style = '';
 
         if ($size !== '') {
-            $style .= 'font-size:' . $size . 'px;';
+            $style .= '--post-display-title-font-size:' . $size . 'px;font-size:' . $size . 'px;';
         }
         if ($weight !== '') {
-            $style .= 'font-weight:' . $weight . ';';
+            $style .= '--post-display-title-font-weight:' . $weight . ';font-weight:' . $weight . ';';
         }
 
         return $style;
@@ -1432,42 +1599,6 @@ class PostService extends Service
         }
 
         return $colors;
-    }
-
-    public function displayExpertTitleSegmentColors(array $post, array $previousColors = array())
-    {
-        $colors = $this->displayTitleSegmentColors($post, $previousColors);
-        $middleMode = trim((string) ($post['title_middle_color_mode'] ?? $post['manage_title_middle_color_mode'] ?? ''));
-        $middleValue = strtoupper(trim((string) ($post['title_middle_color_value'] ?? $post['manage_title_middle_color_value'] ?? '')));
-
-        if ($middleMode === 'daily_random' && (string) ($colors['middle'] ?? '') !== '') {
-            return $colors;
-        }
-
-        if ($middleMode !== 'fixed' || !preg_match('/^#[0-9A-F]{6}$/', $middleValue)) {
-            $colors['middle'] = $this->resolveExpertTitleMiddleColor($post, (string) ($previousColors['middle'] ?? ''));
-        }
-
-        return $colors;
-    }
-
-    protected function resolveExpertTitleMiddleColor(array $post, $previousColor = '')
-    {
-        $palette = $this->expertTitleMiddleColorPalette();
-        if ($palette === array()) {
-            return '';
-        }
-
-        $seedSource = date('Y-m-d') . '|expert-middle|' . (string) ($post['region'] ?? '') . '|' . (string) ($post['id'] ?? 0) . '|' . (string) ($post['title_middle_text'] ?? $post['manage_title_middle_text'] ?? $post['title'] ?? '');
-        $index = abs(crc32($seedSource)) % count($palette);
-        $color = $palette[$index];
-        $previousColor = strtoupper(trim((string) $previousColor));
-
-        if ($previousColor !== '' && $color === $previousColor) {
-            $color = $palette[($index + 1) % count($palette)];
-        }
-
-        return $color;
     }
 
     protected function avoidRepeatedDisplayTitleColor($color, array $usedColors)
@@ -3265,6 +3396,45 @@ class PostService extends Service
         return $latestIssueTail;
     }
 
+    protected function latestOpenedIssueTailFromContent($content)
+    {
+        $content = trim((string) $content);
+        if ($content === '') {
+            return '';
+        }
+
+        $lines = preg_split('/\R/u', $content);
+        if (!is_array($lines)) {
+            return '';
+        }
+
+        $currentIssueTail = '';
+        $latestOpenedIssueTail = '';
+        foreach ($lines as $line) {
+            $lineText = trim((string) $line);
+            if (preg_match('/^\s*(\d{1,6})\s*[^:\x{FF1A}]{0,16}[:\x{FF1A}]/u', $lineText, $issueMatches)) {
+                $currentIssueTail = $this->normalizeIssueTail((string) ($issueMatches[1] ?? ''));
+            }
+
+            if ($currentIssueTail === '' || !preg_match('/[开開]\s*[:：]\s*(.+)$/u', $lineText, $openMatches)) {
+                continue;
+            }
+
+            $openText = trim((string) ($openMatches[1] ?? ''));
+            if ($openText === ''
+                || preg_match('/^(?:待(?:开奖|開獎)|[-?？]+)$/u', $openText)
+                || mb_strpos($lineText, '资料等待更新中', 0, 'UTF-8') !== false
+                || mb_strpos($lineText, '資料等待更新中', 0, 'UTF-8') !== false
+            ) {
+                continue;
+            }
+
+            $latestOpenedIssueTail = $currentIssueTail;
+        }
+
+        return $latestOpenedIssueTail;
+    }
+
     protected function latestIssueTextByRegion($region)
     {
         static $cache = array();
@@ -3276,18 +3446,6 @@ class PostService extends Service
         $cache[$region] = $this->app->admins()->managedIssuePrefixTextByRegion($region);
 
         return $cache[$region];
-    }
-
-    protected function expertTitleMiddleColorPalette()
-    {
-        return array(
-            '#DC2626',
-            '#2563EB',
-            '#16A34A',
-            '#7C3AED',
-            '#0F766E',
-            '#CA8A04',
-        );
     }
 
     protected function dailyTitleColorPalette()

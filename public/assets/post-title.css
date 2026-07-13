@@ -1,0 +1,21 @@
+.post-display-title {
+    min-width: 0;
+    max-width: 100%;
+    font-size: var(--post-display-title-font-size, inherit);
+    font-weight: var(--post-display-title-font-weight, inherit);
+    line-height: inherit;
+    letter-spacing: 0;
+    overflow-wrap: anywhere;
+}
+
+.post-display-title-segment,
+.post-display-title .type-title-number {
+    font-size: inherit;
+    font-weight: inherit;
+}
+
+body.admin-body .post-display-title[style],
+body.admin-body .post-display-title[style] :is(.post-display-title-issue, .post-display-title-segment, .type-title-number) {
+    font-size: var(--post-display-title-font-size) !important;
+    font-weight: var(--post-display-title-font-weight) !important;
+}

@@ -130,8 +130,9 @@ if ($adminBodyPage !== '') {
 if (isset($sidebarMenuSpec[$activeMenuCode])) {
     $adminBodyClasses[] = 'admin-main-menu-page';
 }
-$adminCssUrl = asset('app.css?v=20260709-draw-image-batch-01');
-$adminJsUrl = asset('app.js?v=20260709-admin-scroll-restore-01');
+$adminCssUrl = asset('app.css?v=20260713-post-modal-time-scale-09');
+$postTitleCssUrl = asset('post-title.css?v=20260713-post-title-source-01');
+$adminJsUrl = asset('app.js?v=20260713-issue-prefix-source-01');
 $needsAdminTinyMce = isset($needsAdminTinyMce) ? (bool) $needsAdminTinyMce : $activeMenuCode === 'draws';
 $enableAdminUiSystem = false;
 $appendAdminUiClasses = static function ($html, $classPattern, $classes) {
@@ -256,6 +257,7 @@ if ($enableAdminUiSystem) {
         <link rel="stylesheet" href="/public/assets/ui-system.css?v=20260628-css-repair-01">
         <link rel="stylesheet" href="/public/assets/ui-override.css?v=20260628-css-governance-01">
     <?php endif; ?>
+    <link rel="stylesheet" href="<?php echo e($postTitleCssUrl); ?>">
 </head>
 <body class="<?php echo e(trim(implode(' ', $adminBodyClasses) . ($enableAdminUiSystem ? ' ui-admin-page' : ''))); ?>">
 <div class="admin-shell">

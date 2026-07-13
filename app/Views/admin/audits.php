@@ -76,7 +76,7 @@ $auditQueryBase = array(
                     <?php foreach ($pendingAuditTargets as $row): ?>
                         <tr>
                             <td><?php echo (string) ($row['target_type'] ?? '') === 'comment' ? '评论' : '帖子'; ?></td>
-                            <td><?php echo e((string) ($row['target_title'] ?? '-')); ?></td>
+                            <td><?php echo trim((string) ($row['display_title_html'] ?? '')) !== '' ? (string) $row['display_title_html'] : e((string) ($row['target_title'] ?? '-')); ?></td>
                             <td><?php echo e(truncate_text((string) ($row['target_excerpt'] ?? ''), 70)); ?></td>
                             <td><?php echo (string) ($row['region'] ?? 'macau') === 'hongkong' ? '香港' : '澳门'; ?></td>
                             <td><?php echo e((string) ($row['submitter_name'] ?? '-')); ?></td>
@@ -135,7 +135,7 @@ $auditQueryBase = array(
                             <td><?php echo e((string) $row['id']); ?></td>
                             <td><?php echo (string) ($row['target_type'] ?? '') === 'comment' ? '评论' : '帖子'; ?></td>
                             <td>
-                                <strong><?php echo e((string) (($row['target_title'] ?? '') ?: '-')); ?></strong>
+                                <strong><?php echo trim((string) ($row['display_title_html'] ?? '')) !== '' ? (string) $row['display_title_html'] : e((string) (($row['target_title'] ?? '') ?: '-')); ?></strong>
                                 <?php if (!empty($row['comment_content'])): ?>
                                     <div class="admin-help"><?php echo e(truncate_text((string) $row['comment_content'], 60)); ?></div>
                                 <?php endif; ?>

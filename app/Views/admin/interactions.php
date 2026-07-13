@@ -117,7 +117,7 @@ $interactionQueryBase = array(
                             <tr>
                                 <td><?php echo e((string) $row['id']); ?></td>
                                 <td>
-                                    <strong><?php echo e((string) (($row['post_title'] ?? '') ?: '-')); ?></strong>
+                                    <strong><?php echo trim((string) ($row['display_title_html'] ?? '')) !== '' ? (string) $row['display_title_html'] : e((string) (($row['post_title'] ?? '') ?: '-')); ?></strong>
                                     <div class="admin-help">帖子 ID：<?php echo e((string) ($row['post_id'] ?? 0)); ?></div>
                                 </td>
                                 <td><?php echo e((string) (($row['interaction_username'] ?? '') ?: '-')); ?></td>
@@ -174,7 +174,7 @@ $interactionQueryBase = array(
                     <select class="admin-select" name="post_id">
                         <option value="0">请选择帖子</option>
                         <?php foreach ($interactionPostOptions as $option): ?>
-                            <option value="<?php echo e((string) $option['id']); ?>" <?php echo (int) ($interactionForm['post_id'] ?? 0) === (int) $option['id'] ? 'selected' : ''; ?>><?php echo e((string) $option['title']); ?></option>
+                            <option value="<?php echo e((string) $option['id']); ?>" <?php echo (int) ($interactionForm['post_id'] ?? 0) === (int) $option['id'] ? 'selected' : ''; ?>><?php echo e((string) (($option['display_title_text'] ?? '') ?: $option['title'])); ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>

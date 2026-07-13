@@ -1,5 +1,6 @@
 <?php
 $posts = isset($posts) && is_array($posts) ? $posts : array();
+$posts = app()->posts()->attachDisplayTitlePayloads($posts, 'id');
 $postForm = isset($postForm) && is_array($postForm) ? $postForm : array();
 $postFilters = isset($postFilters) && is_array($postFilters) ? $postFilters : array();
 $sectionOptions = isset($sectionOptions) && is_array($sectionOptions) ? $sectionOptions : array();
@@ -104,7 +105,7 @@ $postCanManage = !empty($postCanManage);
                                     </td>
                                     <td><?php echo e((string) $row['id']); ?></td>
                                     <td>
-                                        <strong><?php echo e((string) $row['title']); ?></strong>
+                                        <strong><?php echo trim((string) ($row['display_title_html'] ?? '')) !== '' ? (string) $row['display_title_html'] : e((string) $row['title']); ?></strong>
                                         <div class="admin-help"><?php echo e(truncate_text((string) ($row['excerpt'] ?? ''), 50)); ?></div>
                                     </td>
                                     <td><?php echo e((string) ($row['author_name'] ?? '-')); ?></td>

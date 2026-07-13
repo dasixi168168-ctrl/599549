@@ -69,7 +69,7 @@ $commentQueryBase = array(
                 <?php foreach ($comments as $row): ?>
                     <tr>
                         <td><?php echo e((string) $row['id']); ?></td>
-                        <td><?php echo e((string) ($row['post_title'] ?? '-')); ?></td>
+                        <td><?php echo trim((string) ($row['display_title_html'] ?? '')) !== '' ? (string) $row['display_title_html'] : e((string) ($row['post_title'] ?? '-')); ?></td>
                         <td><?php echo e((string) ($row['username'] ?? '-')); ?></td>
                         <td><?php echo (string) ($row['region'] ?? 'macau') === 'hongkong' ? '香港' : '澳门'; ?></td>
                         <td><?php echo e(truncate_text((string) ($row['content'] ?? ''), 70)); ?></td>
