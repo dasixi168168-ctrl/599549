@@ -9,6 +9,8 @@
 *.swo
 .DS_Store
 Thumbs.db
+__pycache__/
+*.py[cod]
 vendor/
 node_modules/
 deploy_packages/
