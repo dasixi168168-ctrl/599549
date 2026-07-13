@@ -20,6 +20,32 @@
     var frontPostAuthSyncPending = false;
     var frontAuthPageLoadedAt = 0;
 
+    function normalizeIssuePrefixTail(issueNo) {
+        var text = String(issueNo || '').trim().replace(/[^0-9]+/g, '');
+
+        if (!text) {
+            return '';
+        }
+
+        text = text.length > 3 ? text.slice(-3) : text;
+        while (text.length < 3) {
+            text = '0' + text;
+        }
+
+        return text;
+    }
+
+    function formatIssuePrefixText(issueNo) {
+        var issueTail = normalizeIssuePrefixTail(issueNo);
+
+        return issueTail ? issueTail + '\u671f\uff1a' : '';
+    }
+
+    window.AppIssuePrefix = {
+        normalizeTail: normalizeIssuePrefixTail,
+        format: formatIssuePrefixText
+    };
+
     function debounce(callback, wait) {
         var timer = 0;
 
@@ -1504,7 +1530,7 @@
             state.modal.classList.remove('is-loading');
         }
 
-        titleNode = frameDocument.querySelector('.front-post-modal-sync-source h1, .front-panel-card h1');
+        titleNode = frameDocument.querySelector('[data-post-display-title], .front-post-modal-sync-source h1, .front-panel-card h1');
         metaItems = Array.prototype.map.call(frameDocument.querySelectorAll('.front-inline-meta > span'), function (node) {
             return String(node.textContent || '').replace(/\s+/g, ' ').trim();
         }).filter(function (text) {
@@ -1521,7 +1547,15 @@
         }
 
         if (state.title && titleNode) {
-            state.title.textContent = String(titleNode.textContent || '').replace(/\s+/g, ' ').trim() || state.title.textContent;
+            while (state.title.firstChild) {
+                state.title.removeChild(state.title.firstChild);
+            }
+            Array.prototype.forEach.call(titleNode.childNodes, function (childNode) {
+                state.title.appendChild(childNode.cloneNode(true));
+            });
+            if (!String(state.title.textContent || '').replace(/\s+/g, ' ').trim()) {
+                state.title.textContent = '帖子阅读';
+            }
         }
 
         setMemberPurchasePostModalMeta(buildMemberPurchasePostModalMeta(metaItems, likeState));

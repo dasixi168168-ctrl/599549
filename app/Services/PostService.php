@@ -653,6 +653,58 @@ class PostService extends Service
         );
     }
 
+    public function managedPostReaderSource(array $post)
+    {
+        foreach (array('full_content', 'manage_manual_material', 'manage_auto_update_content', 'excerpt') as $field) {
+            $content = (string) ($post[$field] ?? '');
+            if ($content !== '') {
+                return $content;
+            }
+        }
+
+        return '';
+    }
+
+    public function currentIssueEditorPayload(array $post, $targetIssueText = '')
+    {
+        $issueText = trim((string) $targetIssueText);
+        if ($issueText === '') {
+            $issueText = $this->latestIssueTextByRegion((string) ($post['region'] ?? 'macau'));
+        }
+        $currentContent = $this->extractCurrentIssueContent(
+            (string) ($post['full_content'] ?? ''),
+            (string) ($post['region'] ?? 'macau'),
+            $issueText
+        );
+        $record = $this->parseForecastRecordContent($currentContent);
+        $isWaiting = mb_strpos($currentContent, '资料等待更新中', 0, 'UTF-8') !== false;
+        $issueLabel = is_array($record) && trim((string) ($record['issue_prefix'] ?? '')) !== ''
+            ? trim((string) $record['issue_prefix'])
+            : $issueText;
+        $content = is_array($record) ? trim((string) ($record['prediction'] ?? '')) : trim($currentContent);
+        if ($isWaiting && is_array($record)) {
+            $historicalPredictionLayout = $this->forecastPredictionTemplateLayout(
+                (string) ($post['full_content'] ?? ''),
+                (string) ($record['issue_prefix'] ?? '')
+            );
+            $quantityTemplate = $this->customerServicePredictionQuantityTemplate(
+                trim((string) ($record['type'] ?? '')),
+                $content,
+                $historicalPredictionLayout
+            );
+            if ($quantityTemplate !== '') {
+                $content = $quantityTemplate;
+            }
+        }
+
+        return array(
+            'issue_text' => $issueLabel,
+            'content' => $content,
+            'current_record' => trim($currentContent),
+            'is_waiting' => $isWaiting,
+        );
+    }
+
     public function customerServiceEditPayload(array $post, $targetIssueText = '')
     {
         $issueText = trim((string) $targetIssueText);
@@ -1775,7 +1827,13 @@ class PostService extends Service
         }
 
         $row = $this->db()->fetch(
-            'SELECT purchases.id, purchases.created_at, posts.region
+            'SELECT purchases.id AS purchase_id,
+                    purchases.created_at,
+                    posts.id,
+                    posts.region,
+                    posts.title,
+                    posts.full_content,
+                    posts.price
              FROM purchases
              INNER JOIN posts ON posts.id = purchases.post_id
              WHERE purchases.post_id = :post_id
@@ -1790,7 +1848,7 @@ class PostService extends Service
             return false;
         }
 
-        $window = $this->salePostCurrentPurchaseWindow((string) ($row['region'] ?? 'macau'));
+        $window = $this->salePostPurchaseWindowForPost($row);
 
         try {
             $purchaseAt = new \DateTimeImmutable((string) ($row['created_at'] ?? ''));
@@ -1806,7 +1864,7 @@ class PostService extends Service
         $postId = (int) ($post['id'] ?? 0);
         $region = (string) ($post['region'] ?? '') === 'hongkong' ? 'hongkong' : 'macau';
         $issueTail = $this->displayIssueTail($post);
-        $window = $this->salePostCurrentPurchaseWindow($region);
+        $window = $this->salePostPurchaseWindowForPost($post);
         $buyers = array();
         $usedNames = array();
         $firstPurchaseTimestamp = 0;
@@ -1923,6 +1981,96 @@ class PostService extends Service
             'start' => $windowStart,
             'end' => $windowEnd,
             'now' => $now,
+        );
+    }
+
+    protected function salePostPurchaseWindowForPost(array $post)
+    {
+        $region = (string) ($post['region'] ?? '') === 'hongkong' ? 'hongkong' : 'macau';
+        $fallback = $this->salePostCurrentPurchaseWindow($region);
+        $issueTail = $this->displayIssueTail($post);
+
+        if ($issueTail === '' || !$this->tableExists('lottery_issues')) {
+            return $fallback;
+        }
+
+        try {
+            $currentIssue = $this->db()->fetch(
+                'SELECT issue_no, planned_open_at, actual_open_at
+                 FROM lottery_issues
+                 WHERE region = :region
+                   AND RIGHT(issue_no, 3) = :issue_tail
+                 ORDER BY CAST(issue_no AS UNSIGNED) DESC, id DESC
+                 LIMIT 1',
+                array(
+                    'region' => $region,
+                    'issue_tail' => $issueTail,
+                )
+            );
+        } catch (\Throwable $exception) {
+            return $fallback;
+        }
+
+        if (!is_array($currentIssue)) {
+            return $fallback;
+        }
+
+        $issueNo = preg_replace('/\D+/', '', (string) ($currentIssue['issue_no'] ?? ''));
+        $endAt = trim((string) ($currentIssue['actual_open_at'] ?? ''));
+        if ($endAt === '') {
+            $endAt = trim((string) ($currentIssue['planned_open_at'] ?? ''));
+        }
+        if ($issueNo === '' || $endAt === '') {
+            return $fallback;
+        }
+
+        try {
+            $windowEnd = new \DateTimeImmutable($endAt);
+        } catch (\Exception $exception) {
+            return $fallback;
+        }
+
+        $startAt = '';
+        try {
+            $previousIssue = $this->db()->fetch(
+                'SELECT planned_open_at, actual_open_at
+                 FROM lottery_issues
+                 WHERE region = :region
+                   AND CAST(issue_no AS UNSIGNED) < :issue_no
+                 ORDER BY CAST(issue_no AS UNSIGNED) DESC, id DESC
+                 LIMIT 1',
+                array(
+                    'region' => $region,
+                    'issue_no' => (int) $issueNo,
+                )
+            );
+            if (is_array($previousIssue)) {
+                $startAt = trim((string) ($previousIssue['actual_open_at'] ?? ''));
+                if ($startAt === '') {
+                    $startAt = trim((string) ($previousIssue['planned_open_at'] ?? ''));
+                }
+            }
+        } catch (\Throwable $exception) {
+            $startAt = '';
+        }
+
+        try {
+            $windowStart = $startAt !== ''
+                ? new \DateTimeImmutable($startAt)
+                : $windowEnd->modify('-1 day');
+        } catch (\Exception $exception) {
+            $windowStart = $windowEnd->modify('-1 day');
+        }
+
+        if ($windowStart >= $windowEnd) {
+            return $fallback;
+        }
+
+        return array(
+            'start' => $windowStart,
+            'end' => $windowEnd,
+            'now' => $fallback['now'],
+            'issue_tail' => $issueTail,
         );
     }
 
@@ -3005,24 +3153,41 @@ class PostService extends Service
         }
 
         $price = (int) $priceText;
+        $preserveSummaryFields = !empty($payload['preserve_summary_fields']);
         $now = $this->now();
-        $this->db()->execute(
-            'UPDATE posts
-             SET excerpt = :excerpt,
-                 preview_content = :preview_content,
-                 full_content = :full_content,
-                 price = :price,
-                 updated_at = :updated_at
-             WHERE id = :id',
-            array(
-                'excerpt' => truncate_text($content, 40),
-                'preview_content' => $content,
-                'full_content' => $content,
-                'price' => $price,
-                'updated_at' => $now,
-                'id' => $postId,
-            )
-        );
+        if ($preserveSummaryFields) {
+            $this->db()->execute(
+                'UPDATE posts
+                 SET full_content = :full_content,
+                     price = :price,
+                     updated_at = :updated_at
+                 WHERE id = :id',
+                array(
+                    'full_content' => $content,
+                    'price' => $price,
+                    'updated_at' => $now,
+                    'id' => $postId,
+                )
+            );
+        } else {
+            $this->db()->execute(
+                'UPDATE posts
+                 SET excerpt = :excerpt,
+                     preview_content = :preview_content,
+                     full_content = :full_content,
+                     price = :price,
+                     updated_at = :updated_at
+                 WHERE id = :id',
+                array(
+                    'excerpt' => truncate_text($content, 40),
+                    'preview_content' => $content,
+                    'full_content' => $content,
+                    'price' => $price,
+                    'updated_at' => $now,
+                    'id' => $postId,
+                )
+            );
+        }
 
         if ($this->tableExists('post_manage_meta')) {
             $this->db()->execute(
@@ -3175,7 +3340,14 @@ class PostService extends Service
             return '';
         }
 
-        $currentContent = $this->formatForecastRecordContent($record, $prediction);
+        $currentContent = $this->replaceForecastRecordPredictionPreservingLayout(
+            $currentPostContent,
+            $prediction,
+            $record
+        );
+        if ($currentContent === '') {
+            $currentContent = $this->formatForecastRecordContent($record, $prediction);
+        }
 
         return $this->replaceCurrentIssueContent(
             (string) ($post['full_content'] ?? ''),
@@ -3183,6 +3355,38 @@ class PostService extends Service
             $currentContent,
             $targetIssueTail
         );
+    }
+
+    protected function replaceForecastRecordPredictionPreservingLayout($content, $prediction, array $record)
+    {
+        $content = trim((string) $content);
+        $prediction = trim((string) $prediction);
+        if ($content === '' || $prediction === '') {
+            return '';
+        }
+
+        if ((string) ($record['layout'] ?? '') === 'double') {
+            $lines = preg_split('/\R/u', $content);
+            if (!is_array($lines) || count($lines) < 2) {
+                return '';
+            }
+            if (!preg_match('/^(\s*).+?(\s+开[:：]\s*.*?)(\s*)$/u', (string) $lines[1], $matches)) {
+                return '';
+            }
+            $lines[1] = (string) $matches[1] . $prediction . (string) $matches[2] . (string) $matches[3];
+
+            return implode("\n", $lines);
+        }
+
+        if (!preg_match(
+            '/^(\s*\d{1,6}[^:：]{0,12}[:：]\s*\S+\s+\S+\s+).+?(\s+开[:：]\s*.*?)(\s*)$/us',
+            $content,
+            $matches
+        )) {
+            return '';
+        }
+
+        return (string) $matches[1] . $prediction . (string) $matches[2] . (string) $matches[3];
     }
 
     protected function replaceCurrentIssueContent($content, $region, $replacement, $targetIssueTail = '')
@@ -4975,7 +5179,7 @@ class PostService extends Service
                 )
             );
             if ($existingPurchase) {
-                $window = $this->salePostCurrentPurchaseWindow((string) ($post['region'] ?? 'macau'));
+                $window = $this->salePostPurchaseWindowForPost($post);
                 try {
                     $purchaseAt = new \DateTimeImmutable((string) ($existingPurchase['created_at'] ?? ''));
                 } catch (\Exception $exception) {

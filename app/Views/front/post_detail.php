@@ -1,4 +1,5 @@
 <?php $isModalPost = strpos((string) ($bodyClass ?? ''), 'standalone-modal-post') !== false; ?>
+<?php $frontAdminHistoryEmbed = !empty($adminHistoryEmbed); ?>
 <?php $frontCustomerServiceAgentViewer = !empty($customerServiceAgentViewer); ?>
 <?php if (!$isModalPost): ?>
     <?php echo \App\Core\View::make(app(), 'partials/front_top_bar', array('region' => $region)); ?>
@@ -20,7 +21,7 @@
     <div class="data-frame front-panel-stack front-post-detail-stack mt-4">
         <?php if ($isModalPost): ?>
             <div class="front-post-modal-sync-source" hidden aria-hidden="true">
-                <h1><?php echo e(isset($displayModalTitle) && $displayModalTitle !== '' ? $displayModalTitle : (isset($displayTitle) ? $displayTitle : $post['title'])); ?></h1>
+                <h1 data-post-display-title><?php echo isset($displayTitleHtml) && $displayTitleHtml !== '' ? $displayTitleHtml : e(isset($displayTitle) ? $displayTitle : $post['title']); ?></h1>
                 <div class="front-inline-meta">
                     <span>作者：<?php echo e($post['author_name']); ?></span>
                     <button class="front-post-like-button <?php echo !empty($postLikedByViewer) ? 'is-liked' : ''; ?>" type="button" data-post-like data-post-id="<?php echo e((string) $post['id']); ?>" data-token="<?php echo e((string) ($postViewApiToken ?? '')); ?>" data-api-url="<?php echo e(public_url('api.php')); ?>" aria-pressed="<?php echo !empty($postLikedByViewer) ? 'true' : 'false'; ?>">
@@ -34,7 +35,7 @@
             </div>
         <?php else: ?>
             <div class="front-panel-card">
-                <h1 class="text-[28px] font-black leading-tight text-slate-900"><?php echo isset($displayTitleHtml) && $displayTitleHtml !== '' ? $displayTitleHtml : e(isset($displayTitle) ? $displayTitle : $post['title']); ?></h1>
+                <h1 class="text-[28px] font-black leading-tight text-slate-900" data-post-display-title><?php echo isset($displayTitleHtml) && $displayTitleHtml !== '' ? $displayTitleHtml : e(isset($displayTitle) ? $displayTitle : $post['title']); ?></h1>
                 <div class="front-inline-meta mt-4">
                     <span>作者：<?php echo e($post['author_name']); ?></span>
                     <button class="front-post-like-button <?php echo !empty($postLikedByViewer) ? 'is-liked' : ''; ?>" type="button" data-post-like data-post-id="<?php echo e((string) $post['id']); ?>" data-token="<?php echo e((string) ($postViewApiToken ?? '')); ?>" data-api-url="<?php echo e(public_url('api.php')); ?>" aria-pressed="<?php echo !empty($postLikedByViewer) ? 'true' : 'false'; ?>">
@@ -108,6 +109,10 @@
             }
         }
         $frontNoMaterialWaitingContent = "资料等待更新中··· ···\n关注本站，精彩无限，中奖根本停不下来······";
+        $frontNoMaterialWaitingDisplayContent = app()->admins()->managedPostWaitingDisplayContent($region);
+        $frontDisplayContentText = trim($frontContentText) === $frontNoMaterialWaitingContent
+            ? $frontNoMaterialWaitingDisplayContent
+            : $frontContentText;
         $frontPlainContentClass = 'mt-4 whitespace-pre-line text-[15px] leading-8 text-slate-700';
         if (trim($frontContentText) === $frontNoMaterialWaitingContent) {
             $frontPlainContentClass .= ' text-center';
@@ -725,10 +730,9 @@
             );
             $frontAuthorPalette = $frontAuthorPalettes[abs(crc32((string) ($post['id'] ?? '') . '|' . $frontContentText)) % count($frontAuthorPalettes)];
             $frontAuthorPaletteClass = 'is-author-palette-' . (string) ($frontAuthorPalette['class'] ?? '1');
-            $frontRecordEmojiIcons = array('🌟', '🔥', '🎯', '💎', '🏆', '✨', '🌈', '🍀', '⭐', '🧧');
-            $frontRecordEmojiSeed = abs(crc32('emoji|' . (string) ($post['id'] ?? '') . '|' . $frontContentText));
-            $frontUnifiedEmojiLeft = $frontRecordEmojiIcons[$frontRecordEmojiSeed % count($frontRecordEmojiIcons)];
-            $frontUnifiedEmojiRight = $frontUnifiedEmojiLeft;
+            $frontFallbackAuthorIconPair = app()->admins()->managedAuthorIconPair(
+                (string) ($post['author_name'] ?? '')
+            );
             $frontPredictionBracketPairs = array(
                 array('【', '】'),
                 array('〖', '〗'),
@@ -1563,13 +1567,10 @@
                         $frontRecordRow = $frontParseForecastRecordRow($frontContentRow);
                         if (is_array($frontRecordRow)) {
                             $frontAuthorToken = trim((string) $frontRecordRow['author_token']);
-                            $frontEmojiLeft = '';
-                            $frontEmojiRight = '';
                             $frontAuthorText = $frontAuthorToken;
-                            if (preg_match('/^(\X)(.+)(\X)$/u', $frontAuthorToken, $frontAuthorMatches) && trim((string) $frontAuthorMatches[2]) !== '') {
-                                $frontEmojiLeft = (string) $frontAuthorMatches[1];
-                                $frontAuthorText = trim((string) $frontAuthorMatches[2]);
-                                $frontEmojiRight = (string) $frontAuthorMatches[3];
+                            $frontExpectedAuthorText = trim((string) ($post['author_name'] ?? ''));
+                            if ($frontExpectedAuthorText !== '' && mb_strpos($frontAuthorToken, $frontExpectedAuthorText, 0, 'UTF-8') !== false) {
+                                $frontAuthorText = $frontExpectedAuthorText;
                             }
                             $frontOpenLabel = (string) $frontRecordRow['open_label'];
                             $frontOpenResult = (string) $frontRecordRow['open_result'];
@@ -1600,9 +1601,7 @@
                                 $frontHasSaleLockedForecastRow = true;
                                 $frontForecastParsedRows[] = array(
                                     'issue' => str_replace('：', ':', (string) $frontRecordRow['issue']),
-                                    'emoji_left' => $frontEmojiLeft,
                                     'author' => $frontAuthorText,
-                                    'emoji_right' => $frontEmojiRight,
                                     'type' => trim((string) $frontRecordRow['type']),
                                     'display_type' => $frontForecastDisplayTypeText !== ''
                                         ? $frontForecastDisplayTypeText
@@ -1635,9 +1634,7 @@
                             $frontIsWaitingMaterial = mb_strpos((string) $frontRecordRow['prediction'], '资料等待更新中', 0, 'UTF-8') !== false;
                             $frontForecastParsedRow = array(
                                 'issue' => str_replace('：', ':', (string) $frontRecordRow['issue']),
-                                'emoji_left' => $frontEmojiLeft,
                                 'author' => $frontAuthorText,
-                                'emoji_right' => $frontEmojiRight,
                                 'type' => trim((string) $frontRecordRow['type']),
                                 'display_type' => $frontForecastDisplayTypeText !== ''
                                     ? $frontForecastDisplayTypeText
@@ -1982,6 +1979,7 @@
                 <div class="front-forecast-list mt-4<?php echo e($frontForecastTypeClass); ?>">
                     <?php foreach ($frontForecastRows as $frontForecastRowIndex => $frontForecastRow): ?>
                         <?php $frontParsedRow = $frontForecastParsedRows[$frontForecastRowIndex] ?? null; ?>
+                        <?php if ($frontAdminHistoryEmbed && is_array($frontParsedRow) && !empty($frontParsedRow['is_current_issue'])) { continue; } ?>
                         <article class="front-forecast-card" data-forecast-row>
                             <?php if (is_array($frontParsedRow)): ?>
                                 <?php
@@ -2128,7 +2126,11 @@
                                 <header class="front-forecast-card-head">
                                     <span class="front-forecast-issue"><?php echo e($frontParsedRow['issue']); ?></span>
                                     <span class="front-forecast-author-shine is-shine <?php echo e($frontAuthorPaletteClass); ?>">
-                                        <span class="front-forecast-emoji"><?php echo e($frontUnifiedEmojiLeft); ?></span><?php echo e($frontParsedRow['author']); ?><span class="front-forecast-emoji"><?php echo e($frontUnifiedEmojiRight); ?></span>
+                                        <?php
+                                        $frontDisplayEmojiLeft = (string) ($frontFallbackAuthorIconPair[0] ?? '');
+                                        $frontDisplayEmojiRight = (string) ($frontFallbackAuthorIconPair[1] ?? '');
+                                        ?>
+                                        <span class="front-forecast-emoji"><?php echo e($frontDisplayEmojiLeft); ?></span><?php echo e($frontParsedRow['author']); ?><span class="front-forecast-emoji"><?php echo e($frontDisplayEmojiRight); ?></span>
                                     </span>
                                     <span class="front-forecast-type"><?php echo $frontFormatTypeTitleNumbersHtml((string) ($frontParsedRow['display_type'] ?? $frontParsedRow['type'])); ?></span>
                                     <?php if ($frontRecordStatText !== ''): ?><span class="front-forecast-record-stat"><?php echo e($frontRecordStatText); ?></span><?php endif; ?>
@@ -2192,7 +2194,7 @@
                                             <?php $frontShowNoMaterialWaiting = !empty($frontParsedRow['show_pending_draw']) && (!empty($frontParsedRow['is_waiting_material']) || $frontForecastPlainText === $frontNoMaterialWaitingContent); ?>
                                             <?php if ($frontShowNoMaterialWaiting): ?>
                                                 <div class="front-forecast-prediction">
-                                                    <span class="front-forecast-prediction-inner front-forecast-waiting-text"><?php echo e($frontNoMaterialWaitingContent); ?></span>
+                                                    <span class="front-forecast-prediction-inner front-forecast-waiting-text"><?php echo e($frontNoMaterialWaitingDisplayContent); ?></span>
                                                 </div>
                                             <?php else: ?>
                                                 <span class="<?php echo e($frontPredictionClass); ?>"><span class="front-forecast-prediction-inner"><?php echo $frontRenderPredictionHtml((string) $frontParsedRow['prediction'], (string) $frontParsedRow['open_result'], $frontPredictionStatus, (string) $frontParsedRow['type'], (string) $frontParsedRow['issue']); ?></span></span>
@@ -2277,7 +2279,7 @@
                     <div class="<?php echo e($frontForecastPlainContentClass); ?>"><?php echo e($frontForecastPlainText); ?></div>
                 <?php endif; ?>
             <?php else: ?>
-                <div class="<?php echo e($frontPlainContentClass); ?>"><?php echo e($frontContentText); ?></div>
+                <div class="<?php echo e($frontPlainContentClass); ?>"><?php echo e($frontDisplayContentText); ?></div>
             <?php endif; ?>
             <?php if ($purchaseNeeded && !$frontHasSaleLockedForecastRow): ?>
                 <div class="front-post-buy-actions mt-5">
@@ -2485,7 +2487,7 @@
                 <div class="front-post-customer-service-edit-head front-standard-modal-head">
                     <div class="front-post-customer-service-edit-title">
                         <h2 id="front-post-customer-service-edit-title">编辑资料</h2>
-                        <p><?php echo e(isset($displayTitle) ? (string) $displayTitle : (string) ($post['title'] ?? '')); ?></p>
+                        <p><?php echo isset($displayTitleHtml) && $displayTitleHtml !== '' ? $displayTitleHtml : e(isset($displayTitle) ? (string) $displayTitle : (string) ($post['title'] ?? '')); ?></p>
                     </div>
                     <button type="button" data-front-post-customer-service-edit-close aria-label="关闭编辑窗口">
                         <i class="fa-solid fa-xmark" aria-hidden="true"></i>

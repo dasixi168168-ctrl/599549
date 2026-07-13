@@ -13,6 +13,11 @@ require dirname(__DIR__) . '/bootstrap/app.php';
 
 ensure_installed_or_redirect();
 
+$adminHistoryEmbed = $isModalRequest && (string) ($_GET['admin_history'] ?? '') === '1';
+if ($adminHistoryEmbed) {
+    app()->auth()->requireAdminPortal('posts.view', public_url('admin.php'));
+}
+
 $postId = (int) input('id', 0);
 $isModal = $isModalRequest;
 if (!$isModal) {
@@ -41,11 +46,12 @@ $viewer = current_user();
 if ($viewer) {
     app()->users()->ensureMembershipSchema();
 }
-app()->posts()->registerRealView($postId, $viewer ?: array());
+if (!$adminHistoryEmbed) {
+    app()->posts()->registerRealView($postId, $viewer ?: array());
+}
 $displayViewCount = app()->posts()->currentDisplayedViewCount($postId);
 $displayTitle = app()->posts()->displayTitle($post);
 $displayTitleHtml = app()->posts()->displayTitleHtml($post);
-$displayModalTitle = app()->posts()->displayModalTitle($post);
 $displayContent = app()->posts()->visibleContent($post, $viewer);
 $hasFullAccess = !$viewer ? false : (
     (int) $viewer['id'] === (int) $post['author_id']
@@ -66,8 +72,25 @@ $customerServiceAgentViewer = (
 ) && $canCustomerServiceEditPost;
 $customerServiceAgentFreeAccess = $customerServiceAgentViewer
     && isset($_SESSION['customer_service_agent_free_post_access'][$postId]);
+if ($customerServiceAgentViewer) {
+    $customerServiceReaderPost = null;
+    try {
+        $customerServiceReaderPost = app()->admins()->managedForumPostById($postId);
+    } catch (Throwable $exception) {
+        $customerServiceReaderPost = null;
+    }
+    if (
+        !is_array($customerServiceReaderPost)
+        || (int) ($customerServiceReaderPost['id'] ?? 0) !== $postId
+        || (string) ($customerServiceReaderPost['region'] ?? '') !== $region
+    ) {
+        $customerServiceReaderPost = $post;
+    }
+    if ((int) $post['price'] <= 0 || $hasFullAccess || $customerServiceAgentFreeAccess) {
+        $displayContent = app()->posts()->managedPostReaderSource($customerServiceReaderPost);
+    }
+}
 if ($customerServiceAgentFreeAccess) {
-    $displayContent = (string) ($post['full_content'] ?? '');
     $hasFullAccess = true;
     $salePostOpenedForPublic = (int) $post['price'] > 0;
     $purchaseNeeded = false;
@@ -149,12 +172,13 @@ if ($authorFirstPostAt !== '') {
 view('front/post_detail', array(
     'pageTitle' => $displayTitle . ' - ' . browser_title_setting('888888论坛'),
     'pageDescription' => $post['excerpt'],
-    'bodyClass' => 'standalone-panel' . ($isModal ? ' standalone-modal-post' : ''),
+    'bodyClass' => 'standalone-panel'
+        . ($isModal ? ' standalone-modal-post' : '')
+        . ($adminHistoryEmbed ? ' admin-history-embed' : ''),
     'region' => $region,
     'post' => $post,
     'displayTitle' => $displayTitle,
     'displayTitleHtml' => is_array($displayTitleHtml) ? (string) ($displayTitleHtml['html'] ?? '') : '',
-    'displayModalTitle' => $displayModalTitle,
     'viewer' => $viewer,
     'displayContent' => $displayContent,
     'salePostOpenedForPublic' => $salePostOpenedForPublic,
@@ -163,7 +187,8 @@ view('front/post_detail', array(
     'postLikedByViewer' => $postLikedByViewer,
     'authorBio' => $authorBio,
     'authorActivityText' => $authorActivityText,
-    'postViewApiToken' => csrf_token('api'),
+    'postViewApiToken' => $adminHistoryEmbed ? '' : csrf_token('api'),
+    'adminHistoryEmbed' => $adminHistoryEmbed,
     'purchaseNeeded' => $purchaseNeeded,
     'canCustomerServiceEditPost' => $canCustomerServiceEditPost,
     'customerServiceAgentViewer' => $customerServiceAgentViewer,

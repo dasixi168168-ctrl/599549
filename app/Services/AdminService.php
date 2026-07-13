@@ -5,7 +5,6 @@ namespace App\Services;
 
 use App\Core\Database;
 use App\Core\Security;
-use App\Core\View;
 use RuntimeException;
 
 class AdminService extends Service
@@ -30,6 +29,14 @@ class AdminService extends Service
         array('🎉', '🎉'),
         array('💰', '💰'),
     );
+
+    public function managedAuthorIconPair($authorNickname)
+    {
+        $authorIconPairs = self::MANAGED_AUTHOR_ICON_PAIRS;
+        $authorIconSeed = abs(crc32('managed-author-icons|' . trim((string) $authorNickname)));
+
+        return $authorIconPairs[$authorIconSeed % count($authorIconPairs)];
+    }
 
     protected $tableExistsCache = array();
     protected $columnExistsCache = array();
@@ -4803,8 +4810,10 @@ class AdminService extends Service
         $params = array();
 
         if ($keyword !== '') {
-            $sql .= ' AND (forum_sections.name LIKE :keyword OR forum_sections.code LIKE :keyword OR forum_sections.description LIKE :keyword)';
-            $params['keyword'] = '%' . $keyword . '%';
+            $sql .= ' AND (forum_sections.name LIKE :keyword_name OR forum_sections.code LIKE :keyword_code OR forum_sections.description LIKE :keyword_description)';
+            $params['keyword_name'] = '%' . $keyword . '%';
+            $params['keyword_code'] = '%' . $keyword . '%';
+            $params['keyword_description'] = '%' . $keyword . '%';
         }
 
         if (in_array($region, array('macau', 'hongkong'), true)) {
@@ -4974,8 +4983,10 @@ class AdminService extends Service
         $params = array();
 
         if ($keyword !== '') {
-            $sql .= ' AND (forum_categories.name LIKE :keyword OR forum_categories.code LIKE :keyword OR forum_categories.description LIKE :keyword)';
-            $params['keyword'] = '%' . $keyword . '%';
+            $sql .= ' AND (forum_categories.name LIKE :keyword_name OR forum_categories.code LIKE :keyword_code OR forum_categories.description LIKE :keyword_description)';
+            $params['keyword_name'] = '%' . $keyword . '%';
+            $params['keyword_code'] = '%' . $keyword . '%';
+            $params['keyword_description'] = '%' . $keyword . '%';
         }
 
         if (in_array($region, array('macau', 'hongkong'), true)) {
@@ -5300,6 +5311,7 @@ class AdminService extends Service
             'post_update_time' => '',
             'material_content_time' => '',
             'sale_material_content_time' => '',
+            'waiting_display_content' => "资料等待更新中··· ···\n关注本站，精彩无限，中奖根本停不下来······",
         );
 
         foreach ($this->managedPostGeneratorStoredSettings($region, $config) as $key => $value) {
@@ -5309,6 +5321,32 @@ class AdminService extends Service
         $this->managedPostGeneratorConfigCache[$region] = $config;
 
         return $config;
+    }
+
+    public function managedPostWaitingDisplayContent($region = 'macau')
+    {
+        $region = $this->normalizeManagedPostGeneratorRegion($region);
+        $raw = trim((string) $this->app->settings()->get($this->managedPostGeneratorSettingsKey($region), ''));
+        $stored = $raw !== '' ? json_decode($raw, true) : array();
+
+        return $this->normalizeManagedPostWaitingDisplayContent(
+            is_array($stored) ? ($stored['waiting_display_content'] ?? '') : ''
+        );
+    }
+
+    public function saveManagedPostWaitingDisplayContent($region, $content)
+    {
+        $region = $this->normalizeManagedPostGeneratorRegion($region);
+        $config = $this->managedPostGeneratorConfig($region);
+        $config['waiting_display_content'] = $this->normalizeManagedPostWaitingDisplayContent($content);
+        $settings = $this->normalizeManagedPostGeneratorSettingsPayload($config, $config);
+
+        $this->app->settings()->setMany('post_generator', array(
+            $this->managedPostGeneratorSettingsKey($region) => json_encode($settings, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        ));
+        $this->clearManagedPostGeneratorConfigCache($region);
+
+        return (string) ($settings['waiting_display_content'] ?? '');
     }
 
     public function saveManagedPostGeneratorSettings(array $payload, array $actor)
@@ -5597,7 +5635,30 @@ class AdminService extends Service
                     : ($config['sale_material_content_time'] ?? '')
             ),
             'material_content_time' => $this->normalizeManagedPostGeneratorTime($payload['material_content_time'] ?? ($config['material_content_time'] ?? '')),
+            'waiting_display_content' => $this->normalizeManagedPostWaitingDisplayContent(
+                $payload['waiting_display_content'] ?? ($config['waiting_display_content'] ?? '')
+            ),
         );
+    }
+
+    protected function normalizeManagedPostWaitingDisplayContent($value)
+    {
+        $value = str_replace(array("\r\n", "\r"), "\n", trim((string) $value));
+        $lines = array();
+        foreach (explode("\n", $value) as $line) {
+            $line = trim((string) preg_replace('/[^\S\n]+/u', ' ', (string) $line));
+            if ($line !== '') {
+                $lines[] = $line;
+            }
+        }
+        $value = implode("\n", $lines);
+        if ($value === '') {
+            return "资料等待更新中··· ···\n关注本站，精彩无限，中奖根本停不下来······";
+        }
+
+        return function_exists('mb_substr')
+            ? mb_substr($value, 0, 300, 'UTF-8')
+            : substr($value, 0, 300);
     }
 
     protected function normalizeManagedPostGeneratorText($value, $maxLength)
@@ -6130,9 +6191,7 @@ class AdminService extends Service
             }
             $issueText = (string) ((int) $rowIssueTail) . html_entity_decode('&#26399;:', ENT_QUOTES, 'UTF-8');
             $authorNicknameText = trim((string) $authorNickname);
-            $authorIconPairs = self::MANAGED_AUTHOR_ICON_PAIRS;
-            $authorIconSeed = abs(crc32('managed-author-icons|' . $authorNicknameText . '|' . trim((string) $templateLabel) . '|' . (string) $issueTail));
-            $authorIconPair = $authorIconPairs[$authorIconSeed % count($authorIconPairs)];
+            $authorIconPair = $this->managedAuthorIconPair($authorNicknameText);
             $authorText = $authorNicknameText !== '' ? $authorIconPair[0] . $authorNicknameText . $authorIconPair[1] : '';
             $line = $issueText
                 . ($authorText !== '' ? ' ' . $authorText : '')
@@ -10434,6 +10493,7 @@ class AdminService extends Service
         $categoryId = (int) ($filters['category_id'] ?? 0);
         $segmentNo = (int) ($filters['segment_no'] ?? 0);
         $topScope = trim((string) ($filters['top_scope'] ?? ''));
+        $materialUpdateFilter = trim((string) ($filters['material_update_filter'] ?? ''));
         $postKind = trim((string) ($filters['post_kind'] ?? ''));
         $hasPurchases = !empty($filters['has_purchases']);
         $wrongOnly = !empty($filters['wrong_only']);
@@ -10533,7 +10593,9 @@ class AdminService extends Service
         }
 
         $orderSql = ' ORDER BY COALESCE(post_meta.segment_no, 1) ASC, GREATEST(1, LEAST(5, COALESCE(NULLIF(post_meta.segment_sort, 0), 5))) ASC, posts.created_at DESC';
-        $usePagination = !empty($filters['paginate']) && !in_array($resultFilter, array('hit', 'wrong'), true);
+        $usePagination = !empty($filters['paginate'])
+            && !in_array($materialUpdateFilter, array('waiting', 'updated'), true)
+            && !in_array($resultFilter, array('hit', 'wrong'), true);
         if ($usePagination) {
             $page = $this->paginateAdminQuery(
                 'SELECT COUNT(*) AS total_count FROM (' . $sql . ') AS managed_forum_post_count_table',
@@ -10542,6 +10604,7 @@ class AdminService extends Service
                 (int) ($filters['page_no'] ?? 1),
                 (int) ($filters['per_page'] ?? 40)
             );
+            $page['items'] = $this->filterManagedForumPostsByMaterialUpdateState((array) ($page['items'] ?? array()), $materialUpdateFilter);
             $page['items'] = $this->filterManagedForumPostsByResultState((array) ($page['items'] ?? array()), $resultFilter, $wrongStreakFilter);
             if (array_key_exists('include_stats', $filters) && empty($filters['include_stats'])) {
                 return $page;
@@ -10555,7 +10618,29 @@ class AdminService extends Service
         $sql .= $orderSql . ' LIMIT 150';
 
         $rows = $this->db()->fetchAll($sql, $params);
+        $rows = $this->filterManagedForumPostsByMaterialUpdateState($rows, $materialUpdateFilter);
         $rows = $this->filterManagedForumPostsByResultState($rows, $resultFilter, $wrongStreakFilter);
+        $shouldPaginateMaterialUpdate = !empty($filters['paginate'])
+            && in_array($materialUpdateFilter, array('waiting', 'updated'), true)
+            && !in_array($resultFilter, array('hit', 'wrong'), true);
+        if ($shouldPaginateMaterialUpdate) {
+            $perPage = max(1, min(100, (int) ($filters['per_page'] ?? 40)));
+            $total = count($rows);
+            $pageCount = max(1, (int) ceil($total / $perPage));
+            $pageNo = min(max(1, (int) ($filters['page_no'] ?? 1)), $pageCount);
+            $items = array_slice($rows, ($pageNo - 1) * $perPage, $perPage);
+            if (!array_key_exists('include_stats', $filters) || !empty($filters['include_stats'])) {
+                $items = $this->enrichManagedForumPostStats($items);
+            }
+
+            return array(
+                'items' => $items,
+                'total' => $total,
+                'page_no' => $pageNo,
+                'per_page' => $perPage,
+                'page_count' => $pageCount,
+            );
+        }
         if (array_key_exists('include_stats', $filters) && empty($filters['include_stats'])) {
             return $rows;
         }
@@ -10607,7 +10692,7 @@ class AdminService extends Service
             }
         }
 
-        return $rows;
+        return $this->app->posts()->attachDisplayTitlePayloads($rows, 'id');
     }
 
     protected function managedPostSelectBaseOptions($region, $limit)
@@ -10690,6 +10775,29 @@ class AdminService extends Service
         $this->managedPostSelectExtraCache = array();
         $this->app->cache()->put(self::MANAGED_POST_SELECT_OPTIONS_CACHE_VERSION_KEY, (string) microtime(true));
         $this->clearManagedDrawMaterialEditorExpertVersionCache();
+    }
+
+    protected function filterManagedForumPostsByMaterialUpdateState(array $rows, $materialUpdateFilter)
+    {
+        $materialUpdateFilter = trim((string) $materialUpdateFilter);
+        if (!in_array($materialUpdateFilter, array('waiting', 'updated'), true)) {
+            return $rows;
+        }
+
+        $filtered = array();
+        foreach ($rows as $row) {
+            $payload = $this->app->posts()->currentIssueEditorPayload($row);
+            $isWaiting = !empty($payload['is_waiting']);
+            if ($materialUpdateFilter === 'waiting' && !$isWaiting) {
+                continue;
+            }
+            if ($materialUpdateFilter === 'updated' && $isWaiting) {
+                continue;
+            }
+            $filtered[] = $row;
+        }
+
+        return $filtered;
     }
 
     protected function managedDrawMaterialEditorExpertVersionCacheKey(string $region): string
@@ -11729,7 +11837,15 @@ class AdminService extends Service
             throw new RuntimeException('帖子不存在。');
         }
 
-        if (in_array((string) $action, array('refresh_post', 'set_auto_random', 'set_auto_specified', 'set_auto_none', 'save_current_issue_material'), true)) {
+        if (in_array((string) $action, array(
+            'refresh_post',
+            'set_auto_random',
+            'set_auto_specified',
+            'set_auto_none',
+            'save_current_issue_content',
+            'save_current_issue_price',
+            'save_current_issue_material',
+        ), true)) {
             $this->assertManagedPostUnlockedForEdit((string) ($post['region'] ?? 'macau'), $actor, $post);
         }
 
@@ -11820,20 +11936,53 @@ class AdminService extends Service
                 $summary = '更新下期无资料：' . (string) $post['title'];
                 break;
 
+            case 'save_waiting_display_content':
+                $waitingDisplayContent = str_replace(
+                    array("\r\n", "\r"),
+                    "\n",
+                    trim((string) ($payload['waiting_display_content'] ?? ''))
+                );
+                if ($waitingDisplayContent === '') {
+                    throw new RuntimeException('资料更新状态正文不能为空。');
+                }
+                $waitingDisplayLength = function_exists('mb_strlen')
+                    ? mb_strlen($waitingDisplayContent, 'UTF-8')
+                    : strlen($waitingDisplayContent);
+                if ($waitingDisplayLength > 300) {
+                    throw new RuntimeException('资料更新状态正文不能超过 300 个字符。');
+                }
+                $this->saveManagedPostWaitingDisplayContent(
+                    (string) ($post['region'] ?? 'macau'),
+                    $waitingDisplayContent
+                );
+                $summary = '保存资料更新状态正文：' . (string) ($post['region'] ?? 'macau');
+                break;
+
+            case 'save_current_issue_content':
+            case 'save_current_issue_price':
             case 'save_current_issue_material':
+                $currentIssueSaveAction = (string) $action;
+                $saveCurrentIssuePriceOnly = $currentIssueSaveAction === 'save_current_issue_price';
+                $saveCurrentIssueContentOnly = $currentIssueSaveAction === 'save_current_issue_content';
                 $issueTail = preg_replace('/\D+/', '', (string) ($payload['value'] ?? ''));
                 if ($issueTail === '') {
                     throw new RuntimeException('当前期数不能为空。');
                 }
                 $issueTail = str_pad(substr($issueTail, -3), 3, '0', STR_PAD_LEFT);
-                $priceText = trim((string) ($payload['price'] ?? (string) ($post['price'] ?? '0')));
+                $priceText = $saveCurrentIssueContentOnly
+                    ? (string) max(0, (int) ($post['price'] ?? 0))
+                    : trim((string) ($payload['price'] ?? (string) ($post['price'] ?? '0')));
                 if (!preg_match('/^\d{1,9}$/', $priceText)) {
                     throw new RuntimeException('帖子出售价格必须是 0 到 999999999 的整数。');
                 }
                 $submittedIssueContent = trim((string) ($payload['content'] ?? ''));
                 $forecastContent = array();
-                if ($submittedIssueContent !== '') {
+                if ($saveCurrentIssuePriceOnly) {
+                    $issueContent = (string) ($post['full_content'] ?? '');
+                } elseif ($submittedIssueContent !== '') {
                     $issueContent = $submittedIssueContent;
+                } elseif ($saveCurrentIssueContentOnly) {
+                    throw new RuntimeException('当前期数资料内容不能为空。');
                 } else {
                     $forecastContent = $this->managedPostGeneratorForecastContentForPost($post, $meta, $issueTail);
                     $issueContent = trim((string) ($forecastContent['content'] ?? ''));
@@ -11845,24 +11994,29 @@ class AdminService extends Service
                         'full_content' => $issueContent,
                         'issue_tail' => $issueTail,
                         'price' => $priceText,
+                        'preserve_summary_fields' => $saveCurrentIssueContentOnly,
                     ),
                     array('id' => (int) ($actor['id'] ?? 0)),
                     'admin'
                 );
                 $post = is_array($updatedPost) ? $updatedPost : ($this->managedForumPostById($postId) ?: $post);
-                $forecastLog = trim((string) ($forecastContent['recent_result_log'] ?? ''));
-                $savedIssueContent = trim((string) ($post['full_content'] ?? ''));
-                $metaPayload = array(
-                    'manual_material' => $savedIssueContent !== '' ? $savedIssueContent : $issueContent,
-                );
-                if ($forecastLog !== '') {
-                    $metaPayload['recent_result_log'] = $this->pushManagedResultLog(
-                        (string) ($meta['recent_result_log'] ?? ''),
-                        $forecastLog
+                if (!$saveCurrentIssuePriceOnly) {
+                    $forecastLog = trim((string) ($forecastContent['recent_result_log'] ?? ''));
+                    $savedIssueContent = trim((string) ($post['full_content'] ?? ''));
+                    $metaPayload = array(
+                        'manual_material' => $savedIssueContent !== '' ? $savedIssueContent : $issueContent,
                     );
+                    if ($forecastLog !== '') {
+                        $metaPayload['recent_result_log'] = $this->pushManagedResultLog(
+                            (string) ($meta['recent_result_log'] ?? ''),
+                            $forecastLog
+                        );
+                    }
+                    $meta = $this->saveManagedPostMeta($postId, $metaPayload);
                 }
-                $meta = $this->saveManagedPostMeta($postId, $metaPayload);
-                $summary = '保存当前期数资料内容：' . (string) $post['title'];
+                $summary = $saveCurrentIssuePriceOnly
+                    ? '保存帖子出售积分：' . (string) $post['title']
+                    : '保存当前期数资料内容：' . (string) $post['title'];
                 break;
 
             case 'delete':
@@ -11965,7 +12119,16 @@ class AdminService extends Service
         $this->recordOperation((int) $actor['id'], 'posts', (string) $action, 'post', $postId, $summary);
         $this->clearManagedPostSelectOptionsCache();
 
-        return $this->managedForumPostById($postId);
+        $processedPost = $this->managedForumPostById($postId);
+        if ((string) $action === 'save_waiting_display_content' && is_array($processedPost)) {
+            $processedPost['_message'] = '资料更新状态正文已保存。';
+        } elseif ((string) $action === 'save_current_issue_content' && is_array($processedPost)) {
+            $processedPost['_message'] = '当前期数资料内容已保存。';
+        } elseif ((string) $action === 'save_current_issue_price' && is_array($processedPost)) {
+            $processedPost['_message'] = '出售积分已保存。';
+        }
+
+        return $processedPost;
     }
 
     protected function ensureManagedPostMetaReady()
@@ -12741,8 +12904,10 @@ class AdminService extends Service
         $pageNo = (int) ($filters['page_no'] ?? 1);
 
         if ($keyword !== '') {
-            $where .= ' AND (replies.content LIKE :keyword OR posts.title LIKE :keyword OR users.username LIKE :keyword)';
-            $params['keyword'] = '%' . $keyword . '%';
+            $where .= ' AND (replies.content LIKE :keyword_content OR posts.title LIKE :keyword_post_title OR users.username LIKE :keyword_username)';
+            $params['keyword_content'] = '%' . $keyword . '%';
+            $params['keyword_post_title'] = '%' . $keyword . '%';
+            $params['keyword_username'] = '%' . $keyword . '%';
         }
 
         if (in_array($region, array('macau', 'hongkong'), true)) {
@@ -12760,7 +12925,7 @@ class AdminService extends Service
             $params['post_id'] = $postId;
         }
 
-        return $this->paginateAdminQuery(
+        $page = $this->paginateAdminQuery(
             'SELECT COUNT(*) AS total_count' . $where,
             'SELECT replies.*, posts.title AS post_title, posts.region, users.username'
                 . $where .
@@ -12769,6 +12934,9 @@ class AdminService extends Service
             $pageNo,
             20
         );
+        $page['items'] = $this->app->posts()->attachDisplayTitlePayloads((array) ($page['items'] ?? array()));
+
+        return $page;
     }
 
     public function setManagedCommentStatus($commentId, $status, array $actor)
@@ -13083,8 +13251,10 @@ class AdminService extends Service
         $pageNo = (int) ($filters['page_no'] ?? 1);
 
         if ($keyword !== '') {
-            $where .= ' AND (posts.title LIKE :keyword OR users.username LIKE :keyword OR authors.username LIKE :keyword)';
-            $params['keyword'] = '%' . $keyword . '%';
+            $where .= ' AND (posts.title LIKE :keyword_post_title OR users.username LIKE :keyword_username OR authors.username LIKE :keyword_author_name)';
+            $params['keyword_post_title'] = '%' . $keyword . '%';
+            $params['keyword_username'] = '%' . $keyword . '%';
+            $params['keyword_author_name'] = '%' . $keyword . '%';
         }
 
         if (in_array($region, array('macau', 'hongkong'), true)) {
@@ -13112,7 +13282,7 @@ class AdminService extends Service
             $params['user_id'] = $userId;
         }
 
-        return $this->paginateAdminQuery(
+        $page = $this->paginateAdminQuery(
             'SELECT COUNT(*) AS total_count' . $where,
             'SELECT post_interactions.*,
                     posts.title AS post_title,
@@ -13125,6 +13295,9 @@ class AdminService extends Service
             $pageNo,
             20
         );
+        $page['items'] = $this->app->posts()->attachDisplayTitlePayloads((array) ($page['items'] ?? array()));
+
+        return $page;
     }
 
     public function managedPostInteractionStats(array $filters = array())
@@ -13152,8 +13325,10 @@ class AdminService extends Service
         $userId = (int) ($filters['user_id'] ?? 0);
 
         if ($keyword !== '') {
-            $where .= ' AND (posts.title LIKE :keyword OR users.username LIKE :keyword OR authors.username LIKE :keyword)';
-            $params['keyword'] = '%' . $keyword . '%';
+            $where .= ' AND (posts.title LIKE :keyword_post_title OR users.username LIKE :keyword_username OR authors.username LIKE :keyword_author_name)';
+            $params['keyword_post_title'] = '%' . $keyword . '%';
+            $params['keyword_username'] = '%' . $keyword . '%';
+            $params['keyword_author_name'] = '%' . $keyword . '%';
         }
 
         if (in_array($region, array('macau', 'hongkong'), true)) {
@@ -13328,12 +13503,15 @@ class AdminService extends Service
 
         if ($keyword !== '') {
             $where .= ' AND (
-                posts.title LIKE :keyword
-                OR users.username LIKE :keyword
-                OR post_reports.content LIKE :keyword
-                OR post_reports.handle_result LIKE :keyword
+                posts.title LIKE :keyword_post_title
+                OR users.username LIKE :keyword_username
+                OR post_reports.content LIKE :keyword_content
+                OR post_reports.handle_result LIKE :keyword_handle_result
             )';
-            $params['keyword'] = '%' . $keyword . '%';
+            $params['keyword_post_title'] = '%' . $keyword . '%';
+            $params['keyword_username'] = '%' . $keyword . '%';
+            $params['keyword_content'] = '%' . $keyword . '%';
+            $params['keyword_handle_result'] = '%' . $keyword . '%';
         }
 
         if (in_array($region, array('macau', 'hongkong'), true)) {
@@ -13361,7 +13539,7 @@ class AdminService extends Service
             $params['reporter_id'] = $reporterId;
         }
 
-        return $this->paginateAdminQuery(
+        $page = $this->paginateAdminQuery(
             'SELECT COUNT(*) AS total_count' . $where,
             'SELECT post_reports.*,
                     posts.title AS post_title,
@@ -13377,6 +13555,9 @@ class AdminService extends Service
             $pageNo,
             20
         );
+        $page['items'] = $this->app->posts()->attachDisplayTitlePayloads((array) ($page['items'] ?? array()));
+
+        return $page;
     }
 
     public function managedPostReportStats(array $filters = array())
@@ -13406,12 +13587,15 @@ class AdminService extends Service
 
         if ($keyword !== '') {
             $where .= ' AND (
-                posts.title LIKE :keyword
-                OR users.username LIKE :keyword
-                OR post_reports.content LIKE :keyword
-                OR post_reports.handle_result LIKE :keyword
+                posts.title LIKE :keyword_post_title
+                OR users.username LIKE :keyword_username
+                OR post_reports.content LIKE :keyword_content
+                OR post_reports.handle_result LIKE :keyword_handle_result
             )';
-            $params['keyword'] = '%' . $keyword . '%';
+            $params['keyword_post_title'] = '%' . $keyword . '%';
+            $params['keyword_username'] = '%' . $keyword . '%';
+            $params['keyword_content'] = '%' . $keyword . '%';
+            $params['keyword_handle_result'] = '%' . $keyword . '%';
         }
 
         if (in_array($region, array('macau', 'hongkong'), true)) {
@@ -13591,6 +13775,7 @@ class AdminService extends Service
 
         if ($targetType === '' || $targetType === 'post') {
             $sql = 'SELECT posts.id AS target_id,
+                           posts.id AS post_id,
                            \'post\' AS target_type,
                            posts.title AS target_title,
                            posts.excerpt AS target_excerpt,
@@ -13616,6 +13801,7 @@ class AdminService extends Service
 
         if ($targetType === '' || $targetType === 'comment') {
             $sql = 'SELECT replies.id AS target_id,
+                           posts.id AS post_id,
                            \'comment\' AS target_type,
                            posts.title AS target_title,
                            replies.content AS target_excerpt,
@@ -13644,7 +13830,7 @@ class AdminService extends Service
             return strcmp((string) ($right['created_at'] ?? ''), (string) ($left['created_at'] ?? ''));
         });
 
-        return $items;
+        return $this->app->posts()->attachDisplayTitlePayloads($items);
     }
 
     public function listManagedAuditRecords(array $filters = array())
@@ -13698,9 +13884,10 @@ class AdminService extends Service
             $params['status'] = $status;
         }
 
-        return $this->paginateAdminQuery(
+        $page = $this->paginateAdminQuery(
             'SELECT COUNT(*) AS total_count' . $where,
             'SELECT audit_records.*,
+                    COALESCE(posts.id, comment_posts.id) AS post_id,
                     COALESCE(posts.title, comment_posts.title) AS target_title,
                     replies.content AS comment_content,
                     admin_users.username AS auditor_name'
@@ -13710,6 +13897,9 @@ class AdminService extends Service
             $pageNo,
             20
         );
+        $page['items'] = $this->app->posts()->attachDisplayTitlePayloads((array) ($page['items'] ?? array()));
+
+        return $page;
     }
 
     public function processManagedAudit(array $payload, array $actor)

@@ -21,7 +21,7 @@ $postQuickMode = in_array($postViewMode, array('manage', 'compose', 'published',
 $postPageNo = max(1, (int) ($postPage['page_no'] ?? 1));
 $postPageCount = max(1, (int) ($postPage['page_count'] ?? 1));
 $postPageTotal = max(0, (int) ($postPage['total'] ?? count($posts)));
-$postPagerText = $postPageNo . '/' . $postPageCount;
+$postPagerText = $postPageNo . '/' . $postPageCount . '页';
 $postPaginationQueryBase = array(
     'page' => 'posts',
     'region' => $postCurrentRegion,
@@ -35,6 +35,7 @@ foreach (array(
     'category_id',
     'segment_no',
     'top_scope',
+    'material_update_filter',
     'sale_filter',
     'purchase_filter',
     'result_filter',
@@ -90,11 +91,10 @@ $showPostPublishedSection = $postQuickMode === 'published' && empty($postForm['i
 $showPostEditSection = !empty($postForm['id']);
 $showPostFormSection = $showPostPublishedSection || $showPostEditSection;
 $postFormViewTarget = $showPostEditSection ? $postQuickMode : ($showPostPublishedSection ? 'published' : 'compose');
-$postBlankFormUrl = $showPostPublishedSection ? $postPublishedUrl : $postComposeUrl;
 $postFormTitle = $showPostEditSection ? '编辑帖子' : ('发表' . $postRegionLabel . '帖子');
 $postFormSubtitle = $showPostEditSection
     ? '这里可以直接修改当前帖子内容，支持同步调整标题、摘要、预览内容和正文，地区与标题期数会按当前发帖页规则保持一致。'
-    : '这是手动发表帖子页面，可直接填写标题、摘要、预览内容和正文。当前页面地区会自动作为帖子地区，标题期数会按后台动态前缀当前期数自动同步。';
+    : '';
 $latestRegionDraw = isset($postLatestRegionDraw) && is_array($postLatestRegionDraw)
     ? $postLatestRegionDraw
     : app()->prediction()->latestHomepageDraw($postCurrentRegion);
@@ -112,20 +112,65 @@ $normalizeIssueTail = static function ($issueNo) {
 
     return str_pad($tail, 3, '0', STR_PAD_LEFT);
 };
-$issueSuffixText = html_entity_decode('&#26399;', ENT_QUOTES, 'UTF-8');
-$postTitleIssueText = '--' . $issueSuffixText;
-$managedCurrentIssueTail = $normalizeIssueTail((string) ($managedCurrentIssue['issue_prefix_tail'] ?? ($managedCurrentIssue['issue_no'] ?? '')));
-if ($managedCurrentIssueTail !== '--') {
-    $postTitleIssueText = $managedCurrentIssueTail . $issueSuffixText;
+$postMaintenanceDrawMap = array();
+if ($showPostManageSection && $postCanManage) {
+    $postMaintenanceRedWave = array(1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46);
+    $postMaintenanceBlueWave = array(3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48);
+    try {
+        $postMaintenanceDrawRows = app()->prediction()->latestDraws($postCurrentRegion, 180);
+    } catch (\Throwable $exception) {
+        $postMaintenanceDrawRows = array();
+    }
+    foreach ($postMaintenanceDrawRows as $postMaintenanceDrawRow) {
+        if (!is_array($postMaintenanceDrawRow)) {
+            continue;
+        }
+        $postMaintenanceIssueTail = $normalizeIssueTail((string) ($postMaintenanceDrawRow['issue_no'] ?? ''));
+        if ($postMaintenanceIssueTail === '--' || isset($postMaintenanceDrawMap[$postMaintenanceIssueTail])) {
+            continue;
+        }
+        $postMaintenanceNumbers = json_decode((string) ($postMaintenanceDrawRow['numbers_json'] ?? ''), true);
+        $postMaintenanceNumbers = is_array($postMaintenanceNumbers)
+            ? array_slice(array_values(array_map('intval', $postMaintenanceNumbers)), 0, 6)
+            : array();
+        $postMaintenanceSpecialNumber = (int) ($postMaintenanceDrawRow['special_number'] ?? 0);
+        if (count($postMaintenanceNumbers) !== 6 || $postMaintenanceSpecialNumber < 1 || $postMaintenanceSpecialNumber > 49) {
+            continue;
+        }
+        $postMaintenanceDrawItems = array();
+        foreach (array_merge($postMaintenanceNumbers, array($postMaintenanceSpecialNumber)) as $postMaintenanceNumber) {
+            if ($postMaintenanceNumber < 1 || $postMaintenanceNumber > 49) {
+                $postMaintenanceDrawItems = array();
+                break;
+            }
+            $postMaintenanceToneClass = in_array($postMaintenanceNumber, $postMaintenanceRedWave, true)
+                ? 'is-red'
+                : (in_array($postMaintenanceNumber, $postMaintenanceBlueWave, true) ? 'is-blue' : 'is-green');
+            $postMaintenanceDrawItems[] = array(
+                'number' => str_pad((string) $postMaintenanceNumber, 2, '0', STR_PAD_LEFT),
+                'zodiac' => app()->prediction()->drawZodiacByNumber(
+                    $postMaintenanceNumber,
+                    (string) ($postMaintenanceDrawRow['draw_date'] ?? '')
+                ),
+                'tone' => $postMaintenanceToneClass,
+            );
+        }
+        if (count($postMaintenanceDrawItems) === 7) {
+            $postMaintenanceDrawMap[$postMaintenanceIssueTail] = $postMaintenanceDrawItems;
+        }
+    }
 }
+$issueSuffixText = html_entity_decode('&#26399;', ENT_QUOTES, 'UTF-8');
+$managedCurrentIssueTail = $normalizeIssueTail((string) ($managedCurrentIssue['issue_prefix_tail'] ?? ($managedCurrentIssue['issue_no'] ?? '')));
+$postTitleIssueText = app()->posts()->formatIssuePrefixText($managedCurrentIssueTail);
 $stripPostIssuePrefix = static function ($title) {
     return trim((string) preg_replace('/^(?:\s*\d{1,6}\s*(?:期|鏈[^\s:：]{0,6}|链[^\s:：]{0,6}|閺[^\s:：]{0,6})\s*[:：]?\s*)+/u', '', trim((string) $title)));
 };
 
 if (is_array($latestRegionDraw)) {
     $issueTail = $normalizeIssueTail($latestRegionDraw['issue_no'] ?? '');
-    if ($postTitleIssueText === '--' . $issueSuffixText && $issueTail !== '--') {
-        $postTitleIssueText = $issueTail . $issueSuffixText;
+    if ($postTitleIssueText === '' && $issueTail !== '--') {
+        $postTitleIssueText = app()->posts()->formatIssuePrefixText($issueTail);
     }
 }
 
@@ -204,10 +249,10 @@ ksort($segmentOptions);
 $saleAndFreePostCount = $pricedSalePostCount + $freePostCount;
 $postClassicTotalCount = $postPageTotal > 0 ? $postPageTotal : $saleAndFreePostCount;
 $postClassicManageSummaryHtml = sprintf(
-    '<span class="admin-posts-classic-toolbar-summary-item">选择 <span class="admin-posts-classic-toolbar-summary-count" data-post-selected-count>0</span> 条</span>'
-    . '<span class="admin-posts-classic-toolbar-summary-item">出售帖 <span class="admin-posts-classic-toolbar-summary-count">%s</span> 条</span>'
-    . '<span class="admin-posts-classic-toolbar-summary-item">普通帖 <span class="admin-posts-classic-toolbar-summary-count">%s</span> 条</span>'
-    . '<span class="admin-posts-classic-toolbar-summary-item">共 <span class="admin-posts-classic-toolbar-summary-count">%s</span> 条帖子</span>',
+    '<span class="admin-posts-classic-toolbar-summary-item">选择 <span class="admin-posts-classic-toolbar-summary-count" data-post-selected-count>0</span><span class="admin-posts-classic-toolbar-summary-unit">条</span></span>'
+    . '<span class="admin-posts-classic-toolbar-summary-item">出售帖 <span class="admin-posts-classic-toolbar-summary-count">%s</span><span class="admin-posts-classic-toolbar-summary-unit">条</span></span>'
+    . '<span class="admin-posts-classic-toolbar-summary-item">普通帖 <span class="admin-posts-classic-toolbar-summary-count">%s</span><span class="admin-posts-classic-toolbar-summary-unit">条</span></span>'
+    . '<span class="admin-posts-classic-toolbar-summary-item">共 <span class="admin-posts-classic-toolbar-summary-count">%s</span><span class="admin-posts-classic-toolbar-summary-unit">条</span></span>',
     e((string) $pricedSalePostCount),
     e((string) $freePostCount),
     e((string) $postClassicTotalCount)
@@ -321,6 +366,10 @@ $generatorCurrentType = (string) ($postGeneratorState['generator_type'] ?? $post
 if ($generatorCurrentType !== 'hongkong') {
     $generatorCurrentType = 'macau';
 }
+$generatorWaitingDisplayContent = (string) (
+    $postGeneratorConfig['waiting_display_content']
+    ?? "资料等待更新中··· ···\n关注本站，精彩无限，中奖根本停不下来······"
+);
 $generatorCurrentIssueTail = preg_replace('/\D+/', '', (string) ($postGeneratorState['current_issue_tail'] ?? ($postGeneratorConfig['current_issue_tail'] ?? '')));
 if ($generatorCurrentIssueTail === '') {
     $generatorCurrentIssueTail = (string) ($postGeneratorConfig['current_issue_tail'] ?? '');
@@ -620,7 +669,7 @@ $generatorTopBadgeClass = static function (array $option) {
                         <div class="admin-posts-generator-template-modal-head">
                             <div>
                                 <div class="admin-posts-generator-template-modal-title" id="admin-posts-generator-template-modal-title">指定补帖类型</div>
-                                <div class="admin-posts-generator-template-modal-subtitle">保存后，自动更新期数只按已选类型补被删除的帖子。</div>
+                                <div class="admin-posts-generator-template-modal-subtitle">保存后，自动期数只按已选类型补被删除的帖子。</div>
                             </div>
                             <button class="admin-posts-generator-template-modal-close" type="button" data-generator-template-modal-close aria-label="关闭">×</button>
                         </div>
@@ -655,36 +704,40 @@ $generatorTopBadgeClass = static function (array $option) {
                         <div class="mt-4 admin-posts-classic-toolbar">
                             <?php if ($postQuickMode === 'manage'): ?>
                             <div class="admin-posts-classic-toolbar-row admin-posts-classic-toolbar-row--generator-settings">
+                                <p class="admin-posts-control-group-note">
+                                    <strong>帖子更新</strong>
+                                    <span>按设定时间推进期数并更新普通帖、出售帖。</span>
+                                </p>
                                 <div class="admin-posts-generator-preset-table admin-posts-manage-generator-preset-table">
                                     <div class="admin-posts-generator-preset-card admin-posts-manage-auto-card">
-                                        <div class="admin-posts-generator-preset-cell is-head">自动更新期数</div>
+                                        <div class="admin-posts-generator-preset-cell is-head">自动期数</div>
                                         <div class="admin-posts-generator-preset-cell is-control">
                                             <label class="admin-posts-generator-material-time-switch">
-                                                <input type="checkbox" form="admin-post-generator-inline-form" value="1" data-post-update-time-toggle aria-label="启用自动更新期数时间" <?php echo $generatorPostUpdateTime !== '' ? 'checked' : ''; ?>>
+                                                <input type="checkbox" form="admin-post-generator-inline-form" value="1" data-post-update-time-toggle aria-label="启用自动期数时间" <?php echo $generatorPostUpdateTime !== '' ? 'checked' : ''; ?>>
                                             </label>
-                                            <input class="admin-input admin-posts-generator-material-time-input" type="time" form="admin-post-generator-inline-form" value="<?php echo e($generatorPostUpdateTime); ?>" data-post-update-time-input aria-label="自动更新期数时间" <?php echo $generatorPostUpdateTime === '' ? 'disabled' : ''; ?>>
+                                            <input class="admin-input admin-posts-generator-material-time-input" type="time" form="admin-post-generator-inline-form" value="<?php echo e($generatorPostUpdateTime); ?>" data-post-update-time-input aria-label="自动期数时间" <?php echo $generatorPostUpdateTime === '' ? 'disabled' : ''; ?>>
                                         </div>
                                     </div>
                                     <div class="admin-posts-generator-preset-card admin-posts-manage-material-card">
-                                        <div class="admin-posts-generator-preset-cell is-head">更新普通帖子</div>
+                                        <div class="admin-posts-generator-preset-cell is-head">普通帖更新</div>
                                         <div class="admin-posts-generator-preset-cell is-control">
                                             <label class="admin-posts-generator-material-time-switch">
-                                                <input type="checkbox" form="admin-post-generator-inline-form" value="1" data-material-content-time-toggle aria-label="启用更新普通帖子时间" <?php echo $generatorMaterialContentTime !== '' ? 'checked' : ''; ?>>
+                                                <input type="checkbox" form="admin-post-generator-inline-form" value="1" data-material-content-time-toggle aria-label="启用普通帖更新时间" <?php echo $generatorMaterialContentTime !== '' ? 'checked' : ''; ?>>
                                             </label>
-                                            <input class="admin-input admin-posts-generator-material-time-input" type="time" form="admin-post-generator-inline-form" value="<?php echo e($generatorMaterialContentTime); ?>" data-material-content-time-input aria-label="更新普通帖子时间" <?php echo $generatorMaterialContentTime === '' ? 'disabled' : ''; ?>>
+                                            <input class="admin-input admin-posts-generator-material-time-input" type="time" form="admin-post-generator-inline-form" value="<?php echo e($generatorMaterialContentTime); ?>" data-material-content-time-input aria-label="普通帖更新时间" <?php echo $generatorMaterialContentTime === '' ? 'disabled' : ''; ?>>
                                         </div>
                                     </div>
                                     <div class="admin-posts-generator-preset-card admin-posts-manage-sale-material-card">
-                                        <div class="admin-posts-generator-preset-cell is-head">更新出售帖子</div>
+                                        <div class="admin-posts-generator-preset-cell is-head">出售帖更新</div>
                                         <div class="admin-posts-generator-preset-cell is-control">
                                             <label class="admin-posts-generator-material-time-switch">
-                                                <input type="checkbox" form="admin-post-generator-inline-form" value="1" data-sale-material-content-time-toggle aria-label="启用更新出售帖子时间" <?php echo $generatorSaleMaterialContentTime !== '' ? 'checked' : ''; ?>>
+                                                <input type="checkbox" form="admin-post-generator-inline-form" value="1" data-sale-material-content-time-toggle aria-label="启用出售帖更新时间" <?php echo $generatorSaleMaterialContentTime !== '' ? 'checked' : ''; ?>>
                                             </label>
-                                            <input class="admin-input admin-posts-generator-material-time-input" type="time" form="admin-post-generator-inline-form" value="<?php echo e($generatorSaleMaterialContentTime); ?>" data-sale-material-content-time-input aria-label="更新出售帖子时间" <?php echo $generatorSaleMaterialContentTime === '' ? 'disabled' : ''; ?>>
+                                            <input class="admin-input admin-posts-generator-material-time-input" type="time" form="admin-post-generator-inline-form" value="<?php echo e($generatorSaleMaterialContentTime); ?>" data-sale-material-content-time-input aria-label="出售帖更新时间" <?php echo $generatorSaleMaterialContentTime === '' ? 'disabled' : ''; ?>>
                                         </div>
                                     </div>
                                     <div class="admin-posts-generator-preset-card">
-                                        <div class="admin-posts-generator-preset-cell is-head">指定生肖范围</div>
+                                        <div class="admin-posts-generator-preset-cell is-head">生肖数量</div>
                                         <div class="admin-posts-generator-preset-cell is-control">
                                             <label class="admin-posts-generator-preset-field admin-posts-generator-preset-field--range">
                                                 <input class="admin-input" type="number" form="admin-post-generator-inline-form" value="<?php echo e($generatorPresetZodiacMin); ?>" min="0" max="12" data-generator-setting-control="preset_zodiac_min">
@@ -695,7 +748,7 @@ $generatorTopBadgeClass = static function (array $option) {
                                         </div>
                                     </div>
                                     <div class="admin-posts-generator-preset-card admin-posts-manage-template-card">
-                                        <div class="admin-posts-generator-preset-cell is-head">指定选择类型</div>
+                                        <div class="admin-posts-generator-preset-cell is-head">选择类型</div>
                                         <div class="admin-posts-generator-preset-cell is-control">
                                             <button class="admin-posts-generator-template-pill" type="button" data-generator-template-modal-open>
                                                 已选<span data-generator-template-pill-count><?php echo e((string) $generatorSelectedTemplateCount); ?></span>个
@@ -703,7 +756,7 @@ $generatorTopBadgeClass = static function (array $option) {
                                         </div>
                                     </div>
                                     <div class="admin-posts-generator-preset-card">
-                                        <div class="admin-posts-generator-preset-cell is-head">高手榜区数量</div>
+                                        <div class="admin-posts-generator-preset-cell is-head">高手区条数</div>
                                         <div class="admin-posts-generator-preset-cell is-control">
                                             <label class="admin-posts-generator-preset-field admin-posts-generator-preset-field--range">
                                                 <input class="admin-input" type="number" form="admin-post-generator-inline-form" value="<?php echo e($generatorPresetSegmentMin); ?>" min="0" max="99" data-generator-setting-control="preset_segment_min">
@@ -714,7 +767,7 @@ $generatorTopBadgeClass = static function (array $option) {
                                         </div>
                                     </div>
                                     <div class="admin-posts-generator-preset-card">
-                                        <div class="admin-posts-generator-preset-cell is-head">记录数量</div>
+                                        <div class="admin-posts-generator-preset-cell is-head">记录期数</div>
                                         <div class="admin-posts-generator-preset-cell is-control">
                                             <label class="admin-posts-generator-preset-field admin-posts-generator-preset-field--range">
                                                 <input class="admin-input" type="number" form="admin-post-generator-inline-form" value="<?php echo e($generatorPresetRecordMin); ?>" min="1" max="99" data-generator-setting-control="preset_record_min">
@@ -725,7 +778,7 @@ $generatorTopBadgeClass = static function (array $option) {
                                         </div>
                                     </div>
                                     <div class="admin-posts-generator-preset-card">
-                                        <div class="admin-posts-generator-preset-cell is-head">记录中奖率</div>
+                                        <div class="admin-posts-generator-preset-cell is-head">中奖率</div>
                                         <div class="admin-posts-generator-preset-cell is-control">
                                             <label class="admin-posts-generator-preset-field admin-posts-generator-preset-field--range">
                                                 <input class="admin-input" type="number" form="admin-post-generator-inline-form" value="<?php echo e($generatorPresetRecordRateMin); ?>" min="0" max="100" data-generator-setting-control="preset_record_rate_min">
@@ -736,10 +789,10 @@ $generatorTopBadgeClass = static function (array $option) {
                                         </div>
                                     </div>
                                     <div class="admin-posts-generator-preset-card">
-                                        <div class="admin-posts-generator-preset-cell is-head">开奖后删帖补帖</div>
+                                        <div class="admin-posts-generator-preset-cell is-head">开奖后补帖</div>
                                         <div class="admin-posts-generator-preset-cell is-control admin-posts-generator-after-draw-control">
                                             <label class="admin-posts-generator-check is-flag">
-                                                <input type="checkbox" form="admin-post-generator-inline-form" value="1" data-generator-setting-control="is_fake_after_open" data-fake-after-open-toggle aria-label="启用开奖后删帖补帖" <?php echo !empty($postGeneratorState['is_fake_after_open']) ? 'checked' : ''; ?>>
+                                                <input type="checkbox" form="admin-post-generator-inline-form" value="1" data-generator-setting-control="is_fake_after_open" data-fake-after-open-toggle aria-label="启用开奖后补帖" <?php echo !empty($postGeneratorState['is_fake_after_open']) ? 'checked' : ''; ?>>
                                             </label>
                                             <label class="admin-posts-generator-preset-field admin-posts-generator-wrong-streak-field" title="帖子历史记录包含当前期数记录，连续错 N 期后开奖后马上删帖补帖">
                                                 <em>连错</em>
@@ -751,6 +804,10 @@ $generatorTopBadgeClass = static function (array $option) {
                                 </div>
                             </div>
                             <div class="admin-posts-classic-toolbar-row admin-posts-classic-toolbar-row--auto-reply-settings">
+                                <p class="admin-posts-control-group-note">
+                                    <strong>评论返分</strong>
+                                    <span>设置自动评论及连续错帖返分。</span>
+                                </p>
                                 <div class="admin-posts-generator-preset-table admin-posts-manage-generator-preset-table admin-posts-auto-reply-table">
                                     <div class="admin-posts-generator-preset-card">
                                         <div class="admin-posts-generator-preset-cell is-head">自动评论</div>
@@ -762,7 +819,7 @@ $generatorTopBadgeClass = static function (array $option) {
                                         </div>
                                     </div>
                                     <div class="admin-posts-generator-preset-card">
-                                        <div class="admin-posts-generator-preset-cell is-head">每帖评论范围</div>
+                                        <div class="admin-posts-generator-preset-cell is-head">每帖评论</div>
                                         <div class="admin-posts-generator-preset-cell is-control">
                                             <label class="admin-posts-generator-preset-field">
                                                 <input class="admin-input" type="number" value="<?php echo e($generatorAutoReplyBaseMin); ?>" min="1" max="99" data-auto-reply-base-min-input>
@@ -773,7 +830,7 @@ $generatorTopBadgeClass = static function (array $option) {
                                         </div>
                                     </div>
                                     <div class="admin-posts-generator-preset-card">
-                                        <div class="admin-posts-generator-preset-cell is-head">每日帖子递增范围</div>
+                                        <div class="admin-posts-generator-preset-cell is-head">每日递增</div>
                                         <div class="admin-posts-generator-preset-cell is-control">
                                             <label class="admin-posts-generator-preset-field">
                                                 <input class="admin-input" type="number" value="<?php echo e($generatorAutoReplyDailyMin); ?>" min="0" max="99" data-auto-reply-daily-min-input>
@@ -784,7 +841,7 @@ $generatorTopBadgeClass = static function (array $option) {
                                         </div>
                                     </div>
                                     <div class="admin-posts-generator-preset-card">
-                                        <div class="admin-posts-generator-preset-cell is-head">近期评论开始范围</div>
+                                        <div class="admin-posts-generator-preset-cell is-head">起评期数</div>
                                         <div class="admin-posts-generator-preset-cell is-control">
                                             <label class="admin-posts-generator-preset-field">
                                                 <input class="admin-input" type="number" value="<?php echo e($generatorAutoReplyIssueMin); ?>" min="1" max="99" data-auto-reply-issue-min-input>
@@ -795,7 +852,7 @@ $generatorTopBadgeClass = static function (array $option) {
                                         </div>
                                     </div>
                                     <div class="admin-posts-generator-preset-card">
-                                        <div class="admin-posts-generator-preset-cell is-head">禁止评论时段</div>
+                                        <div class="admin-posts-generator-preset-cell is-head">禁评时段</div>
                                         <div class="admin-posts-generator-preset-cell is-control">
                                             <label class="admin-posts-generator-preset-field">
                                                 <input class="admin-input" type="number" value="<?php echo e($generatorAutoReplyForbidStartHour); ?>" min="0" max="23" data-auto-reply-forbid-start-hour-input>
@@ -806,7 +863,7 @@ $generatorTopBadgeClass = static function (array $option) {
                                         </div>
                                     </div>
                                     <div class="admin-posts-generator-preset-card">
-                                        <div class="admin-posts-generator-preset-cell is-head">连错返积分</div>
+                                        <div class="admin-posts-generator-preset-cell is-head">连错返分</div>
                                         <div class="admin-posts-generator-preset-cell is-control">
                                             <label class="admin-posts-generator-preset-field">
                                                 <input class="admin-input" type="number" value="<?php echo e($generatorWrongRefundStreak); ?>" min="2" max="99" data-wrong-refund-streak-input>
@@ -815,7 +872,7 @@ $generatorTopBadgeClass = static function (array $option) {
                                         </div>
                                     </div>
                                     <div class="admin-posts-generator-preset-card">
-                                        <div class="admin-posts-generator-preset-cell is-head">返积分</div>
+                                        <div class="admin-posts-generator-preset-cell is-head">返分比例</div>
                                         <div class="admin-posts-generator-preset-cell is-control">
                                             <label class="admin-posts-generator-preset-field">
                                                 <input class="admin-input" type="number" value="<?php echo e($generatorWrongRefundPercent); ?>" min="0" max="999" data-wrong-refund-percent-input>
@@ -830,10 +887,14 @@ $generatorTopBadgeClass = static function (array $option) {
                             </div>
                             <?php endif; ?>
                             <div class="admin-posts-classic-toolbar-row admin-posts-classic-toolbar-row--post-settings-table">
+                                <p class="admin-posts-control-group-note">
+                                    <strong>帖子数据</strong>
+                                    <span>设置锁帖、点赞、浏览和购买增长。</span>
+                                </p>
                                 <div class="admin-post-lock-settings-frame">
                                     <div class="admin-post-lock-settings-grid" role="group" aria-label="帖子显示与锁帖设置">
                                         <section class="admin-post-lock-settings-card">
-                                            <div class="admin-post-lock-settings-card-title">开奖前锁帖时间</div>
+                                            <div class="admin-post-lock-settings-card-title">锁帖提前</div>
                                             <div class="admin-post-lock-settings-card-body">
                                                 <div class="admin-post-lock-settings" data-post-lock-settings data-api-url="<?php echo e(public_url('api.php')); ?>" data-token="<?php echo e(csrf_token('api')); ?>" data-region="<?php echo e($postCurrentRegion); ?>">
                                                     <div class="admin-post-lock-settings-controls">
@@ -846,7 +907,7 @@ $generatorTopBadgeClass = static function (array $option) {
                                             </div>
                                         </section>
                                         <section class="admin-post-lock-settings-card admin-post-lock-settings-card--unlock-time">
-                                            <div class="admin-post-lock-settings-card-title">解锁帖时间</div>
+                                            <div class="admin-post-lock-settings-card-title">解锁时间</div>
                                             <div class="admin-post-lock-settings-card-body">
                                                 <div class="admin-post-lock-settings">
                                                     <div class="admin-post-lock-settings-controls">
@@ -858,7 +919,7 @@ $generatorTopBadgeClass = static function (array $option) {
                                             </div>
                                         </section>
                                         <section class="admin-post-lock-settings-card">
-                                            <div class="admin-post-lock-settings-card-title">默认点赞范围</div>
+                                            <div class="admin-post-lock-settings-card-title">初始点赞</div>
                                             <div class="admin-post-lock-settings-card-body">
                                                 <div class="admin-post-lock-settings" data-post-like-increment-settings data-api-url="<?php echo e(public_url('api.php')); ?>" data-token="<?php echo e(csrf_token('api')); ?>">
                                                     <div class="admin-post-lock-settings-controls">
@@ -892,7 +953,7 @@ $generatorTopBadgeClass = static function (array $option) {
                                             </div>
                                         </section>
                                         <section class="admin-post-lock-settings-card">
-                                            <div class="admin-post-lock-settings-card-title">浏览量初始默认范围</div>
+                                            <div class="admin-post-lock-settings-card-title">初始浏览</div>
                                             <div class="admin-post-lock-settings-card-body">
                                                 <div class="admin-post-lock-settings" data-post-view-display-settings data-api-url="<?php echo e(public_url('api.php')); ?>" data-token="<?php echo e(csrf_token('api')); ?>">
                                                     <div class="admin-post-lock-settings-controls">
@@ -909,7 +970,7 @@ $generatorTopBadgeClass = static function (array $option) {
                                             </div>
                                         </section>
                                         <section class="admin-post-lock-settings-card">
-                                            <div class="admin-post-lock-settings-card-title">浏览量递增范围</div>
+                                            <div class="admin-post-lock-settings-card-title">浏览递增</div>
                                             <div class="admin-post-lock-settings-card-body">
                                                 <div class="admin-post-lock-settings">
                                                     <div class="admin-post-lock-settings-controls">
@@ -926,7 +987,7 @@ $generatorTopBadgeClass = static function (array $option) {
                                             </div>
                                         </section>
                                         <section class="admin-post-lock-settings-card">
-                                            <div class="admin-post-lock-settings-card-title">帖子购买递增范围</div>
+                                            <div class="admin-post-lock-settings-card-title">购买递增</div>
                                             <div class="admin-post-lock-settings-card-body">
                                                 <div class="admin-post-lock-settings" data-post-sale-buyer-increment-settings data-api-url="<?php echo e(public_url('api.php')); ?>" data-token="<?php echo e(csrf_token('api')); ?>">
                                                     <div class="admin-post-lock-settings-controls">
@@ -956,13 +1017,14 @@ $generatorTopBadgeClass = static function (array $option) {
                                 <input type="hidden" name="view" value="<?php echo e($postQuickMode); ?>">
                                 <div class="admin-posts-classic-filter-frame">
                                     <div class="admin-posts-classic-filter-grid">
-                                        <div class="admin-posts-classic-filter-head">高手区帖</div>
-                                        <div class="admin-posts-classic-filter-head">置顶帖</div>
-                                        <div class="admin-posts-classic-filter-head">出售/已出售帖</div>
-                                        <div class="admin-posts-classic-filter-head">准错帖</div>
-                                        <div class="admin-posts-classic-filter-head">标题查询帖子</div>
+                                        <div class="admin-posts-classic-filter-head">高手区</div>
+                                        <div class="admin-posts-classic-filter-head">置顶</div>
+                                        <div class="admin-posts-classic-filter-head">更新状态</div>
+                                        <div class="admin-posts-classic-filter-head">售卖状态</div>
+                                        <div class="admin-posts-classic-filter-head">准错</div>
+                                        <div class="admin-posts-classic-filter-head">关键词 / 查询</div>
                                         <label class="admin-posts-classic-filter-control">
-                                            <select class="admin-select" name="segment_no" title="筛选高手n区的帖子" aria-label="高手区帖" data-post-filter-submit>
+                                            <select class="admin-select" name="segment_no" title="筛选高手区帖子" aria-label="高手区" data-post-filter-submit>
                                                 <option value="0">全部</option>
                                                 <?php foreach ($segmentOptions as $segmentOption): ?>
                                                     <option value="<?php echo e((string) $segmentOption); ?>" <?php echo (int) ($postFilters['segment_no'] ?? 0) === (int) $segmentOption ? 'selected' : ''; ?>><?php echo e($resolveSegmentLabel($segmentOption)); ?></option>
@@ -970,13 +1032,20 @@ $generatorTopBadgeClass = static function (array $option) {
                                             </select>
                                         </label>
                                         <label class="admin-posts-classic-filter-control">
-                                            <select class="admin-select" name="top_scope" title="筛选置顶n区的帖子" aria-label="置顶帖" data-post-filter-submit>
+                                            <select class="admin-select" name="top_scope" title="筛选置顶帖子" aria-label="置顶" data-post-filter-submit>
                                                 <option value="">全部</option>
                                                 <option value="top_1" <?php echo $postTopScopeFilter === 'top_1' ? 'selected' : ''; ?>>置顶1</option>
                                                 <option value="top_2" <?php echo $postTopScopeFilter === 'top_2' ? 'selected' : ''; ?>>置顶2</option>
                                                 <option value="top_3" <?php echo $postTopScopeFilter === 'top_3' ? 'selected' : ''; ?>>置顶3</option>
                                                 <option value="top_4" <?php echo $postTopScopeFilter === 'top_4' ? 'selected' : ''; ?>>置顶4</option>
                                                 <option value="top_5" <?php echo $postTopScopeFilter === 'top_5' ? 'selected' : ''; ?>>置顶5</option>
+                                            </select>
+                                        </label>
+                                        <label class="admin-posts-classic-filter-control">
+                                            <select class="admin-select" name="material_update_filter" title="筛选资料内容更新状态" aria-label="更新状态" data-post-filter-submit>
+                                                <option value="">全部</option>
+                                                <option value="waiting" <?php echo (string) ($postFilters['material_update_filter'] ?? '') === 'waiting' ? 'selected' : ''; ?>>待更新</option>
+                                                <option value="updated" <?php echo (string) ($postFilters['material_update_filter'] ?? '') === 'updated' ? 'selected' : ''; ?>>已更新</option>
                                             </select>
                                         </label>
                                         <div class="admin-posts-classic-filter-control admin-posts-classic-filter-control--combo">
@@ -992,7 +1061,7 @@ $generatorTopBadgeClass = static function (array $option) {
                                             ?>
                                             <input type="hidden" name="sale_filter" value="<?php echo e((string) ($postFilters['sale_filter'] ?? '')); ?>" data-sale-filter-value>
                                             <input type="hidden" name="purchase_filter" value="<?php echo e((string) ($postFilters['purchase_filter'] ?? '')); ?>" data-purchase-filter-value>
-                                            <select class="admin-select" title="筛选出售、免费或已出售的帖子" aria-label="出售/已出售帖" data-sale-purchase-filter data-post-filter-submit>
+                                            <select class="admin-select" title="筛选出售、免费或已出售帖子" aria-label="售卖状态" data-sale-purchase-filter data-post-filter-submit>
                                                 <option value="" <?php echo $salePurchaseFilterValue === '' ? 'selected' : ''; ?>>全部</option>
                                                 <option value="sale" <?php echo $salePurchaseFilterValue === 'sale' ? 'selected' : ''; ?>>出售</option>
                                                 <option value="free" <?php echo $salePurchaseFilterValue === 'free' ? 'selected' : ''; ?>>免费</option>
@@ -1009,18 +1078,18 @@ $generatorTopBadgeClass = static function (array $option) {
                                             }
                                             ?>
                                             <input type="hidden" name="result_filter" value="<?php echo e((string) ($postFilters['result_filter'] ?? '')); ?>" data-result-filter-value>
-                                            <select class="admin-select" title="筛选最近一期为准或错的帖子" aria-label="准错帖" data-result-streak-filter data-post-filter-submit>
+                                            <select class="admin-select" title="筛选最近一期准错状态" aria-label="准错" data-result-streak-filter data-post-filter-submit>
                                                 <option value="" <?php echo $resultStreakFilterValue === '' ? 'selected' : ''; ?>>全部</option>
                                                 <option value="hit" <?php echo $resultStreakFilterValue === 'hit' ? 'selected' : ''; ?>>准帖</option>
                                                 <option value="wrong" <?php echo $resultStreakFilterValue === 'wrong' ? 'selected' : ''; ?>>错帖</option>
                                             </select>
                                         </div>
                                         <div class="admin-posts-classic-filter-control admin-posts-classic-filter-control--keyword">
-                                            <input class="admin-input" type="text" name="keyword" value="<?php echo e((string) ($postFilters['keyword'] ?? '')); ?>" placeholder="请输入帖子标题、作者名或关键字查询" title="关键词支持帖子标题和作者名称，可快速定位需要维护的帖子。" aria-label="标题查询帖子">
+                                            <div class="admin-posts-classic-keyword-query">
+                                                <input class="admin-input" type="text" name="keyword" value="<?php echo e((string) ($postFilters['keyword'] ?? '')); ?>" placeholder="标题 / 作者 / 关键字" title="按标题、作者或关键字定位帖子。" aria-label="关键词">
+                                                <button class="admin-button admin-posts-classic-query" type="submit">查询</button>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="admin-posts-classic-filter-action">
-                                        <button class="admin-button admin-posts-classic-query" type="submit">查询</button>
                                     </div>
                                 </div>
                             </form>
@@ -1203,15 +1272,25 @@ $generatorTopBadgeClass = static function (array $option) {
                                 $isDataPost = (string) ($row['manage_post_kind'] ?? (((int) ($row['price'] ?? 0) > 0) ? 'data' : 'normal')) === 'data';
                                 $segmentNo = max(1, (int) ($row['manage_segment_no'] ?? 1));
                                 $segmentLabel = $resolveSegmentLabel($segmentNo);
-                                $titleText = trim((string) ($row['title'] ?? ''));
-                                $authorDisplayText = trim((string) (($row['author_name'] ?? '') ?: ''));
+                                $deletedIssueText = trim((string) ($row['manage_deleted_issue_text'] ?? ''));
+                                $archivedIssueTail = app()->posts()->displayIssueTailForRecordTime(
+                                    (string) ($row['region'] ?? 'macau'),
+                                    (string) ($row['deleted_at'] ?? ''),
+                                    $deletedIssueText
+                                );
+                                if ($archivedIssueTail === '') {
+                                    $archivedIssueTail = app()->posts()->displayArchivedIssueTail($row, $deletedIssueText);
+                                }
+                                $postRecycleDisplayTitle = app()->posts()->displayTitleHtml(
+                                    $row,
+                                    array(),
+                                    $archivedIssueTail !== '' ? $archivedIssueTail : null
+                                );
+                                $titleText = trim((string) ($postRecycleDisplayTitle['plain_text'] ?? ''));
+                                $titleHtml = trim((string) ($postRecycleDisplayTitle['html'] ?? ''));
                                 if ($titleText === '') {
                                     $titleText = '-';
                                 }
-                                if ($authorDisplayText !== '' && mb_strpos($titleText, $authorDisplayText, 0, 'UTF-8') === false) {
-                                    $titleText .= $authorDisplayText;
-                                }
-                                $deletedIssueText = trim((string) ($row['manage_deleted_issue_text'] ?? ''));
                                 $deletedAtText = $postRecycleDeletedAtText($row['deleted_at'] ?? null);
                                 $expireAtText = $postRecycleExpiryText($row['deleted_at'] ?? null);
                                 ?>
@@ -1232,10 +1311,7 @@ $generatorTopBadgeClass = static function (array $option) {
                                         </div>
                                         <div class="admin-posts-recycle-title-line">
                                             <span class="admin-posts-classic-sale-badge is-recycle <?php echo $isDataPost ? 'is-sale' : 'is-normal'; ?>"><?php echo $isDataPost ? '出售贴' : '普通帖'; ?></span>
-                                            <?php if ($deletedIssueText !== ''): ?>
-                                                <span class="admin-posts-recycle-issue-text"><?php echo e($deletedIssueText); ?></span>
-                                            <?php endif; ?>
-                                            <span class="admin-posts-recycle-title-main" title="<?php echo e($titleText); ?>"><?php echo e($titleText); ?></span>
+                                            <span class="admin-posts-recycle-title-main" title="<?php echo e($titleText); ?>"><?php echo $titleHtml !== '' ? $titleHtml : e($titleText); ?></span>
                                         </div>
                                     </td>
                                     <td class="admin-posts-recycle-time-cell"><span><?php echo e($deletedAtText); ?></span></td>
@@ -1252,13 +1328,12 @@ $generatorTopBadgeClass = static function (array $option) {
                                 <th class="is-check"><?php if ($postCanManage): ?><input type="checkbox" data-check-all="input[name=&quot;selected_ids[]&quot;]"><?php endif; ?></th>
                                 <th class="is-seq">区位</th>
                                 <th class="is-title">帖子信息</th>
-                                <th class="is-actions">操作</th>
                             </tr>
                             </thead>
                             <tbody>
                             <?php if (!$posts): ?>
                                 <tr>
-                                    <td colspan="4">
+                                    <td colspan="3">
                                         <div class="admin-empty">当前没有符合条件的帖子。</div>
                                     </td>
                                 </tr>
@@ -1307,16 +1382,7 @@ $generatorTopBadgeClass = static function (array $option) {
                                 if ($authorDisplayText !== '' && mb_strpos($titleText, $authorDisplayText, 0, 'UTF-8') === false) {
                                     $titleText .= $authorDisplayText;
                                 }
-                                $currentContentSource = (string) ($row['full_content'] ?? '');
-                                if ($currentContentSource === '') {
-                                    $currentContentSource = (string) ($row['manage_manual_material'] ?? '');
-                                }
-                                if ($currentContentSource === '') {
-                                    $currentContentSource = (string) ($row['manage_auto_update_content'] ?? '');
-                                }
-                                if ($currentContentSource === '') {
-                                    $currentContentSource = (string) ($row['excerpt'] ?? '');
-                                }
+                                $currentContentSource = app()->posts()->managedPostReaderSource($row);
                                 $currentContentText = preg_replace('/<\s*(br|\/p|\/div|\/li|\/tr)\b[^>]*>/iu', "\n", $currentContentSource);
                                 $currentContentText = str_replace(array("\r\n", "\r"), "\n", strip_tags((string) $currentContentText));
                                 $currentContentText = trim((string) preg_replace('/[^\S\n]+/u', ' ', $currentContentText));
@@ -1375,48 +1441,15 @@ $generatorTopBadgeClass = static function (array $option) {
                                 if ($currentContentLines === array()) {
                                     $currentContentLines = array(html_entity_decode('&#26242;&#26080;&#20869;&#23481;', ENT_QUOTES, 'UTF-8'));
                                 }
-                                $managedOldAuthorDiamondIcon = html_entity_decode('&#128142;', ENT_QUOTES, 'UTF-8');
                                 if ($authorDisplayText !== '') {
-                                    $managedAuthorLeftIcon = '';
-                                    $managedAuthorRightIcon = '';
+                                    $managedAuthorIconPair = app()->admins()->managedAuthorIconPair($authorDisplayText);
+                                    $managedAuthorLeftIcon = (string) ($managedAuthorIconPair[0] ?? '');
+                                    $managedAuthorRightIcon = (string) ($managedAuthorIconPair[1] ?? '');
                                     $managedAuthorPattern = '/(?:([^\p{L}\p{N}\s:：{}（）()【】\[\]]{1,3})\s*)?' . preg_quote($authorDisplayText, '/') . '(?:\s*([^\p{L}\p{N}\s:：{}（）()【】\[\]]{1,3}))?/u';
-                                    foreach ($currentContentLines as $currentContentLine) {
-                                        if (!preg_match($managedAuthorPattern, (string) $currentContentLine, $managedAuthorMatches)) {
-                                            continue;
-                                        }
-                                        $lineLeftIcon = trim((string) ($managedAuthorMatches[1] ?? ''));
-                                        $lineRightIcon = trim((string) ($managedAuthorMatches[2] ?? ''));
-                                        if (
-                                            $lineLeftIcon !== ''
-                                            && $lineLeftIcon === $lineRightIcon
-                                            && $lineLeftIcon !== $managedOldAuthorDiamondIcon
-                                        ) {
-                                            $managedAuthorLeftIcon = $lineLeftIcon;
-                                            $managedAuthorRightIcon = $lineRightIcon;
-                                            break;
-                                        }
-                                    }
-                                    if ($managedAuthorLeftIcon === '' && $managedAuthorRightIcon === '') {
-                                        $managedAuthorIconPairs = \App\Services\AdminService::MANAGED_AUTHOR_ICON_PAIRS;
-                                        $managedAuthorIconSeed = abs(crc32('managed-author-icons|' . (string) $postId . '|' . $authorDisplayText . '|' . $currentContentText));
-                                        $managedAuthorIconPair = $managedAuthorIconPairs[$managedAuthorIconSeed % count($managedAuthorIconPairs)];
-                                        $managedAuthorLeftIcon = $managedAuthorIconPair[0];
-                                        $managedAuthorRightIcon = $managedAuthorIconPair[1];
-                                    }
                                     foreach ($currentContentLines as $currentContentLineIndex => $currentContentLine) {
                                         $currentContentLines[$currentContentLineIndex] = (string) preg_replace_callback(
                                             $managedAuthorPattern,
-                                            static function ($managedAuthorMatches) use ($authorDisplayText, $managedOldAuthorDiamondIcon, $managedAuthorLeftIcon, $managedAuthorRightIcon) {
-                                                $leftIcon = trim((string) ($managedAuthorMatches[1] ?? ''));
-                                                $rightIcon = trim((string) ($managedAuthorMatches[2] ?? ''));
-                                                if (
-                                                    $leftIcon !== ''
-                                                    && $leftIcon === $rightIcon
-                                                    && $leftIcon !== $managedOldAuthorDiamondIcon
-                                                ) {
-                                                    return (string) ($managedAuthorMatches[0] ?? '');
-                                                }
-
+                                            static function () use ($authorDisplayText, $managedAuthorLeftIcon, $managedAuthorRightIcon) {
                                                 return $managedAuthorLeftIcon . $authorDisplayText . $managedAuthorRightIcon;
                                             },
                                             (string) $currentContentLine,
@@ -1607,11 +1640,12 @@ $generatorTopBadgeClass = static function (array $option) {
                                 if ($currentIssueEditTargetLabel === '--' . $issueSuffixText && $currentIssuePreferredTail !== '') {
                                     $currentIssueEditTargetLabel = $currentIssuePreferredTail . $issueSuffixText;
                                 }
-                                $currentIssueEditPayload = app()->posts()->customerServiceEditPayload(array_merge(
+                                $currentIssueEditPayload = app()->posts()->currentIssueEditorPayload(array_merge(
                                     $row,
                                     array('full_content' => $currentContentSource)
                                 ), $currentIssueEditTargetLabel);
                                 $currentIssueEditContent = trim((string) ($currentIssueEditPayload['content'] ?? ''));
+                                $currentIssueIsWaiting = !empty($currentIssueEditPayload['is_waiting']);
                                 if ($currentIssueEditContent !== '') {
                                     $currentIssueMaterialText = $currentIssueEditContent;
                                 }
@@ -1630,13 +1664,45 @@ $generatorTopBadgeClass = static function (array $option) {
                                 $currentContentDisplayLines = $currentIssueDisplayLineText !== ''
                                     ? array($currentIssueDisplayLineText)
                                     : $currentContentLines;
-                                $currentIssueModalTitleText = trim($currentIssueLabelText . ' ' . $titleText);
+                                $postDisplayTitle = app()->posts()->displayTitleHtml(
+                                    $row,
+                                    array(),
+                                    $currentIssueTailForEdit !== '' ? $currentIssueTailForEdit : null
+                                );
+                                $currentIssueModalTitleText = trim((string) ($postDisplayTitle['plain_text'] ?? ''));
+                                if ($currentIssueModalTitleText === '') {
+                                    $currentIssueModalTitleText = trim(
+                                        app()->posts()->formatIssuePrefixText($currentIssueTailForEdit) . $titleText
+                                    );
+                                }
+                                $currentIssueModalTitleHtml = trim((string) ($postDisplayTitle['html'] ?? ''));
+                                if ($currentIssueModalTitleHtml === '') {
+                                    $currentIssueModalTitleHtml = e($currentIssueModalTitleText);
+                                }
                                 $publishStatusText = $status === 'published' ? '已发布' : '未发布';
                                 $publishStatusTimeText = format_datetime($row['created_at'] ?? null);
                                 $deleteAction = $status === 'deleted' ? 'restore' : 'delete';
                                 $deleteLabel = $status === 'deleted' ? html_entity_decode('&#24674;&#22797;', ENT_QUOTES, 'UTF-8') : html_entity_decode('&#21024;&#38500;', ENT_QUOTES, 'UTF-8');
                                 $editUrl = $postSwitchBaseUrl . '&region=' . urlencode($postCurrentRegion) . '&view=compose&edit=' . $postId;
-                                $postUrl = ($postCurrentRegion === 'hongkong' ? public_url('record.php') : public_url('index.php')) . '?open_post=' . $postId;
+                                $postUrl = '#post-maintenance-' . $postId;
+                                $postHistoryEmbedUrl = public_url('post.php') . '?' . http_build_query(array(
+                                    'id' => $postId,
+                                    'region' => $postCurrentRegion,
+                                    'modal' => '1',
+                                    'admin_history' => '1',
+                                ));
+                                $postMaintenanceSectionText = trim((string) ($row['section_name'] ?? ''));
+                                $postMaintenanceSectionText = trim((string) preg_replace('/版块$/u', '', $postMaintenanceSectionText));
+                                $postMaintenanceMetaText = implode(' · ', array_filter(array(
+                                    $postMaintenanceSectionText,
+                                    $publishStatusText,
+                                ), static function ($part) {
+                                    return trim((string) $part) !== '';
+                                }));
+                                $postMaintenanceReadText = trim(implode("\n", $currentContentLines));
+                                if ($postMaintenanceReadText === '') {
+                                    $postMaintenanceReadText = '暂无正文内容。';
+                                }
                                 ?>
                                 <tr data-post-id="<?php echo e((string) $postId); ?>">
                                     <td class="admin-posts-classic-check-cell">
@@ -1681,10 +1747,31 @@ $generatorTopBadgeClass = static function (array $option) {
                                                     <span class="admin-posts-classic-chip is-counter is-price-param">价格 <strong><?php echo e($priceText); ?></strong></span>
                                                     <span class="admin-posts-classic-chip is-counter is-buyer-param">购买 <strong><?php echo e((string) $buyerCount); ?></strong></span>
                                                     <span class="admin-posts-classic-chip is-counter is-income-param">收入 <strong><?php echo e($postTotalIncomeText); ?></strong></span>
+                                                    <span
+                                                        class="admin-posts-classic-chip <?php echo $currentIssueIsWaiting ? 'is-danger' : 'is-color'; ?>"
+                                                        data-post-current-update-status
+                                                    ><?php echo $currentIssueIsWaiting ? '待更新' : '已更新'; ?></span>
                                                 </div>
                                                 <div class="admin-posts-classic-title-current admin-posts-classic-title-row">
                                                     <span class="admin-posts-classic-sale-badge <?php echo $postPriceValue > 0 ? 'is-sale' : 'is-normal'; ?>"><?php echo e($postSaleStatusText); ?></span>
-                                                    <div class="admin-posts-classic-content-main">
+                                                    <a
+                                                        class="admin-posts-classic-content-main"
+                                                        href="<?php echo e($postUrl); ?>"
+                                                        data-post-id="<?php echo e((string) $postId); ?>"
+                                                        data-post-current-issue-tail="<?php echo e($currentIssueTailForEdit); ?>"
+                                                        data-post-current-issue-label="<?php echo e($currentIssueLabelText); ?>"
+                                                        data-post-current-modal-title="<?php echo e($currentIssueModalTitleText); ?>"
+                                                        data-post-current-title-text="<?php echo e($titleText); ?>"
+                                                        data-post-current-modal-meta="<?php echo e($postMaintenanceMetaText); ?>"
+                                                        data-post-current-modal-time="<?php echo e($publishStatusTimeText); ?>"
+                                                        data-post-current-display-line="<?php echo e($currentIssueDisplayLineText); ?>"
+                                                        data-post-current-price="<?php echo e((string) max(0, (int) $postPriceValue)); ?>"
+                                                        data-post-delete-action="<?php echo e($deleteAction); ?>"
+                                                        data-post-delete-label="<?php echo e($deleteLabel); ?>"
+                                                        data-post-history-embed-url="<?php echo e($postHistoryEmbedUrl); ?>"
+                                                        data-post-current-material-open
+                                                        aria-haspopup="dialog"
+                                                    >
                                                         <?php foreach ($currentContentDisplayLines as $currentContentLine): ?>
                                                             <?php
                                                             $currentContentLineClass = 'admin-posts-classic-content-line';
@@ -1740,37 +1827,17 @@ $generatorTopBadgeClass = static function (array $option) {
                                                                 <?php endif; ?>
                                                             </div>
                                                         <?php endforeach; ?>
-                                                    </div>
+                                                    </a>
+                                                    <template data-post-current-modal-title-source><?php echo $currentIssueModalTitleHtml; ?></template>
+                                                    <textarea hidden data-post-current-material-source><?php echo e($currentIssueMaterialText); ?></textarea>
+                                                    <textarea hidden data-post-maintenance-read-source><?php echo e($postMaintenanceReadText); ?></textarea>
                                                 </div>
                                                 <div class="admin-posts-classic-title-sub admin-posts-classic-title-row">
                                                     <span><?php echo e((string) (($row['section_name'] ?? '') ?: '-')); ?></span>
-                                                    <span><?php echo e((string) (($row['category_name'] ?? '') ?: '-')); ?></span>
-                                                    <span>作者 <?php echo e((string) (($row['author_name'] ?? '') ?: '-')); ?></span>
                                                     <span><?php echo e($publishStatusText . ' ' . $publishStatusTimeText); ?></span>
                                                 </div>
                                             </div>
                                         </div>
-                                    </td>
-                                    <td class="admin-posts-classic-actions-cell">
-                                        <?php if ($postCanManage): ?>
-                                            <div class="admin-posts-classic-title-material-actions">
-                                                <button class="admin-posts-classic-row-btn is-danger" type="button" data-post-id="<?php echo e((string) $postId); ?>" data-post-quick-action="<?php echo e($deleteAction); ?>" title="<?php echo e($status === 'deleted' ? html_entity_decode('&#24674;&#22797;&#21040;&#21069;&#21488;', ENT_QUOTES, 'UTF-8') : html_entity_decode('&#31227;&#20837;&#22238;&#25910;&#31449;', ENT_QUOTES, 'UTF-8')); ?>"><?php echo e($deleteLabel); ?></button>
-                                                <button
-                                                    class="admin-posts-classic-row-btn admin-posts-classic-current-material-open"
-                                                    type="button"
-                                                    data-post-id="<?php echo e((string) $postId); ?>"
-                                                    data-post-current-issue-tail="<?php echo e($currentIssueTailForEdit); ?>"
-                                                    data-post-current-issue-label="<?php echo e($currentIssueLabelText); ?>"
-                                                    data-post-current-modal-title="<?php echo e($currentIssueModalTitleText); ?>"
-                                                    data-post-current-display-line="<?php echo e($currentIssueDisplayLineText); ?>"
-                                                    data-post-current-price="<?php echo e((string) max(0, (int) $postPriceValue)); ?>"
-                                                    data-post-current-material-open
-                                                >编辑资料</button>
-                                                <textarea hidden data-post-current-material-source><?php echo e($currentIssueMaterialText); ?></textarea>
-                                            </div>
-                                        <?php else: ?>
-                                            <span class="admin-help">当前账号没有管理权限</span>
-                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -1808,39 +1875,99 @@ $generatorTopBadgeClass = static function (array $option) {
                         <input type="hidden" name="mark" value="">
                         <input type="hidden" name="content" value="">
                         <input type="hidden" name="price" value="">
+                        <input type="hidden" name="waiting_display_content" value="">
                     </form>
+                    <script type="application/json" data-post-maintenance-draw-map><?php echo json_encode($postMaintenanceDrawMap, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
                     <div class="admin-posts-current-material-modal" data-post-current-material-modal hidden aria-hidden="true">
                         <button class="admin-posts-current-material-backdrop" type="button" data-post-current-material-close aria-label="关闭弹窗"></button>
                         <div class="admin-posts-current-material-dialog" role="dialog" aria-modal="true" aria-labelledby="admin-posts-current-material-title">
                             <div class="admin-posts-current-material-dialog-head">
-                                <div>
-                                    <div class="admin-posts-current-material-title" id="admin-posts-current-material-title">编辑资料</div>
-                                    <div class="admin-posts-current-material-issue" data-post-current-material-modal-issue>--期</div>
+                                <div class="admin-posts-current-material-heading">
+                                    <div class="admin-posts-current-material-title" id="admin-posts-current-material-title" data-post-current-material-modal-title>帖子维护</div>
                                 </div>
                                 <button class="admin-posts-current-material-close" type="button" data-post-current-material-close aria-label="关闭">×</button>
                             </div>
-                            <div class="admin-posts-current-material-brackets" aria-label="资料内容括号快捷插入">
-                                <?php foreach ($adminCurrentMaterialBracketPairs as $adminCurrentMaterialBracketPair): ?>
-                                    <?php
-                                    $adminCurrentMaterialBracketLeft = (string) ($adminCurrentMaterialBracketPair[0] ?? '');
-                                    $adminCurrentMaterialBracketRight = (string) ($adminCurrentMaterialBracketPair[1] ?? '');
-                                    ?>
-                                    <button
-                                        type="button"
-                                        data-post-current-material-bracket
-                                        data-post-current-material-bracket-left="<?php echo e($adminCurrentMaterialBracketLeft); ?>"
-                                        data-post-current-material-bracket-right="<?php echo e($adminCurrentMaterialBracketRight); ?>"
-                                        aria-label="<?php echo e('插入' . $adminCurrentMaterialBracketLeft . $adminCurrentMaterialBracketRight); ?>"
-                                    ><?php echo e($adminCurrentMaterialBracketLeft . $adminCurrentMaterialBracketRight); ?></button>
-                                <?php endforeach; ?>
+                            <div class="admin-posts-current-material-body">
+                                <section class="admin-posts-maintenance-reader">
+                                    <div class="admin-posts-current-material-section-head">
+                                        <span class="admin-posts-current-material-section-meta" data-post-current-material-modal-meta></span>
+                                        <span class="admin-posts-current-material-mode">手动维护</span>
+                                    </div>
+                                    <div class="admin-posts-maintenance-scroll" data-post-maintenance-scroll tabindex="0">
+                                        <div class="admin-posts-front-history-embed" data-post-front-history-embed hidden>
+                                            <div class="admin-posts-front-history-loading" data-post-front-history-loading>正在加载前台同源历史记录...</div>
+                                            <iframe
+                                                class="admin-posts-front-history-frame"
+                                                data-post-front-history-frame
+                                                title="前台同源期数历史记录"
+                                                loading="eager"
+                                                scrolling="no"
+                                            ></iframe>
+                                        </div>
+                                        <div class="admin-posts-maintenance-read-content" data-post-maintenance-read-content></div>
+                                        <section class="admin-posts-maintenance-editor">
+                                            <div class="admin-posts-current-material-record-head">
+                                                <span class="admin-posts-current-material-record-issue" data-post-current-record-issue></span>
+                                                <span class="admin-posts-current-material-record-title" data-post-current-record-title></span>
+                                                <span class="admin-posts-maintenance-record-type admin-posts-current-material-record-type" data-post-current-record-type></span>
+                                            </div>
+                                            <div class="admin-posts-current-material-control-head">
+                                                <div class="admin-posts-current-material-section-title">当前期资料内容</div>
+                                                <button
+                                                    class="admin-posts-current-material-inline-save"
+                                                    type="button"
+                                                    data-post-current-material-content-save
+                                                >保存资料</button>
+                                            </div>
+                                            <div class="admin-posts-current-material-brackets" aria-label="资料内容括号快捷插入">
+                                                <?php foreach ($adminCurrentMaterialBracketPairs as $adminCurrentMaterialBracketPair): ?>
+                                                    <?php
+                                                    $adminCurrentMaterialBracketLeft = (string) ($adminCurrentMaterialBracketPair[0] ?? '');
+                                                    $adminCurrentMaterialBracketRight = (string) ($adminCurrentMaterialBracketPair[1] ?? '');
+                                                    ?>
+                                                    <button
+                                                        type="button"
+                                                        data-post-current-material-bracket
+                                                        data-post-current-material-bracket-left="<?php echo e($adminCurrentMaterialBracketLeft); ?>"
+                                                        data-post-current-material-bracket-right="<?php echo e($adminCurrentMaterialBracketRight); ?>"
+                                                        aria-label="<?php echo e('插入' . $adminCurrentMaterialBracketLeft . $adminCurrentMaterialBracketRight); ?>"
+                                                    ><?php echo e($adminCurrentMaterialBracketLeft . $adminCurrentMaterialBracketRight); ?></button>
+                                                <?php endforeach; ?>
+                                            </div>
+                                            <textarea class="admin-posts-current-material-textarea" data-post-current-material-modal-input aria-label="当前期资料内容"></textarea>
+                                            <div class="admin-posts-current-material-price-row">
+                                                <label class="admin-posts-current-material-price-field" for="admin-posts-current-material-price">
+                                                    <span>出售积分</span>
+                                                    <input class="admin-posts-current-material-price-input" id="admin-posts-current-material-price" type="number" min="0" step="1" value="0" data-post-current-material-modal-price>
+                                                </label>
+                                                <button
+                                                    class="admin-posts-current-material-inline-save"
+                                                    type="button"
+                                                    data-post-current-material-price-save
+                                                >保存积分</button>
+                                            </div>
+                                        </section>
+                                        <div class="admin-posts-current-material-update-state">
+                                            <div class="admin-posts-current-material-update-head">
+                                                <div class="admin-posts-current-material-update-title">资料内容更新状态正文</div>
+                                                <button
+                                                    class="admin-posts-current-material-inline-save"
+                                                    type="button"
+                                                    data-post-current-material-waiting-save
+                                                >保存正文</button>
+                                            </div>
+                                            <textarea
+                                                class="admin-posts-current-material-update-content"
+                                                maxlength="300"
+                                                data-post-current-material-waiting-display
+                                                aria-label="资料内容更新状态正文"
+                                            ><?php echo e($generatorWaitingDisplayContent); ?></textarea>
+                                        </div>
+                                    </div>
+                                </section>
                             </div>
-                            <textarea class="admin-posts-current-material-textarea" data-post-current-material-modal-input></textarea>
                             <div class="admin-posts-current-material-actions">
-                                <label class="admin-posts-current-material-price-field" for="admin-posts-current-material-price">
-                                    <span>出售价格</span>
-                                    <input class="admin-posts-current-material-price-input" id="admin-posts-current-material-price" type="number" min="0" step="1" value="0" data-post-current-material-modal-price>
-                                </label>
-                                <button class="admin-posts-classic-row-btn admin-posts-classic-current-issue-save" type="button" data-post-current-material-modal-save>保存</button>
+                                <button class="admin-posts-classic-row-btn is-danger" type="button" data-post-maintenance-delete>删除</button>
                             </div>
                         </div>
                     </div>
@@ -1863,11 +1990,11 @@ $generatorTopBadgeClass = static function (array $option) {
                 <input type="hidden" name="region" value="<?php echo e($postCurrentRegion); ?>">
                 <input type="hidden" name="view" value="<?php echo e($postFormViewTarget); ?>">
 
-                <div class="admin-posts-generator-table admin-posts-generator-table--rules">
-                    <div class="admin-posts-generator-table-title">生成规则设置</div>
+                <div class="admin-posts-generator-table admin-posts-generator-panel admin-posts-generator-table--rules">
+                    <div class="admin-posts-generator-table-title">指定生成类型</div>
                     <div class="admin-posts-generator-table-row admin-posts-generator-table-row--nowrap">
                         <div class="admin-posts-generator-label-cell">生肖</div>
-                        <div class="admin-posts-generator-content-cell admin-posts-generator-content-cell--nowrap">
+                        <div class="admin-posts-generator-content-cell admin-posts-generator-content-cell--nowrap" data-generator-rule-scroll>
                             <div class="admin-posts-generator-check-grid is-zodiac-grid">
                                 <?php foreach ($generatorZodiacOptions as $option): ?>
                                     <?php echo $generatorRenderCheckbox('target_zodiac', (string) $option['value'], (string) $option['label'], isset($generatorSelectedZodiac[(string) $option['value']])); ?>
@@ -1877,7 +2004,7 @@ $generatorTopBadgeClass = static function (array $option) {
                     </div>
                     <div class="admin-posts-generator-table-row admin-posts-generator-table-row--nowrap">
                         <div class="admin-posts-generator-label-cell">号码</div>
-                        <div class="admin-posts-generator-content-cell admin-posts-generator-content-cell--nowrap">
+                        <div class="admin-posts-generator-content-cell admin-posts-generator-content-cell--nowrap" data-generator-rule-scroll>
                             <div class="admin-posts-generator-number-matrix">
                                 <?php foreach ($generatorNumberRows as $numberRow): ?>
                                     <div class="admin-posts-generator-check-grid is-number-grid">
@@ -1934,7 +2061,7 @@ $generatorTopBadgeClass = static function (array $option) {
                             </div>
                         </div>
                     </div>
-                    <div class="admin-posts-generator-table-row">
+                    <div class="admin-posts-generator-table-row admin-posts-generator-table-row--tail">
                         <div class="admin-posts-generator-label-cell">尾数</div>
                         <div class="admin-posts-generator-content-cell">
                             <div class="admin-posts-generator-check-grid is-compact-grid">
@@ -1947,10 +2074,10 @@ $generatorTopBadgeClass = static function (array $option) {
                     </div>
                 </div>
 
-                <div class="admin-posts-generator-table admin-posts-generator-table--compact admin-posts-generator-table--templates mt-4">
+                <div class="admin-posts-generator-table admin-posts-generator-panel admin-posts-generator-table--compact admin-posts-generator-table--templates mt-4">
                     <div class="admin-posts-generator-table-title admin-posts-generator-table-title--with-action">
-                        <span class="admin-posts-generator-table-title-text">生成帖子类型设置</span>
-                        <div class="admin-posts-generator-settings-save" aria-label="保存站点标题、帖子类型、作者昵称和标题样式设置">
+                        <span class="admin-posts-generator-table-title-text">生成帖子类型</span>
+                        <div class="admin-card-head-actions admin-posts-generator-settings-save" aria-label="保存站点标题、帖子类型、作者昵称和标题样式设置">
                             <button class="admin-button admin-posts-generator-save-settings" type="submit" form="admin-post-generator-form" name="_admin_action_override" value="save_post_generator_settings">保存设置</button>
                         </div>
                     </div>
@@ -2066,6 +2193,9 @@ $generatorTopBadgeClass = static function (array $option) {
                                 <input type="hidden" name="after_draw_delete_wrong_streak" value="<?php echo e($generatorAfterDrawDeleteWrongStreak); ?>">
 
                                 <div class="admin-posts-generator-action-row admin-posts-generator-action-table">
+                                    <div class="admin-posts-generator-action-cell admin-posts-generator-action-cell--clear">
+                                        <button class="admin-button is-light admin-posts-generator-clear" type="button" data-post-generator-clear>清空条件</button>
+                                    </div>
                                     <div class="admin-posts-generator-action-cell admin-posts-generator-action-cell--material">
                                         <label class="admin-posts-generator-check is-flag admin-posts-generator-material-toggle<?php echo empty($postGeneratorState['is_blank_content']) ? ' is-has-material' : ''; ?>" data-material-content-pill>
                                             <input type="checkbox" value="1" data-material-content-toggle <?php echo empty($postGeneratorState['is_blank_content']) ? 'checked' : ''; ?>>
@@ -2074,9 +2204,6 @@ $generatorTopBadgeClass = static function (array $option) {
                                     </div>
                                     <div class="admin-posts-generator-action-cell admin-posts-generator-action-cell--submit">
                                         <button class="admin-button admin-posts-generator-submit" type="submit"><?php echo e($postGenerateLabel); ?></button>
-                                    </div>
-                                    <div class="admin-posts-generator-action-cell admin-posts-generator-action-cell--clear">
-                                        <button class="admin-button is-light admin-posts-generator-clear" type="button" data-post-generator-clear>清空条件</button>
                                     </div>
                                     <div class="admin-posts-generator-action-cell admin-posts-generator-action-cell--summary">
                                         <div class="admin-posts-generator-summary admin-posts-generator-summary--status" data-post-generator-summary data-total-post-count="<?php echo e((string) $generatorSummaryTotalCount); ?>" data-segment-one-count="<?php echo e((string) $segmentPostCounts[1]); ?>" data-segment-two-count="<?php echo e((string) $segmentPostCounts[2]); ?>" data-segment-three-count="<?php echo e((string) $segmentPostCounts[3]); ?>"><?php echo $generatorSummaryHtml; ?></div>
@@ -2128,10 +2255,12 @@ $generatorTopBadgeClass = static function (array $option) {
         <div class="admin-posts-card-titlebar">
             <?php echo $postNavigationFrameHtml; ?>
         </div>
+        <?php if ($postFormSubtitle !== ''): ?>
         <div class="admin-card-subtitle"><?php echo e($postFormSubtitle); ?></div>
+        <?php endif; ?>
 
         <?php if ($postCanManage): ?>
-            <form method="post" action="<?php echo e(public_url('admin.php') . '?page=posts'); ?>" class="mt-4" data-post-form>
+            <form id="admin-post-publish-form" method="post" action="<?php echo e(public_url('admin.php') . '?page=posts'); ?>" class="mt-4 admin-post-publish-form" data-post-form>
                 <input type="hidden" name="_token" value="<?php echo e(csrf_token('admin.posts')); ?>">
                 <input type="hidden" name="_admin_form" value="page">
                 <input type="hidden" name="_admin_action" value="save_post">
@@ -2140,7 +2269,7 @@ $generatorTopBadgeClass = static function (array $option) {
                 <input type="hidden" name="view" value="compose">
 
                 <?php if ($showPostEditSection): ?>
-                <div class="mt-4">
+                <div class="mt-4 admin-post-publish-section admin-post-publish-section--segment">
                     <label class="admin-label">高手区</label>
                     <select class="admin-select" name="segment_no" title="用于选择帖子归属的高手分区">
                         <?php foreach ($generatorSegmentOptions as $option): ?>
@@ -2151,22 +2280,22 @@ $generatorTopBadgeClass = static function (array $option) {
                 </div>
                 <?php endif; ?>
 
-                <div class="mt-4">
+                <div class="mt-4 admin-post-publish-section admin-post-publish-section--title">
                     <label class="admin-label">帖子标题</label>
-                    <div class="admin-form-grid-4 admin-post-title-grid">
-                        <div>
+                    <div class="admin-form-grid admin-post-title-grid">
+                        <div class="admin-post-title-field admin-post-title-field--site">
                             <label class="admin-label">站点标题</label>
                             <input class="admin-input" name="title_prefix" value="<?php echo e((string) ($postForm['title_prefix'] ?? '')); ?>" placeholder="&#40511;&#36816;&#20845;&#21512;" data-post-title-part="prefix">
                         </div>
-                        <div>
+                        <div class="admin-post-title-field admin-post-title-field--type">
                             <label class="admin-label">帖子类型</label>
                             <input class="admin-input" name="title_middle" value="<?php echo e((string) ($postForm['title_middle'] ?? '')); ?>" placeholder="&#12304;&#19968;&#30721;&#20013;&#29305;&#12305;" data-post-title-part="middle">
                         </div>
-                        <div>
+                        <div class="admin-post-title-field admin-post-title-field--author">
                             <label class="admin-label">作者昵称</label>
                             <input class="admin-input" name="title_suffix" value="<?php echo e((string) ($postForm['title_suffix'] ?? '')); ?>" placeholder="&#26399;&#26399;&#20013;&#22870;" data-post-title-part="suffix">
                         </div>
-                        <div>
+                        <div class="admin-post-title-field admin-post-title-field--author-source">
                             <label class="admin-label">作者昵称</label>
                             <input class="admin-input" name="author_nickname" value="<?php echo e((string) ($postForm['author_nickname'] ?? '')); ?>" placeholder="&#26399;&#26399;&#20013;&#22870;">
                         </div>
@@ -2174,7 +2303,7 @@ $generatorTopBadgeClass = static function (array $option) {
 
                     <div class="admin-post-title-preview">
                         <span class="admin-post-title-preview-label">&#26631;&#39064;&#39044;&#35272;:</span>
-                        <span class="admin-post-title-preview-value" data-post-title-preview><?php echo e($postTitleIssueText . ': ' . ((((string) ($postForm['title_prefix'] ?? '') !== '' || (string) ($postForm['title_middle'] ?? '') !== '') ? ((string) ($postForm['title_prefix'] ?? '') . (string) ($postForm['title_middle'] ?? '')) : html_entity_decode('&#40511;&#36816;&#20845;&#21512;&#12304;&#19968;&#30721;&#20013;&#29305;&#12305;', ENT_QUOTES, 'UTF-8')) . (((string) ($postForm['author_nickname'] ?? '') !== '') ? (string) ($postForm['author_nickname'] ?? '') : html_entity_decode('&#26399;&#26399;&#20013;&#22870;', ENT_QUOTES, 'UTF-8')))); ?></span>
+                        <span class="admin-input admin-post-title-preview-value" data-post-title-preview><?php echo e($postTitleIssueText . ((((string) ($postForm['title_prefix'] ?? '') !== '' || (string) ($postForm['title_middle'] ?? '') !== '') ? ((string) ($postForm['title_prefix'] ?? '') . (string) ($postForm['title_middle'] ?? '')) : html_entity_decode('&#40511;&#36816;&#20845;&#21512;&#12304;&#19968;&#30721;&#20013;&#29305;&#12305;', ENT_QUOTES, 'UTF-8')) . (((string) ($postForm['author_nickname'] ?? '') !== '') ? (string) ($postForm['author_nickname'] ?? '') : html_entity_decode('&#26399;&#26399;&#20013;&#22870;', ENT_QUOTES, 'UTF-8')))); ?></span>
                     </div>
                 </div>
 
@@ -2183,12 +2312,12 @@ $generatorTopBadgeClass = static function (array $option) {
                 <textarea name="excerpt" hidden><?php echo e((string) ($postForm['excerpt'] ?? '')); ?></textarea>
                 <textarea name="preview_content" hidden><?php echo e((string) ($postForm['preview_content'] ?? '')); ?></textarea>
 
-                <div class="mt-4">
+                <div class="mt-4 admin-post-publish-section admin-post-publish-section--price">
                     <label class="admin-label">销售价格</label>
                     <input class="admin-input" type="number" name="price" value="<?php echo e((string) ($postForm['price'] ?? '0')); ?>" step="1" min="0" placeholder="0">
                 </div>
 
-                <div class="mt-4">
+                <div class="mt-4 admin-post-publish-section admin-post-publish-section--content">
                     <label class="admin-label">正文内容</label>
                     <div class="admin-editor-shell admin-post-editor-shell">
                         <div class="admin-editor-boot-placeholder" data-post-editor-placeholder>编辑器加载中...</div>
@@ -2196,7 +2325,7 @@ $generatorTopBadgeClass = static function (array $option) {
                     </div>
                 </div>
 
-                <div class="mt-4">
+                <div class="mt-4 admin-post-publish-section admin-post-publish-section--top">
                     <label class="admin-label">置顶选项</label>
                     <div class="admin-check-row">
                         <label class="admin-check-item"><input type="checkbox" name="is_top_normal" value="1" <?php echo (string) ($postForm['is_top_normal'] ?? '0') === '1' ? 'checked' : ''; ?>><span>普通置顶</span></label>
@@ -2205,10 +2334,6 @@ $generatorTopBadgeClass = static function (array $option) {
                     </div>
                 </div>
 
-                <div class="admin-form-actions">
-                    <button class="admin-button" type="submit">保存帖子</button>
-                    <a class="admin-button is-light" href="<?php echo e($postComposeUrl); ?>">返回发帖页</a>
-                </div>
             </form>
         <?php else: ?>
             <div class="admin-empty mt-4">当前账号没有发帖权限，请联系管理员开通。</div>
@@ -2677,12 +2802,10 @@ $generatorTopBadgeClass = static function (array $option) {
     var postForm = postFormCard ? postFormCard.querySelector('form') : null;
     var titleNode = postFormCard ? postFormCard.querySelector('.admin-card-title') : null;
     var subtitleNode = postFormCard ? postFormCard.querySelector('.admin-card-subtitle') : null;
-    var blankLink = postFormCard ? postFormCard.querySelector('.admin-form-actions .admin-button.is-light') : null;
     var contentEditor = document.getElementById('post-full-content-editor');
     var contentEditorPlaceholder = postFormCard ? postFormCard.querySelector('[data-post-editor-placeholder]') : null;
     var titlePreviewNode = postFormCard ? postFormCard.querySelector('[data-post-title-preview]') : null;
     var titlePartInputs = postFormCard ? postFormCard.querySelectorAll('[data-post-title-part]') : [];
-    var titleGrid = postFormCard ? postFormCard.querySelector('.admin-post-title-grid') : null;
     var titlePrefixInput = postForm ? postForm.querySelector('input[name="title_prefix"]') : null;
     var titleMiddleInput = postForm ? postForm.querySelector('input[name="title_middle"]') : null;
     var titleSuffixInput = postForm ? postForm.querySelector('input[name="title_suffix"]') : null;
@@ -2697,17 +2820,8 @@ $generatorTopBadgeClass = static function (array $option) {
         subtitleNode.textContent = <?php echo json_encode($postFormSubtitle, JSON_UNESCAPED_UNICODE); ?>;
     }
 
-    if (blankLink) {
-        blankLink.setAttribute('href', <?php echo json_encode($postBlankFormUrl, JSON_UNESCAPED_UNICODE); ?>);
-    }
-
     if (!postForm) {
         return;
-    }
-
-    if (titleGrid) {
-        titleGrid.classList.remove('admin-form-grid-4');
-        titleGrid.classList.add('admin-form-grid');
     }
 
     if (titlePrefixInput) {
@@ -2787,7 +2901,7 @@ $generatorTopBadgeClass = static function (array $option) {
             titleText += authorText;
         }
 
-        titlePreviewNode.textContent = (issueText ? issueText + ': ' : '') + titleText;
+        titlePreviewNode.textContent = issueText + titleText;
     }
 
     Array.prototype.forEach.call(titlePartInputs || [], function (input) {
@@ -2868,6 +2982,7 @@ $generatorTopBadgeClass = static function (array $option) {
     var summarySegmentTwoCount;
     var summarySegmentThreeCount;
     var saveSettingsButton;
+    var ruleScrollContainers;
     var scrollStorageKey;
 
     if (!generatorForm) {
@@ -2892,7 +3007,16 @@ $generatorTopBadgeClass = static function (array $option) {
     summarySegmentTwoCount = summaryNode ? Math.max(0, parseInt(summaryNode.getAttribute('data-segment-two-count') || '0', 10) || 0) : 0;
     summarySegmentThreeCount = summaryNode ? Math.max(0, parseInt(summaryNode.getAttribute('data-segment-three-count') || '0', 10) || 0) : 0;
     saveSettingsButton = document.querySelector('.admin-posts-generator-save-settings[form="admin-post-generator-form"]');
+    ruleScrollContainers = Array.prototype.slice.call(generatorForm.querySelectorAll('[data-generator-rule-scroll]'));
     scrollStorageKey = 'admin-post-generator-scroll:' + window.location.pathname + ':' + (generatorRegionInput ? generatorRegionInput.value : '');
+
+    function syncGeneratorRuleScroll(source) {
+        ruleScrollContainers.forEach(function (target) {
+            if (target !== source && target.scrollLeft !== source.scrollLeft) {
+                target.scrollLeft = source.scrollLeft;
+            }
+        });
+    }
 
     function generatorScrollContainer() {
         return document.querySelector('.admin-main') || document.scrollingElement || document.documentElement;
@@ -3218,6 +3342,11 @@ $generatorTopBadgeClass = static function (array $option) {
     templateInputs.forEach(function (input) {
         input.addEventListener('change', syncGeneratorSummary);
     });
+    ruleScrollContainers.forEach(function (container) {
+        container.addEventListener('scroll', function () {
+            syncGeneratorRuleScroll(container);
+        });
+    });
     syncGeneratorSummary();
     restoreGeneratorScrollPosition();
 
@@ -3242,6 +3371,7 @@ $generatorTopBadgeClass = static function (array $option) {
     var quickMarkField;
     var quickContentField;
     var quickPriceField;
+    var quickWaitingDisplayField;
     var postSettingsSaveButton;
     var postLockSettingsNode;
     var postLockBeforeInput;
@@ -3264,15 +3394,35 @@ $generatorTopBadgeClass = static function (array $option) {
     var postSaleBuyerIncrementMaxInput;
     var postSaleBuyerIncrementStatusNode;
     var currentMaterialModal;
-    var currentMaterialModalIssue;
+    var currentMaterialModalTitle;
+    var currentMaterialModalMeta;
+    var currentMaterialModalRecordIssue;
+    var currentMaterialModalRecordTitle;
+    var currentMaterialModalRecordType;
+    var currentMaterialModalScroll;
+    var currentMaterialModalReadContent;
     var currentMaterialModalInput;
     var currentMaterialModalPrice;
-    var currentMaterialModalSave;
+    var currentMaterialModalContentSave;
+    var currentMaterialModalPriceSave;
+    var currentMaterialModalWaitingDisplay;
+    var currentMaterialModalWaitingSave;
+    var currentMaterialModalDelete;
+    var currentMaterialHistoryEmbed;
+    var currentMaterialHistoryFrame;
+    var currentMaterialHistoryLoading;
+    var currentMaterialHistoryRequestId = 0;
+    var postMaintenanceDrawMapNode;
+    var postMaintenanceDrawMap = {};
     var currentMaterialActivePostId = '';
     var currentMaterialActiveIssueTail = '';
     var currentMaterialActiveSource = null;
+    var currentMaterialActiveReadSource = null;
     var currentMaterialActiveRow = null;
     var currentMaterialActiveButton = null;
+    var currentMaterialLoadedContent = '';
+    var currentMaterialLoadedPrice = '';
+    var currentMaterialSyncRequestId = 0;
 
     if (!bulkForm) {
         return;
@@ -3290,6 +3440,7 @@ $generatorTopBadgeClass = static function (array $option) {
     quickMarkField = quickForm ? quickForm.querySelector('input[name="mark"]') : null;
     quickContentField = quickForm ? quickForm.querySelector('input[name="content"]') : null;
     quickPriceField = quickForm ? quickForm.querySelector('input[name="price"]') : null;
+    quickWaitingDisplayField = quickForm ? quickForm.querySelector('input[name="waiting_display_content"]') : null;
     postSettingsSaveButton = document.querySelector('[data-post-settings-save]');
     postLockSettingsNode = document.querySelector('[data-post-lock-settings]');
     postLockBeforeInput = postLockSettingsNode ? postLockSettingsNode.querySelector('[data-post-lock-before-minutes]') : null;
@@ -3312,10 +3463,31 @@ $generatorTopBadgeClass = static function (array $option) {
     postSaleBuyerIncrementMaxInput = postSaleBuyerIncrementSettingsNode ? postSaleBuyerIncrementSettingsNode.querySelector('[data-post-sale-buyer-increment-max]') : null;
     postSaleBuyerIncrementStatusNode = postSaleBuyerIncrementSettingsNode ? postSaleBuyerIncrementSettingsNode.querySelector('[data-post-sale-buyer-increment-status]') : null;
     currentMaterialModal = document.querySelector('[data-post-current-material-modal]');
-    currentMaterialModalIssue = currentMaterialModal ? currentMaterialModal.querySelector('[data-post-current-material-modal-issue]') : null;
+    currentMaterialModalTitle = currentMaterialModal ? currentMaterialModal.querySelector('[data-post-current-material-modal-title]') : null;
+    currentMaterialModalMeta = currentMaterialModal ? currentMaterialModal.querySelector('[data-post-current-material-modal-meta]') : null;
+    currentMaterialModalRecordIssue = currentMaterialModal ? currentMaterialModal.querySelector('[data-post-current-record-issue]') : null;
+    currentMaterialModalRecordTitle = currentMaterialModal ? currentMaterialModal.querySelector('[data-post-current-record-title]') : null;
+    currentMaterialModalRecordType = currentMaterialModal ? currentMaterialModal.querySelector('[data-post-current-record-type]') : null;
+    currentMaterialModalScroll = currentMaterialModal ? currentMaterialModal.querySelector('[data-post-maintenance-scroll]') : null;
+    currentMaterialModalReadContent = currentMaterialModal ? currentMaterialModal.querySelector('[data-post-maintenance-read-content]') : null;
     currentMaterialModalInput = currentMaterialModal ? currentMaterialModal.querySelector('[data-post-current-material-modal-input]') : null;
     currentMaterialModalPrice = currentMaterialModal ? currentMaterialModal.querySelector('[data-post-current-material-modal-price]') : null;
-    currentMaterialModalSave = currentMaterialModal ? currentMaterialModal.querySelector('[data-post-current-material-modal-save]') : null;
+    currentMaterialModalContentSave = currentMaterialModal ? currentMaterialModal.querySelector('[data-post-current-material-content-save]') : null;
+    currentMaterialModalPriceSave = currentMaterialModal ? currentMaterialModal.querySelector('[data-post-current-material-price-save]') : null;
+    currentMaterialModalWaitingDisplay = currentMaterialModal ? currentMaterialModal.querySelector('[data-post-current-material-waiting-display]') : null;
+    currentMaterialModalWaitingSave = currentMaterialModal ? currentMaterialModal.querySelector('[data-post-current-material-waiting-save]') : null;
+    currentMaterialModalDelete = currentMaterialModal ? currentMaterialModal.querySelector('[data-post-maintenance-delete]') : null;
+    currentMaterialHistoryEmbed = currentMaterialModal ? currentMaterialModal.querySelector('[data-post-front-history-embed]') : null;
+    currentMaterialHistoryFrame = currentMaterialModal ? currentMaterialModal.querySelector('[data-post-front-history-frame]') : null;
+    currentMaterialHistoryLoading = currentMaterialModal ? currentMaterialModal.querySelector('[data-post-front-history-loading]') : null;
+    postMaintenanceDrawMapNode = document.querySelector('[data-post-maintenance-draw-map]');
+    if (postMaintenanceDrawMapNode) {
+        try {
+            postMaintenanceDrawMap = JSON.parse(postMaintenanceDrawMapNode.textContent || '{}');
+        } catch (error) {
+            postMaintenanceDrawMap = {};
+        }
+    }
 
     if (!actionField || !valueField) {
         return;
@@ -3773,6 +3945,9 @@ $generatorTopBadgeClass = static function (array $option) {
 
         if (action === "delete") {
             if (status === "deleted") {
+                if (String(currentMaterialActivePostId || "") === String(postId || "")) {
+                    closeCurrentMaterialModal();
+                }
                 removeManagedPostRow(row);
             }
             return;
@@ -4001,6 +4176,9 @@ $generatorTopBadgeClass = static function (array $option) {
         if (quickPriceField) {
             quickPriceField.value = options.price || '';
         }
+        if (quickWaitingDisplayField) {
+            quickWaitingDisplayField.value = options.waitingDisplayContent || '';
+        }
 
         if (!quickActionField.value) {
             return;
@@ -4022,37 +4200,783 @@ $generatorTopBadgeClass = static function (array $option) {
         submitQuickAjax(postId, action, options);
     }
 
+    function resetCurrentMaterialHistoryEmbed() {
+        currentMaterialHistoryRequestId += 1;
+        if (currentMaterialHistoryFrame) {
+            currentMaterialHistoryFrame.onload = null;
+            currentMaterialHistoryFrame.onerror = null;
+            currentMaterialHistoryFrame.hidden = true;
+            currentMaterialHistoryFrame.style.height = '0px';
+            currentMaterialHistoryFrame.removeAttribute('src');
+        }
+        if (currentMaterialHistoryEmbed) {
+            currentMaterialHistoryEmbed.hidden = true;
+        }
+        if (currentMaterialHistoryLoading) {
+            currentMaterialHistoryLoading.hidden = false;
+            currentMaterialHistoryLoading.textContent = '正在加载前台同源历史记录...';
+        }
+        if (currentMaterialModalReadContent) {
+            currentMaterialModalReadContent.hidden = false;
+        }
+    }
+
+    function resizeCurrentMaterialHistoryFrame() {
+        var frameDocument;
+        var forecastList;
+        var forecastCards;
+        var listRect;
+        var lastCardRect;
+        var contentHeight;
+
+        if (!currentMaterialHistoryFrame || currentMaterialHistoryFrame.hidden) {
+            return false;
+        }
+        try {
+            frameDocument = currentMaterialHistoryFrame.contentDocument;
+            forecastList = frameDocument ? frameDocument.querySelector('.front-forecast-list') : null;
+            if (!forecastList) {
+                return false;
+            }
+            forecastCards = forecastList.querySelectorAll('.front-forecast-card');
+            if (!forecastCards.length) {
+                return false;
+            }
+            listRect = forecastList.getBoundingClientRect();
+            lastCardRect = forecastCards[forecastCards.length - 1].getBoundingClientRect();
+            contentHeight = Math.ceil(Math.max(1, lastCardRect.bottom - listRect.top));
+            currentMaterialHistoryFrame.style.height = Math.max(1, contentHeight) + 'px';
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function loadCurrentMaterialHistoryEmbed(button) {
+        var embedUrl;
+        var requestId;
+
+        resetCurrentMaterialHistoryEmbed();
+        if (!button || !currentMaterialHistoryEmbed || !currentMaterialHistoryFrame) {
+            return;
+        }
+        embedUrl = String(button.getAttribute('data-post-history-embed-url') || '').trim();
+        if (embedUrl === '') {
+            return;
+        }
+
+        requestId = ++currentMaterialHistoryRequestId;
+        currentMaterialHistoryEmbed.hidden = false;
+        currentMaterialHistoryFrame.onload = function () {
+            var frameDocument;
+            var forecastList;
+
+            if (requestId !== currentMaterialHistoryRequestId) {
+                return;
+            }
+            try {
+                frameDocument = currentMaterialHistoryFrame.contentDocument;
+                forecastList = frameDocument ? frameDocument.querySelector('.front-forecast-list') : null;
+                if (!forecastList || !forecastList.querySelector('.front-forecast-card')) {
+                    throw new Error('前台同源历史记录为空。');
+                }
+                currentMaterialHistoryFrame.hidden = false;
+                if (currentMaterialHistoryLoading) {
+                    currentMaterialHistoryLoading.hidden = true;
+                }
+                if (currentMaterialModalReadContent) {
+                    currentMaterialModalReadContent.hidden = true;
+                }
+                resizeCurrentMaterialHistoryFrame();
+                window.requestAnimationFrame(function () {
+                    window.requestAnimationFrame(resizeCurrentMaterialHistoryFrame);
+                });
+                window.setTimeout(function () {
+                    if (requestId !== currentMaterialHistoryRequestId) {
+                        return;
+                    }
+                    resizeCurrentMaterialHistoryFrame();
+                    if (currentMaterialModalScroll) {
+                        currentMaterialModalScroll.scrollTop = currentMaterialModalScroll.scrollHeight;
+                    }
+                }, 120);
+                window.setTimeout(function () {
+                    if (requestId === currentMaterialHistoryRequestId) {
+                        resizeCurrentMaterialHistoryFrame();
+                    }
+                }, 600);
+            } catch (error) {
+                currentMaterialHistoryEmbed.hidden = true;
+                currentMaterialHistoryFrame.hidden = true;
+                if (currentMaterialModalReadContent) {
+                    currentMaterialModalReadContent.hidden = false;
+                }
+            }
+        };
+        currentMaterialHistoryFrame.onerror = function () {
+            if (requestId !== currentMaterialHistoryRequestId) {
+                return;
+            }
+            currentMaterialHistoryEmbed.hidden = true;
+            currentMaterialHistoryFrame.hidden = true;
+            if (currentMaterialModalReadContent) {
+                currentMaterialModalReadContent.hidden = false;
+            }
+        };
+        currentMaterialHistoryFrame.src = embedUrl;
+    }
+
     function closeCurrentMaterialModal() {
         if (!currentMaterialModal) {
             return;
         }
 
+        resetCurrentMaterialHistoryEmbed();
         currentMaterialModal.hidden = true;
         currentMaterialModal.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('admin-posts-current-material-modal-open');
         currentMaterialActivePostId = '';
         currentMaterialActiveIssueTail = '';
         currentMaterialActiveSource = null;
+        currentMaterialActiveReadSource = null;
         currentMaterialActiveRow = null;
         currentMaterialActiveButton = null;
     }
 
-    function openCurrentMaterialModal(button) {
-        var contentLayout;
-        var sourceInput;
+    function parsePostMaintenanceRecord(lineText) {
+        var recordMatch;
+        var openResult;
+        var statusMatch;
+        var issueDigits;
         var issueTail;
-        var issueLabel;
-        var modalTitle;
 
-        if (!currentMaterialModal || !currentMaterialModalInput || !currentMaterialModalIssue) {
+        recordMatch = String(lineText || '').trim().match(/^(\d{1,6}[^:：]{0,12}[:：])\s*(\S+)\s+(\S+)\s+(.+?)\s+(开[:：])\s*(.+)$/);
+        if (!recordMatch) {
+            return null;
+        }
+
+        openResult = String(recordMatch[6] || '').trim();
+        statusMatch = openResult.match(/\s*(准|中|赢|發|发|错|錯)\s*$/);
+        if (statusMatch) {
+            openResult = openResult.slice(0, Math.max(0, openResult.length - statusMatch[0].length)).trim();
+        }
+        issueDigits = String(recordMatch[1] || '').replace(/\D+/g, '');
+        issueTail = issueDigits ? issueDigits.slice(-3).padStart(3, '0') : '';
+
+        return {
+            issue: String(recordMatch[1] || '').replace('：', ':'),
+            issueTail: issueTail,
+            author: String(recordMatch[2] || ''),
+            type: String(recordMatch[3] || ''),
+            prediction: String(recordMatch[4] || '').trim(),
+            openLabel: String(recordMatch[5] || '开:'),
+            openResult: openResult,
+            status: statusMatch ? String(statusMatch[1] || '').replace('錯', '错') : '',
+            drawItems: issueTail && Array.isArray(postMaintenanceDrawMap[issueTail])
+                ? postMaintenanceDrawMap[issueTail]
+                : []
+        };
+    }
+
+    function appendPostMaintenanceText(parent, className, textValue) {
+        var node = document.createElement('span');
+        node.className = className;
+        node.textContent = String(textValue || '');
+        parent.appendChild(node);
+        return node;
+    }
+
+    function normalizePostMaintenanceGroupNumber(value) {
+        var textValue = String(value || '').trim();
+        var digitValue;
+        var numberMap = {
+            '零': 0, '一': 1, '二': 2, '两': 2, '三': 3, '四': 4, '五': 5,
+            '六': 6, '七': 7, '八': 8, '九': 9,
+            '①': 1, '②': 2, '③': 3, '④': 4, '⑤': 5,
+            '⑥': 6, '⑦': 7, '⑧': 8, '⑨': 9, '⑩': 10
+        };
+        var tenParts;
+        var tens;
+        var ones;
+
+        if (/^\d+$/.test(textValue)) {
+            digitValue = parseInt(textValue, 10);
+            return Number.isFinite(digitValue) ? digitValue : 0;
+        }
+        if (Object.prototype.hasOwnProperty.call(numberMap, textValue)) {
+            return Number(numberMap[textValue] || 0);
+        }
+        if (textValue.indexOf('十') !== -1) {
+            tenParts = textValue.split('十');
+            tens = tenParts[0] === '' ? 1 : Number(numberMap[tenParts[0]] || 0);
+            ones = tenParts[1] === '' ? 0 : Number(numberMap[tenParts[1]] || 0);
+            return tens > 0 ? (tens * 10) + ones : 0;
+        }
+
+        return 0;
+    }
+
+    function parsePostMaintenanceGroupType(typeText) {
+        var typeMatch = String(typeText || '').match(/([零一二两三四五六七八九十①②③④⑤⑥⑦⑧⑨⑩\d]{1,4})\s*组\s*([二三23②③])\s*中\s*([二三23②③])/);
+        var groupCount;
+        var groupSize;
+        var hitSize;
+
+        if (!typeMatch) {
+            return null;
+        }
+        groupCount = normalizePostMaintenanceGroupNumber(typeMatch[1]);
+        groupSize = normalizePostMaintenanceGroupNumber(typeMatch[2]);
+        hitSize = normalizePostMaintenanceGroupNumber(typeMatch[3]);
+        if (groupCount <= 0 || groupSize <= 0 || groupSize !== hitSize) {
+            return null;
+        }
+
+        return {
+            groupCount: groupCount,
+            groupSize: groupSize,
+            hitSize: hitSize
+        };
+    }
+
+    function parsePostMaintenancePredictionRule(typeText) {
+        var compactType = String(typeText || '').replace(/\s+/g, '');
+        var groupType = parsePostMaintenanceGroupType(compactType);
+        var ruleMatch;
+
+        if (groupType) {
+            return {
+                mode: 'group',
+                groupCount: groupType.groupCount,
+                hitCount: groupType.hitSize
+            };
+        }
+        ruleMatch = compactType.match(/([零一二两三四五六七八九十①②③④⑤⑥⑦⑧⑨⑩\d]{1,4})码复(?:式|试)([二三23②③])中\2/);
+        if (ruleMatch) {
+            return {
+                mode: 'combo',
+                optionCount: normalizePostMaintenanceGroupNumber(ruleMatch[1]),
+                hitCount: normalizePostMaintenanceGroupNumber(ruleMatch[2])
+            };
+        }
+        ruleMatch = compactType.match(/平特([零一二两三四五六七八九十①②③④⑤⑥⑦⑧⑨⑩\d]{1,4})连/);
+        if (ruleMatch) {
+            return {
+                mode: 'flat-number',
+                hitCount: normalizePostMaintenanceGroupNumber(ruleMatch[1])
+            };
+        }
+        ruleMatch = compactType.match(/复(?:式|试)([零一二两三四五六七八九十①②③④⑤⑥⑦⑧⑨⑩\d]{1,4})连肖/);
+        if (ruleMatch) {
+            return {
+                mode: 'zodiac-chain',
+                hitCount: normalizePostMaintenanceGroupNumber(ruleMatch[1])
+            };
+        }
+
+        return null;
+    }
+
+    function postMaintenancePredictionValues(predictionText, mode) {
+        var values = [];
+        var matches;
+
+        if (mode === 'zodiac-chain') {
+            matches = String(predictionText || '').match(/[鼠牛虎兔龙蛇马羊猴鸡狗猪]/gu) || [];
+            matches.forEach(function (value) {
+                if (values.indexOf(value) === -1) {
+                    values.push(value);
+                }
+            });
+            return values;
+        }
+
+        matches = String(predictionText || '').match(/\d{1,2}/g) || [];
+        matches.forEach(function (value) {
+            var numberValue = parseInt(value, 10);
+            var normalizedValue;
+
+            if (numberValue < 1 || numberValue > 49) {
+                return;
+            }
+            normalizedValue = String(numberValue).padStart(2, '0');
+            if (values.indexOf(normalizedValue) === -1) {
+                values.push(normalizedValue);
+            }
+        });
+        return values;
+    }
+
+    function evaluatePostMaintenancePrediction(record) {
+        var rule = parsePostMaintenancePredictionRule(record && record.type ? record.type : '');
+        var drawItems = record && Array.isArray(record.drawItems) ? record.drawItems : [];
+        var regularNumbers;
+        var allNumbers;
+        var regularZodiacs;
+        var predictionValues;
+        var hitValues;
+        var groupLayout;
+        var groupResults = [];
+        var hitGroupCount = 0;
+        var isHit;
+        var recordStat = '';
+
+        if (drawItems.length !== 7) {
+            return null;
+        }
+        if (!rule) {
+            var fallbackStatus = String(record && record.status ? record.status : '');
+            var fallbackIsHit = /^(准|中|赢|發|发)$/.test(fallbackStatus);
+            var specialItem = drawItems[6] || {};
+            var specialNumber = parseInt(specialItem.number, 10);
+            var genericHitValues = [];
+            var elementGroups = {
+                '金': [2, 3, 10, 11, 24, 25, 32, 33, 40, 41],
+                '木': [6, 7, 14, 15, 22, 23, 36, 37, 44, 45],
+                '水': [12, 13, 20, 21, 28, 29, 42, 43],
+                '火': [1, 8, 9, 16, 17, 30, 31, 38, 39, 46, 47],
+                '土': [4, 5, 18, 19, 26, 27, 34, 35, 48, 49]
+            };
+
+            if (!fallbackStatus || specialNumber < 1 || specialNumber > 49) {
+                return null;
+            }
+            if (fallbackIsHit) {
+                genericHitValues.push(String(specialNumber).padStart(2, '0'));
+                genericHitValues.push(String(specialItem.zodiac || ''));
+                genericHitValues.push(String(Math.floor(specialNumber / 10)) + '头');
+                genericHitValues.push(String(specialNumber % 10) + '尾');
+                genericHitValues.push(specialNumber % 2 === 1 ? '单' : '双');
+                genericHitValues.push(specialNumber >= 25 ? '大' : '小');
+                if (String(specialItem.tone || '') === 'is-red') {
+                    genericHitValues.push('红', '红波');
+                } else if (String(specialItem.tone || '') === 'is-blue') {
+                    genericHitValues.push('蓝', '蓝波');
+                } else if (String(specialItem.tone || '') === 'is-green') {
+                    genericHitValues.push('绿', '绿波');
+                }
+                Object.keys(elementGroups).some(function (elementName) {
+                    if (elementGroups[elementName].indexOf(specialNumber) !== -1) {
+                        genericHitValues.push(elementName);
+                        return true;
+                    }
+                    return false;
+                });
+            }
+
+            return {
+                mode: 'generic',
+                isHit: fallbackIsHit,
+                status: fallbackStatus.replace('錯', '错'),
+                recordStat: '',
+                allowPartialHitDisplay: false,
+                hitValues: genericHitValues.filter(function (value) { return value !== ''; }),
+                groupResults: []
+            };
+        }
+        if (rule.hitCount <= 0) {
+            return null;
+        }
+        regularNumbers = drawItems.slice(0, 6).map(function (item) { return String(item.number || ''); });
+        allNumbers = drawItems.map(function (item) { return String(item.number || ''); });
+        regularZodiacs = drawItems.slice(0, 6).map(function (item) { return String(item.zodiac || ''); }).filter(function (value, index, values) {
+            return value !== '' && values.indexOf(value) === index;
+        });
+        predictionValues = postMaintenancePredictionValues(record.prediction, rule.mode);
+        hitValues = predictionValues.filter(function (value) {
+            if (rule.mode === 'flat-number') {
+                return allNumbers.indexOf(value) !== -1;
+            }
+            if (rule.mode === 'zodiac-chain') {
+                return regularZodiacs.indexOf(value) !== -1;
+            }
+            return regularNumbers.indexOf(value) !== -1;
+        });
+
+        if (rule.mode === 'group') {
+            groupLayout = parsePostMaintenancePredictionGroups(record.prediction, record.type);
+            if (!groupLayout) {
+                return null;
+            }
+            groupLayout.groups.forEach(function (group) {
+                var groupValues = group.values.map(function (value) {
+                    var numberValue = parseInt(value, 10);
+                    return numberValue >= 1 && numberValue <= 49 ? String(numberValue).padStart(2, '0') : '';
+                }).filter(function (value) { return value !== ''; });
+                var groupHitCount = groupValues.filter(function (value, index, values) {
+                    return values.indexOf(value) === index && regularNumbers.indexOf(value) !== -1;
+                }).length;
+
+                groupResults.push(groupValues.length === rule.hitCount && groupHitCount >= rule.hitCount);
+            });
+            hitGroupCount = groupResults.filter(function (value) { return value; }).length;
+            isHit = hitGroupCount > 0;
+            recordStat = '中' + String(Math.min(2, hitGroupCount)) + '组';
+        } else {
+            if (predictionValues.length < rule.hitCount) {
+                return null;
+            }
+            isHit = rule.mode === 'combo' ? hitValues.length >= rule.hitCount : hitValues.length > 0;
+            recordStat = '中' + String(hitValues.length) + '个';
+        }
+
+        return {
+            mode: rule.mode,
+            isHit: isHit,
+            status: isHit ? '准' : '错',
+            recordStat: recordStat,
+            allowPartialHitDisplay: rule.mode === 'group' || rule.mode === 'combo',
+            hitValues: hitValues,
+            groupResults: groupResults
+        };
+    }
+
+    function parsePostMaintenanceBracketGroups(predictionText) {
+        var groupPattern = /([【〖《｛〔『{])\s*([^【〖《｛〔『{】〗》｝〕』}]+?)\s*([】〗》｝〕』}])/gu;
+        var groups = [];
+        var groupMatch;
+        var leftoverText;
+
+        while ((groupMatch = groupPattern.exec(String(predictionText || ''))) !== null) {
+            groups.push({
+                left: String(groupMatch[1] || ''),
+                values: String(groupMatch[2] || '').trim().split(/\s+/).filter(function (value) {
+                    return value !== '';
+                }),
+                right: String(groupMatch[3] || '')
+            });
+        }
+        leftoverText = String(predictionText || '').replace(groupPattern, '').replace(/\s+/g, '').trim();
+        if (leftoverText !== '' || groups.length === 0) {
+            return null;
+        }
+
+        return groups;
+    }
+
+    function parsePostMaintenancePredictionGroups(predictionText, typeText) {
+        var groupType = parsePostMaintenanceGroupType(typeText);
+        var groups = parsePostMaintenanceBracketGroups(predictionText);
+
+        if (
+            !groupType
+            || !groups
+            || groups.length !== groupType.groupCount
+            || !groups.every(function (group) { return group.values.length === groupType.groupSize; })
+        ) {
+            return null;
+        }
+
+        return {
+            groupCount: groupType.groupCount,
+            groupSize: groupType.groupSize,
+            groups: groups
+        };
+    }
+
+    function formatCurrentMaterialEditorValue(value) {
+        var groups = parsePostMaintenanceBracketGroups(value);
+        var nonBreakingSpace = '\u00a0';
+        var formattedGroups;
+        var availableCharacters;
+        var longestGroupLength;
+        var groupsPerLine;
+        var rows = [];
+        var groupIndex;
+
+        if (!groups) {
+            return String(value || '');
+        }
+
+        formattedGroups = groups.map(function (group) {
+            return group.left
+                + nonBreakingSpace
+                + group.values.join(nonBreakingSpace)
+                + nonBreakingSpace
+                + group.right;
+        });
+        availableCharacters = window.innerWidth <= 640 ? 34 : 74;
+        longestGroupLength = groups.reduce(function (maxLength, group) {
+            return Math.max(maxLength, group.values.join(' ').length + 4);
+        }, 1);
+        groupsPerLine = Math.max(1, Math.min(
+            8,
+            Math.floor((availableCharacters + 1) / (longestGroupLength + 1))
+        ));
+        for (groupIndex = 0; groupIndex < formattedGroups.length; groupIndex += groupsPerLine) {
+            rows.push(formattedGroups.slice(groupIndex, groupIndex + groupsPerLine).join(' '));
+        }
+
+        return rows.join('\n');
+    }
+
+    function setCurrentMaterialEditorValue(value) {
+        var formattedValue = formatCurrentMaterialEditorValue(value);
+        var isGroupLayout = formattedValue.indexOf('\u00a0') !== -1;
+
+        if (currentMaterialModalInput) {
+            currentMaterialModalInput.value = formattedValue;
+            currentMaterialModalInput.classList.toggle('is-group-layout', isGroupLayout);
+            resizeCurrentMaterialEditor();
+        }
+        return formattedValue;
+    }
+
+    function resizeCurrentMaterialEditor() {
+        var computedStyle;
+        var minHeight;
+        var maxHeight;
+        var targetHeight;
+
+        if (!currentMaterialModalInput || !currentMaterialModal || currentMaterialModal.hidden) {
             return;
         }
 
-        contentLayout = button.parentNode && button.parentNode.parentNode ? button.parentNode.parentNode : null;
-        sourceInput = contentLayout ? contentLayout.querySelector('[data-post-current-material-source]') : null;
+        currentMaterialModalInput.style.height = 'auto';
+        computedStyle = window.getComputedStyle(currentMaterialModalInput);
+        minHeight = parseFloat(computedStyle.minHeight) || 0;
+        maxHeight = parseFloat(computedStyle.maxHeight) || Number.POSITIVE_INFINITY;
+        targetHeight = Math.max(minHeight, Math.min(maxHeight, currentMaterialModalInput.scrollHeight + 2));
+        currentMaterialModalInput.style.height = String(Math.ceil(targetHeight)) + 'px';
+        currentMaterialModalInput.style.overflowY = currentMaterialModalInput.scrollHeight > currentMaterialModalInput.clientHeight + 1
+            ? 'auto'
+            : 'hidden';
+    }
+
+    function renderPostMaintenancePrediction(parent, record, evaluation) {
+        var predictionText = String(record && record.prediction ? record.prediction : '资料等待更新中');
+        var predictionNode = document.createElement('div');
+        var groupLayout = parsePostMaintenancePredictionGroups(
+            predictionText,
+            String(record && record.type ? record.type : '')
+        );
+        var textParts;
+
+        predictionNode.className = 'admin-posts-maintenance-record-prediction';
+        if (evaluation) {
+            predictionNode.classList.add('is-evaluated', evaluation.isHit ? 'is-hit' : 'is-miss');
+        }
+        if (!groupLayout) {
+            if (!evaluation) {
+                predictionNode.textContent = predictionText;
+                parent.appendChild(predictionNode);
+                return predictionNode;
+            }
+            textParts = predictionText.split(/(\s+)/);
+            textParts.forEach(function (textPart) {
+                var normalizedValue = textPart;
+                var numberValue;
+                var tokenNode;
+                var tokenIsHit;
+                var tokenClass;
+
+                if (/^\s+$/.test(textPart) || textPart === '') {
+                    predictionNode.appendChild(document.createTextNode(textPart));
+                    return;
+                }
+                if (evaluation.mode === 'generic') {
+                    if (/^\d{1,2}$/.test(textPart)) {
+                        numberValue = parseInt(textPart, 10);
+                        normalizedValue = numberValue >= 1 && numberValue <= 49 ? String(numberValue).padStart(2, '0') : '';
+                    } else if (!/^[鼠牛虎兔龙蛇马羊猴鸡狗猪]$|^[0-4]头$|^[0-9]尾$|^(?:红|蓝|绿)(?:波)?$|^[金木水火土]$|^[单双大小]$/.test(textPart)) {
+                        normalizedValue = '';
+                    }
+                } else if (evaluation.mode !== 'zodiac-chain') {
+                    numberValue = /^\d{1,2}$/.test(textPart) ? parseInt(textPart, 10) : 0;
+                    normalizedValue = numberValue >= 1 && numberValue <= 49 ? String(numberValue).padStart(2, '0') : '';
+                } else if (!/^[鼠牛虎兔龙蛇马羊猴鸡狗猪]$/.test(textPart)) {
+                    normalizedValue = '';
+                }
+                if (normalizedValue === '') {
+                    predictionNode.appendChild(document.createTextNode(textPart));
+                    return;
+                }
+                tokenIsHit = evaluation.hitValues.indexOf(normalizedValue) !== -1;
+                tokenClass = 'admin-posts-maintenance-prediction-token';
+                if (tokenIsHit) {
+                    tokenClass += ' is-hit';
+                } else if (!evaluation.isHit && !evaluation.allowPartialHitDisplay) {
+                    tokenClass += ' is-miss';
+                }
+                tokenNode = appendPostMaintenanceText(predictionNode, tokenClass, textPart);
+                if (tokenIsHit) {
+                    tokenNode.setAttribute('aria-label', textPart + ' 命中');
+                }
+            });
+            parent.appendChild(predictionNode);
+            return predictionNode;
+        }
+
+        predictionNode.classList.add('is-group-layout', 'is-size-' + String(groupLayout.groupSize));
+        predictionNode.setAttribute('data-prediction-group-count', String(groupLayout.groupCount));
+        predictionNode.setAttribute('data-prediction-group-size', String(groupLayout.groupSize));
+        groupLayout.groups.forEach(function (group, groupIndex) {
+            var groupNode = document.createElement('span');
+            var valuesNode = document.createElement('span');
+
+            groupNode.className = 'admin-posts-maintenance-prediction-group';
+            if (evaluation && evaluation.groupResults[groupIndex]) {
+                groupNode.classList.add('is-hit');
+            }
+            appendPostMaintenanceText(groupNode, 'admin-posts-maintenance-prediction-bracket', group.left);
+            valuesNode.className = 'admin-posts-maintenance-prediction-values';
+            group.values.forEach(function (value, valueIndex) {
+                var normalizedValue = String(parseInt(value, 10)).padStart(2, '0');
+                var tokenClass = 'admin-posts-maintenance-prediction-token';
+
+                if (valueIndex > 0) {
+                    valuesNode.appendChild(document.createTextNode(' '));
+                }
+                if (evaluation) {
+                    if (evaluation.hitValues.indexOf(normalizedValue) !== -1) {
+                        tokenClass += ' is-hit';
+                    } else if (!evaluation.isHit && !evaluation.allowPartialHitDisplay) {
+                        tokenClass += ' is-miss';
+                    }
+                }
+                appendPostMaintenanceText(valuesNode, tokenClass, value);
+            });
+            groupNode.appendChild(valuesNode);
+            appendPostMaintenanceText(groupNode, 'admin-posts-maintenance-prediction-bracket', group.right);
+            predictionNode.appendChild(groupNode);
+        });
+        parent.appendChild(predictionNode);
+        return predictionNode;
+    }
+
+    function renderPostMaintenanceReadContent(contentText) {
+        var lines;
+        var renderedCount = 0;
+
+        if (!currentMaterialModalReadContent) {
+            return;
+        }
+
+        currentMaterialModalReadContent.innerHTML = '';
+        lines = String(contentText || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').split(/\n+/).map(function (lineText) {
+            return String(lineText || '').replace(/\s+/g, ' ').trim();
+        }).filter(function (lineText) {
+            return lineText !== '';
+        });
+        lines.forEach(function (lineText) {
+            var lineIssueMatch = String(lineText || '').match(/^\s*(\d{1,6})期/);
+            var lineIssueTail = lineIssueMatch ? String(lineIssueMatch[1] || '').slice(-3).padStart(3, '0') : '';
+            var record = parsePostMaintenanceRecord(lineText);
+            var card;
+            var head;
+            var body;
+            var openNode;
+            var statusClass;
+            var drawRecord;
+            var drawItems;
+            var evaluation;
+            var resolvedStatus;
+
+            if (
+                currentMaterialActiveIssueTail
+                && lineIssueTail === String(currentMaterialActiveIssueTail).padStart(3, '0')
+            ) {
+                return;
+            }
+            if (!record) {
+                appendPostMaintenanceText(currentMaterialModalReadContent, 'admin-posts-maintenance-read-plain', lineText);
+                renderedCount += 1;
+                return;
+            }
+            evaluation = evaluatePostMaintenancePrediction(record);
+            resolvedStatus = evaluation && evaluation.recordStat ? evaluation.recordStat : (evaluation ? evaluation.status : record.status);
+
+            card = document.createElement('article');
+            card.className = 'admin-posts-maintenance-record';
+            head = document.createElement('header');
+            head.className = 'admin-posts-maintenance-record-head';
+            appendPostMaintenanceText(head, 'admin-posts-maintenance-record-issue', record.issue);
+            appendPostMaintenanceText(head, 'admin-posts-maintenance-record-author', record.author);
+            appendPostMaintenanceText(head, 'admin-posts-maintenance-record-type', record.type);
+            openNode = document.createElement('span');
+            openNode.className = 'admin-posts-maintenance-record-open';
+            appendPostMaintenanceText(openNode, 'admin-posts-maintenance-record-open-label', record.openLabel);
+            appendPostMaintenanceText(openNode, 'admin-posts-maintenance-record-open-value', record.openResult || '--');
+            head.appendChild(openNode);
+            if (resolvedStatus) {
+                statusClass = evaluation && evaluation.recordStat
+                    ? ' is-stat'
+                    : (/^(准|中|赢|發|发)$/.test(resolvedStatus) ? ' is-hit' : ' is-miss');
+                appendPostMaintenanceText(head, 'admin-posts-maintenance-record-status' + statusClass, resolvedStatus);
+            }
+            card.appendChild(head);
+
+            body = document.createElement('div');
+            body.className = 'admin-posts-maintenance-record-body';
+            renderPostMaintenancePrediction(body, record, evaluation);
+            if (record.drawItems.length === 7) {
+                drawRecord = document.createElement('div');
+                drawRecord.className = 'admin-posts-maintenance-draw-record';
+                drawRecord.setAttribute('aria-label', '开奖记录');
+                appendPostMaintenanceText(drawRecord, 'admin-posts-maintenance-draw-label', '开奖记录');
+                drawItems = document.createElement('div');
+                drawItems.className = 'admin-posts-maintenance-draw-items';
+                record.drawItems.forEach(function (drawItem, drawIndex) {
+                    var itemNode;
+
+                    if (drawIndex === 6) {
+                        appendPostMaintenanceText(drawItems, 'admin-posts-maintenance-draw-plus', '+');
+                    }
+                    itemNode = document.createElement('span');
+                    itemNode.className = 'admin-posts-maintenance-draw-item ' + String(drawItem.tone || '');
+                    appendPostMaintenanceText(itemNode, 'admin-posts-maintenance-draw-num', drawItem.number || '--');
+                    appendPostMaintenanceText(itemNode, 'admin-posts-maintenance-draw-zodiac', drawItem.zodiac || '--');
+                    drawItems.appendChild(itemNode);
+                });
+                drawRecord.appendChild(drawItems);
+                body.appendChild(drawRecord);
+            }
+            card.appendChild(body);
+            currentMaterialModalReadContent.appendChild(card);
+            renderedCount += 1;
+        });
+        if (renderedCount === 0) {
+            appendPostMaintenanceText(currentMaterialModalReadContent, 'admin-posts-maintenance-read-plain', '暂无历史记录。');
+        }
+    }
+
+    function openCurrentMaterialModal(button) {
+        var row;
+        var sourceInput;
+        var readSourceInput;
+        var modalTitleSource;
+        var issueTail;
+        var issueLabel;
+        var modalTitle;
+        var titleText;
+        var modalMeta;
+        var modalMetaGroup;
+        var modalTime;
+        var modalTimeGroup;
+        var modalTimeNode;
+        var currentDisplayLine;
+        var currentRecord;
+        var deleteAction;
+        var deleteLabel;
+
+        if (!currentMaterialModal || !currentMaterialModalInput || !currentMaterialModalReadContent) {
+            return;
+        }
+
+        row = button.closest('tr');
+        sourceInput = row ? row.querySelector('[data-post-current-material-source]') : null;
+        readSourceInput = row ? row.querySelector('[data-post-maintenance-read-source]') : null;
+        modalTitleSource = row ? row.querySelector('[data-post-current-modal-title-source]') : null;
         issueTail = String(button.getAttribute('data-post-current-issue-tail') || '').replace(/\D+/g, '');
         issueLabel = button.getAttribute('data-post-current-issue-label') || '';
         modalTitle = button.getAttribute('data-post-current-modal-title') || '';
+        titleText = button.getAttribute('data-post-current-title-text') || '';
+        modalMeta = button.getAttribute('data-post-current-modal-meta') || '';
+        modalTime = button.getAttribute('data-post-current-modal-time') || '';
+        currentDisplayLine = button.getAttribute('data-post-current-display-line') || '';
+        currentRecord = parsePostMaintenanceRecord(currentDisplayLine);
+        deleteAction = button.getAttribute('data-post-delete-action') || 'delete';
+        deleteLabel = button.getAttribute('data-post-delete-label') || '删除';
         if (!issueTail) {
             issueTail = String(issueLabel || modalTitle || '').replace(/\D+/g, '');
         }
@@ -4072,21 +4996,160 @@ $generatorTopBadgeClass = static function (array $option) {
         currentMaterialActivePostId = button.getAttribute('data-post-id') || '';
         currentMaterialActiveIssueTail = issueTail;
         currentMaterialActiveSource = sourceInput;
-        currentMaterialActiveRow = button.closest('tr');
+        currentMaterialActiveReadSource = readSourceInput;
+        currentMaterialActiveRow = row;
         currentMaterialActiveButton = button;
-        currentMaterialModalIssue.textContent = modalTitle
-            || issueLabel
-            || (issueTail + '期');
-        currentMaterialModalInput.value = sourceInput.value || '';
+        if (currentMaterialModalTitle) {
+            while (currentMaterialModalTitle.firstChild) {
+                currentMaterialModalTitle.removeChild(currentMaterialModalTitle.firstChild);
+            }
+            if (modalTitleSource && modalTitleSource.content) {
+                Array.prototype.forEach.call(modalTitleSource.content.childNodes, function (childNode) {
+                    currentMaterialModalTitle.appendChild(childNode.cloneNode(true));
+                });
+            }
+            if (!String(currentMaterialModalTitle.textContent || '').trim()) {
+                currentMaterialModalTitle.textContent = modalTitle || '帖子维护';
+            }
+        }
+        if (currentMaterialModalMeta) {
+            currentMaterialModalMeta.textContent = '';
+            modalMetaGroup = document.createElement('span');
+            modalMetaGroup.className = 'admin-posts-current-material-section-meta-group';
+            modalMetaGroup.textContent = modalMeta;
+            currentMaterialModalMeta.appendChild(modalMetaGroup);
+            if (modalTime && modalTime !== '-') {
+                modalTimeGroup = document.createElement('span');
+                modalTimeGroup.className = 'admin-posts-current-material-section-time-group';
+                modalTimeGroup.appendChild(document.createTextNode(' · '));
+
+                modalTimeNode = document.createElement('time');
+                modalTimeNode.className = 'admin-posts-current-material-section-time';
+                modalTimeNode.textContent = modalTime;
+                modalTimeGroup.appendChild(modalTimeNode);
+                currentMaterialModalMeta.appendChild(modalTimeGroup);
+            }
+        }
+        if (currentMaterialModalRecordIssue) {
+            currentMaterialModalRecordIssue.textContent = currentRecord && currentRecord.issue
+                ? currentRecord.issue
+                : String(issueLabel || '').replace('：', ':') + (issueLabel ? ':' : '');
+        }
+        if (currentMaterialModalRecordTitle) {
+            currentMaterialModalRecordTitle.textContent = currentRecord && currentRecord.author
+                ? currentRecord.author
+                : titleText;
+        }
+        if (currentMaterialModalRecordType) {
+            currentMaterialModalRecordType.textContent = currentRecord && currentRecord.type ? currentRecord.type : '';
+            currentMaterialModalRecordType.hidden = currentMaterialModalRecordType.textContent === '';
+        }
+        renderPostMaintenanceReadContent(readSourceInput && String(readSourceInput.value || '').trim()
+            ? String(readSourceInput.value || '').trim()
+            : '暂无正文内容。');
+        setCurrentMaterialEditorValue(sourceInput.value || '');
         if (currentMaterialModalPrice) {
             currentMaterialModalPrice.value = String(Math.max(0, parseInt(button.getAttribute('data-post-current-price') || '0', 10) || 0));
+        }
+        currentMaterialLoadedContent = String(currentMaterialModalInput.value || '');
+        currentMaterialLoadedPrice = currentMaterialModalPrice ? String(currentMaterialModalPrice.value || '0') : '0';
+        if (currentMaterialModalDelete) {
+            currentMaterialModalDelete.textContent = deleteLabel;
+            currentMaterialModalDelete.setAttribute('data-post-maintenance-delete-action', deleteAction);
         }
         currentMaterialModal.hidden = false;
         currentMaterialModal.setAttribute('aria-hidden', 'false');
         document.body.classList.add('admin-posts-current-material-modal-open');
+        loadCurrentMaterialHistoryEmbed(button);
+        resizeCurrentMaterialEditor();
+        refreshCurrentMaterialModal();
         window.setTimeout(function () {
-            currentMaterialModalInput.focus();
+            if (currentMaterialModalScroll) {
+                currentMaterialModalScroll.scrollTop = currentMaterialModalScroll.scrollHeight;
+                currentMaterialModalScroll.focus({ preventScroll: true });
+            }
         }, 0);
+    }
+
+    function refreshCurrentMaterialModal() {
+        var requestId;
+        var postId;
+        var issueTail;
+        var formData;
+
+        if (!quickForm || !window.fetch || !currentMaterialActivePostId || !currentMaterialModal || currentMaterialModal.hidden) {
+            return;
+        }
+
+        requestId = ++currentMaterialSyncRequestId;
+        postId = String(currentMaterialActivePostId);
+        issueTail = String(currentMaterialActiveIssueTail || '');
+        formData = new window.FormData(quickForm);
+        formData.set('_response_format', 'json');
+        formData.set('_admin_action', 'post_quick_action');
+        formData.set('target_post_id', postId);
+        formData.set('quick_action', 'get_current_issue_material');
+        formData.set('value', issueTail);
+        formData.delete('content');
+        formData.delete('price');
+
+        window.fetch(quickForm.getAttribute('action') || window.location.href, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            },
+            body: formData
+        }).then(function (response) {
+            return response.text().then(function (responseText) {
+                var payload;
+                var data;
+                var latestContent;
+                var latestPrice;
+                var latestReadContent;
+                var latestIsWaiting;
+
+                try {
+                    payload = JSON.parse(responseText || '{}');
+                } catch (parseError) {
+                    throw new Error('同步当前期数资料失败，服务器返回格式异常。');
+                }
+                if (!response.ok || !payload.success) {
+                    throw new Error(payload.message || '同步当前期数资料失败。');
+                }
+                if (requestId !== currentMaterialSyncRequestId || postId !== String(currentMaterialActivePostId || '')) {
+                    return;
+                }
+
+                data = payload.data || {};
+                latestContent = String(data.content || '');
+                latestPrice = String(Math.max(0, parseInt(data.price || '0', 10) || 0));
+                latestReadContent = String(data.full_content || '').trim();
+                latestIsWaiting = data.is_waiting === true || data.is_waiting === 1 || data.is_waiting === '1';
+                if (currentMaterialModalInput && String(currentMaterialModalInput.value || '') === currentMaterialLoadedContent) {
+                    setCurrentMaterialEditorValue(latestContent);
+                }
+                if (currentMaterialModalPrice && String(currentMaterialModalPrice.value || '') === currentMaterialLoadedPrice) {
+                    currentMaterialModalPrice.value = latestPrice;
+                }
+                currentMaterialLoadedContent = formatCurrentMaterialEditorValue(latestContent);
+                currentMaterialLoadedPrice = latestPrice;
+                if (currentMaterialActiveSource) {
+                    currentMaterialActiveSource.value = latestContent;
+                }
+                if (currentMaterialActiveReadSource && latestReadContent !== '') {
+                    currentMaterialActiveReadSource.value = latestReadContent;
+                    renderPostMaintenanceReadContent(latestReadContent);
+                }
+                if (currentMaterialActiveButton) {
+                    currentMaterialActiveButton.setAttribute('data-post-current-price', latestPrice);
+                }
+                updateCurrentMaterialStatus(latestIsWaiting);
+            });
+        }).catch(function (error) {
+            showPostLockMessage(error && error.message ? error.message : '同步当前期数资料失败。', 'error');
+        });
     }
 
     function scrollContentRecordsToBottom() {
@@ -4140,9 +5203,20 @@ $generatorTopBadgeClass = static function (array $option) {
     }
 
     bulkForm.querySelectorAll('[data-post-current-material-open]').forEach(function (button) {
-        button.addEventListener('click', function () {
+        button.addEventListener('click', function (event) {
+            event.preventDefault();
             openCurrentMaterialModal(button);
         });
+    });
+
+    window.addEventListener('focus', function () {
+        refreshCurrentMaterialModal();
+    });
+    window.addEventListener('resize', resizeCurrentMaterialEditor);
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) {
+            refreshCurrentMaterialModal();
+        }
     });
 
     if (currentMaterialModal) {
@@ -4172,9 +5246,31 @@ $generatorTopBadgeClass = static function (array $option) {
             start = typeof currentMaterialModalInput.selectionStart === 'number' ? currentMaterialModalInput.selectionStart : currentValue.length;
             end = typeof currentMaterialModalInput.selectionEnd === 'number' ? currentMaterialModalInput.selectionEnd : start;
             currentMaterialModalInput.value = currentValue.slice(0, start) + leftText + currentValue.slice(start, end) + rightText + currentValue.slice(end);
+            resizeCurrentMaterialEditor();
             currentMaterialModalInput.focus();
             currentMaterialModalInput.selectionStart = start + leftText.length;
             currentMaterialModalInput.selectionEnd = end + leftText.length;
+        });
+    }
+
+    if (currentMaterialModalInput) {
+        currentMaterialModalInput.addEventListener('input', resizeCurrentMaterialEditor);
+    }
+
+    if (currentMaterialModalDelete) {
+        currentMaterialModalDelete.addEventListener('click', function () {
+            var deleteAction = currentMaterialModalDelete.getAttribute('data-post-maintenance-delete-action') || 'delete';
+            var confirmMessage = deleteAction === 'restore'
+                ? '确认恢复这条帖子到前台列表吗？'
+                : '确认将这条帖子移入回收站吗？';
+
+            if (!currentMaterialActivePostId) {
+                return;
+            }
+            submitQuick(currentMaterialActivePostId, deleteAction, {
+                sourceButton: currentMaterialModalDelete,
+                confirmMessage: confirmMessage
+            });
         });
     }
 
@@ -4280,11 +5376,49 @@ $generatorTopBadgeClass = static function (array $option) {
         return contentLines;
     }
 
-    function updateCurrentMaterialRow(content, price) {
-        var contentMain;
+    function updateCurrentMaterialPrice(price) {
         var saleBadge;
         var priceChip;
         var priceValue;
+
+        if (!currentMaterialActiveRow) {
+            return;
+        }
+
+        priceValue = Math.max(0, parseInt(price || '0', 10) || 0);
+        saleBadge = currentMaterialActiveRow.querySelector('.admin-posts-classic-sale-badge');
+        if (saleBadge) {
+            saleBadge.textContent = priceValue > 0 ? '出售' : '普通';
+            saleBadge.classList.toggle('is-sale', priceValue > 0);
+            saleBadge.classList.toggle('is-normal', priceValue <= 0);
+        }
+        priceChip = currentMaterialActiveRow.querySelector('.is-price-param strong');
+        if (priceChip) {
+            priceChip.textContent = String(priceValue);
+        }
+        if (currentMaterialActiveButton) {
+            currentMaterialActiveButton.setAttribute('data-post-current-price', String(priceValue));
+        }
+    }
+
+    function updateCurrentMaterialStatus(isWaiting) {
+        var statusNode;
+
+        if (!currentMaterialActiveRow) {
+            return;
+        }
+
+        statusNode = currentMaterialActiveRow.querySelector('[data-post-current-update-status]');
+        if (!statusNode) {
+            return;
+        }
+        statusNode.textContent = isWaiting ? '待更新' : '已更新';
+        statusNode.classList.toggle('is-danger', !!isWaiting);
+        statusNode.classList.toggle('is-color', !isWaiting);
+    }
+
+    function updateCurrentMaterialRow(content, price) {
+        var contentMain;
         var lines;
 
         if (!currentMaterialActiveRow) {
@@ -4307,51 +5441,98 @@ $generatorTopBadgeClass = static function (array $option) {
             contentMain.scrollTop = contentMain.scrollHeight;
         }
 
-        priceValue = Math.max(0, parseInt(price || '0', 10) || 0);
-        saleBadge = currentMaterialActiveRow.querySelector('.admin-posts-classic-sale-badge');
-        if (saleBadge) {
-            saleBadge.textContent = priceValue > 0 ? '出售' : '普通';
-            saleBadge.classList.toggle('is-sale', priceValue > 0);
-            saleBadge.classList.toggle('is-normal', priceValue <= 0);
+        updateCurrentMaterialPrice(price);
+    }
+
+    function updateCurrentMaterialReadPreview(content) {
+        var readLines;
+        var replacementLines;
+        var issueNumber;
+        var issuePattern;
+        var replaceIndex = -1;
+
+        if (!currentMaterialActiveReadSource) {
+            return;
         }
-        priceChip = currentMaterialActiveRow.querySelector('.is-price-param strong');
-        if (priceChip) {
-            priceChip.textContent = String(priceValue);
+
+        readLines = String(currentMaterialActiveReadSource.value || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').split(/\n+/).filter(function (lineText) {
+            return String(lineText || '').trim() !== '';
+        });
+        replacementLines = buildCurrentMaterialDisplayLines(content);
+        issueNumber = String(parseInt(currentMaterialActiveIssueTail || '0', 10) || '');
+        issuePattern = issueNumber ? new RegExp('^\\s*0*' + issueNumber + '期') : null;
+
+        if (issuePattern) {
+            readLines.some(function (lineText, index) {
+                if (!issuePattern.test(String(lineText || ''))) {
+                    return false;
+                }
+                replaceIndex = index;
+                return true;
+            });
         }
-        if (currentMaterialActiveButton) {
-            currentMaterialActiveButton.setAttribute('data-post-current-price', String(priceValue));
+        if (replaceIndex >= 0) {
+            readLines.splice.apply(readLines, [replaceIndex, 1].concat(replacementLines));
+        } else {
+            readLines = readLines.concat(replacementLines);
+        }
+
+        currentMaterialActiveReadSource.value = readLines.join('\n');
+        if (currentMaterialModalReadContent) {
+            renderPostMaintenanceReadContent(currentMaterialActiveReadSource.value || '暂无正文内容。');
         }
     }
 
-    function submitCurrentMaterialAjax() {
+    function submitCurrentMaterialAjax(action, sourceButton) {
         var originalText;
         var formData;
         var contentValue;
         var priceValue;
+        var persistedPriceValue;
+        var saveContent = action === 'save_current_issue_content';
+        var savePrice = action === 'save_current_issue_price';
+
+        if (!saveContent && !savePrice) {
+            return;
+        }
+
+        contentValue = currentMaterialModalInput
+            ? String(currentMaterialModalInput.value || '').replace(/\u00a0/g, ' ')
+            : '';
+        priceValue = currentMaterialModalPrice ? String(currentMaterialModalPrice.value || '0') : '0';
+        if (saveContent && contentValue.trim() === '') {
+            showPostLockMessage('当前期数资料内容不能为空。', 'error');
+            currentMaterialModalInput.focus();
+            return;
+        }
 
         if (!quickForm || !window.fetch) {
-            submitQuick(currentMaterialActivePostId, 'save_current_issue_material', {
+            submitQuick(currentMaterialActivePostId, action, {
                 value: currentMaterialActiveIssueTail,
-                content: currentMaterialModalInput.value || '',
-                price: currentMaterialModalPrice ? currentMaterialModalPrice.value || '0' : '0'
+                content: saveContent ? contentValue : '',
+                price: savePrice ? priceValue : '',
+                sourceButton: sourceButton
             });
             return;
         }
 
-        contentValue = currentMaterialModalInput.value || '';
-        priceValue = currentMaterialModalPrice ? currentMaterialModalPrice.value || '0' : '0';
-        originalText = currentMaterialModalSave.textContent || '保存';
-        currentMaterialModalSave.disabled = true;
-        currentMaterialModalSave.textContent = '保存中...';
+        originalText = sourceButton.textContent || (saveContent ? '保存资料' : '保存积分');
+        sourceButton.disabled = true;
+        sourceButton.textContent = '保存中...';
 
         formData = new window.FormData(quickForm);
         formData.set('_response_format', 'json');
         formData.set('_admin_action', 'post_quick_action');
         formData.set('target_post_id', String(currentMaterialActivePostId || ''));
-        formData.set('quick_action', 'save_current_issue_material');
+        formData.set('quick_action', action);
         formData.set('value', String(currentMaterialActiveIssueTail || ''));
-        formData.set('content', contentValue);
-        formData.set('price', priceValue);
+        if (saveContent) {
+            formData.set('content', contentValue);
+            formData.delete('price');
+        } else {
+            formData.set('price', priceValue);
+            formData.delete('content');
+        }
 
         window.fetch(quickForm.getAttribute('action') || window.location.href, {
             method: 'POST',
@@ -4371,43 +5552,112 @@ $generatorTopBadgeClass = static function (array $option) {
                     if (response.status === 401 || /^\s*</.test(responseText || '')) {
                         throw new Error('后台登录状态已失效，请重新登录后台后再保存。');
                     }
-                    throw new Error('保存当前期数资料失败，服务器返回格式异常。');
+                    throw new Error((saveContent ? '保存当前期数资料' : '保存出售积分') + '失败，服务器返回格式异常。');
                 }
 
                 if (!response.ok || !payload.success) {
-                    throw new Error(payload.message || '保存当前期数资料失败。');
+                    throw new Error(payload.message || (saveContent ? '保存当前期数资料失败。' : '保存出售积分失败。'));
                 }
 
-                if (currentMaterialActiveSource) {
-                    currentMaterialActiveSource.value = contentValue;
+                if (saveContent) {
+                    if (currentMaterialActiveSource) {
+                        currentMaterialActiveSource.value = contentValue;
+                    }
+                    currentMaterialLoadedContent = formatCurrentMaterialEditorValue(contentValue);
+                    updateCurrentMaterialStatus(false);
+                    updateCurrentMaterialReadPreview(contentValue);
+                    persistedPriceValue = currentMaterialActiveButton
+                        ? currentMaterialActiveButton.getAttribute('data-post-current-price') || '0'
+                        : '0';
+                    updateCurrentMaterialRow(contentValue, persistedPriceValue);
+                } else {
+                    currentMaterialLoadedPrice = String(Math.max(0, parseInt(priceValue || '0', 10) || 0));
+                    updateCurrentMaterialPrice(priceValue);
                 }
-                updateCurrentMaterialRow(contentValue, priceValue);
-                closeCurrentMaterialModal();
-                showPostLockMessage(payload.message || '当前期数资料已保存。', 'success');
+                showPostLockMessage(
+                    payload.message || (saveContent ? '当前期数资料内容已保存。' : '出售积分已保存。'),
+                    'success'
+                );
             });
         }).catch(function (error) {
-            showPostLockMessage(error && error.message ? error.message : '保存当前期数资料失败。', 'error');
+            showPostLockMessage(
+                error && error.message
+                    ? error.message
+                    : (saveContent ? '保存当前期数资料失败。' : '保存出售积分失败。'),
+                'error'
+            );
         }).then(function () {
-            currentMaterialModalSave.disabled = false;
-            currentMaterialModalSave.textContent = originalText;
+            sourceButton.disabled = false;
+            sourceButton.textContent = originalText;
         });
     }
 
-    if (currentMaterialModalSave) {
-        currentMaterialModalSave.addEventListener('click', function () {
+    function confirmCurrentMaterialSave(action, sourceButton, confirmMessage) {
+        if (!currentMaterialActivePostId || !currentMaterialActiveIssueTail) {
+            showPostLockMessage('当前期数资料不存在。', 'error');
+            return;
+        }
+        if (!window.AppUI || typeof window.AppUI.confirm !== 'function') {
+            submitCurrentMaterialAjax(action, sourceButton);
+            return;
+        }
+
+        window.AppUI.confirm(confirmMessage, '确认操作', '确定', '取消').then(function (confirmed) {
+            if (confirmed) {
+                submitCurrentMaterialAjax(action, sourceButton);
+            }
+        });
+    }
+
+    if (currentMaterialModalContentSave) {
+        currentMaterialModalContentSave.addEventListener('click', function () {
             if (!currentMaterialActivePostId || !currentMaterialActiveIssueTail || !currentMaterialModalInput) {
                 showPostLockMessage('当前期数资料内容不存在。', 'error');
                 return;
             }
-            if (!window.AppUI || typeof window.AppUI.confirm !== 'function') {
-                submitCurrentMaterialAjax();
+            confirmCurrentMaterialSave(
+                'save_current_issue_content',
+                currentMaterialModalContentSave,
+                '确认只保存当前期资料内容吗？'
+            );
+        });
+    }
+
+    if (currentMaterialModalPriceSave) {
+        currentMaterialModalPriceSave.addEventListener('click', function () {
+            if (!currentMaterialModalPrice) {
+                showPostLockMessage('出售积分设置不存在。', 'error');
                 return;
             }
+            confirmCurrentMaterialSave(
+                'save_current_issue_price',
+                currentMaterialModalPriceSave,
+                '确认只保存出售积分吗？'
+            );
+        });
+    }
 
-            window.AppUI.confirm('确认保存当前期数资料内容吗？', '确认操作', '确定', '取消').then(function (confirmed) {
-                if (confirmed) {
-                    submitCurrentMaterialAjax();
+    if (currentMaterialModalWaitingSave) {
+        currentMaterialModalWaitingSave.addEventListener('click', function () {
+            var waitingDisplayContentValue = currentMaterialModalWaitingDisplay
+                ? String(currentMaterialModalWaitingDisplay.value || '').trim()
+                : '';
+
+            if (!currentMaterialActivePostId) {
+                showPostLockMessage('当前帖子不存在。', 'error');
+                return;
+            }
+            if (waitingDisplayContentValue === '') {
+                showPostLockMessage('资料内容更新状态正文不能为空。', 'error');
+                if (currentMaterialModalWaitingDisplay) {
+                    currentMaterialModalWaitingDisplay.focus();
                 }
+                return;
+            }
+            submitQuick(currentMaterialActivePostId, 'save_waiting_display_content', {
+                waitingDisplayContent: waitingDisplayContentValue,
+                sourceButton: currentMaterialModalWaitingSave,
+                confirmMessage: '确认保存当前地区的资料更新状态正文吗？'
             });
         });
     }

@@ -709,9 +709,53 @@ if (is_post() && (string) input('_admin_form', '') === 'page') {
                     if (!in_array($postRedirectView, array('manage', 'compose', 'published', 'recycle'), true)) {
                         $postRedirectView = 'manage';
                     }
+                    $postQuickAction = (string) input('quick_action', '');
+                    if ($postQuickAction === 'get_current_issue_material') {
+                        $postId = (int) input('target_post_id', 0);
+                        $post = app()->admins()->managedForumPostById($postId);
+                        if (!$post) {
+                            throw new RuntimeException('帖子不存在。');
+                        }
+                        $postRegion = (string) ($post['region'] ?? 'macau');
+                        if ($postRegion !== 'hongkong') {
+                            $postRegion = 'macau';
+                        }
+                        if ($postRegion !== $postRedirectRegion) {
+                            throw new RuntimeException('帖子地区与当前后台地区不一致。');
+                        }
+                        $currentContentSource = (string) ($post['full_content'] ?? '');
+                        if ($currentContentSource === '') {
+                            $currentContentSource = (string) ($post['manage_manual_material'] ?? '');
+                        }
+                        if ($currentContentSource === '') {
+                            $currentContentSource = (string) ($post['manage_auto_update_content'] ?? '');
+                        }
+                        if ($currentContentSource === '') {
+                            $currentContentSource = (string) ($post['excerpt'] ?? '');
+                        }
+                        $currentIssuePayload = app()->posts()->currentIssueEditorPayload(
+                            array_merge($post, array('full_content' => $currentContentSource)),
+                            (string) input('value', '')
+                        );
+                        json_response(array(
+                            'success' => true,
+                            'message' => '',
+                            'post_id' => $postId,
+                            'data' => array(
+                                'id' => $postId,
+                                'region' => $postRegion,
+                                'issue_text' => (string) ($currentIssuePayload['issue_text'] ?? ''),
+                                'content' => (string) ($currentIssuePayload['content'] ?? ''),
+                                'current_record' => (string) ($currentIssuePayload['current_record'] ?? ''),
+                                'is_waiting' => !empty($currentIssuePayload['is_waiting']),
+                                'full_content' => $currentContentSource,
+                                'price' => max(0, (int) ($post['price'] ?? 0)),
+                            ),
+                        ));
+                    }
                     $processedPost = app()->admins()->processManagedForumPostAction(
                         (int) input('target_post_id', 0),
-                        (string) input('quick_action', ''),
+                        $postQuickAction,
                         $_POST,
                         $currentAdmin
                     );
@@ -1328,6 +1372,7 @@ switch ($page) {
             'category_id' => isset($_GET['category_id']) ? (int) $_GET['category_id'] : 0,
             'segment_no' => isset($_GET['segment_no']) ? (int) $_GET['segment_no'] : 0,
             'top_scope' => isset($_GET['top_scope']) ? trim((string) $_GET['top_scope']) : '',
+            'material_update_filter' => isset($_GET['material_update_filter']) ? trim((string) $_GET['material_update_filter']) : '',
             'sale_filter' => isset($_GET['sale_filter']) ? trim((string) $_GET['sale_filter']) : '',
             'purchase_filter' => isset($_GET['purchase_filter']) ? trim((string) $_GET['purchase_filter']) : '',
             'result_filter' => isset($_GET['result_filter']) ? trim((string) $_GET['result_filter']) : '',
@@ -1345,6 +1390,9 @@ switch ($page) {
             ? array()
             : app()->admins()->managedForumPostSummaryCounts($postRegion);
         $viewData['postCanManage'] = app()->auth()->adminCan('posts.manage');
+        if ($viewData['postCanManage'] && ($postViewMode === 'published' || $editingPostId > 0)) {
+            $viewData['pageTitleActionHtml'] = '<button class="admin-button admin-post-publish-header-action" type="submit" form="admin-post-publish-form">发表帖子</button>';
+        }
         $viewData['postCurrentRegion'] = $postRegion;
         $viewData['postViewMode'] = $postViewMode;
         $viewData['postNeedsGeneratorConfig'] = $postNeedsGeneratorConfig;
