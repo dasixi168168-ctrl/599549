@@ -3,7 +3,9 @@ declare(strict_types=1);
 
 
 require_once dirname(__DIR__) . '/bootstrap/front_security.php';
-front_security_apply(front_public_page_cache_options());
+front_security_apply(array(
+    'cache_control' => 'no-store, no-cache, must-revalidate, max-age=0',
+));
 
 require dirname(__DIR__) . '/bootstrap/app.php';
 

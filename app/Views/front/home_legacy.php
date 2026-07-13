@@ -393,16 +393,22 @@ $defaultMaterialHtml = $extractDefaultMaterial($templateHtml);
 $managedCurrentIssue = app()->admins()->managedIssuePrefixSnapshotByRegion($currentRegion);
 $incrementManagedDrawAdViews = !isset($incrementManagedDrawAdViews) || (bool) $incrementManagedDrawAdViews;
 
-if ($hasManagedMaterial && !app()->admins()->managedDrawMaterialHasEditableContent($managedMaterialHtml)) {
+if ($hasManagedMaterial && trim($managedMaterialHtml) === '') {
     $hasManagedMaterial = false;
 }
 
 $bodyHtml = $hasManagedMaterial ? trim($managedMaterialHtml) : $defaultMaterialHtml;
 
 $bodyHtml = $applyFrontLinks($extractDefaultMaterial($stripLegacyHomeData($bodyHtml)));
+$bodyHtml = app()->admins()->stripManagedDrawEditorFrontendState($bodyHtml);
 $bodyHtml = app()->admins()->stripManagedDrawHeroCopy($bodyHtml);
-$bodyHtml = app()->admins()->moveManagedDrawLiveBlockBelowHomeSection($bodyHtml);
-$bodyHtml = app()->admins()->syncManagedDrawExpertLinks($currentRegion, $bodyHtml, $incrementManagedDrawAdViews);
+$bodyHtml = app()->admins()->ensureManagedDrawLiveBadgeHtml($bodyHtml);
+if (!$hasManagedMaterial) {
+    $bodyHtml = app()->admins()->moveManagedDrawLiveBlockBelowHomeSection($bodyHtml);
+    $bodyHtml = app()->admins()->ensureManagedDrawMarqueeBlock($bodyHtml, $defaultMaterialHtml);
+    $bodyHtml = app()->admins()->normalizeManagedDrawProtectedHeaderBlocks($bodyHtml, $defaultMaterialHtml);
+}
+$bodyHtml = app()->admins()->syncManagedDrawExpertLinks($currentRegion, $bodyHtml, !$hasManagedMaterial && $incrementManagedDrawAdViews);
 $bodyHtml = app()->admins()->syncManagedDrawAdLinks($bodyHtml, $currentRegion);
 $bodyHtml = $replaceFrontHomeFontAwesomeIcons($bodyHtml);
 

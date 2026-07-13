@@ -1,6 +1,8 @@
 (function () {
     'use strict';
 
+    var issuePrefixFormatter = window.AppIssuePrefix || null;
+
     function byId(id) {
         return document.getElementById(id);
     }
@@ -698,34 +700,6 @@
     }
 
 
-    function formatIssuePrefix(issueNo, region) {
-        var text = String(issueNo || '').trim();
-
-        if (!text) {
-            return '';
-        }
-
-        if (region === 'macau' || region === 'hongkong') {
-            return normalizeIssueTail(text) + '期：';
-        }
-
-        return '';
-    }
-
-    function formatAdIssuePrefix(issueNo, region) {
-        var text = String(issueNo || '').trim();
-
-        if (!text) {
-            return '';
-        }
-
-        if (region === 'macau' || region === 'hongkong') {
-            return normalizeIssueTail(text) + '期：';
-        }
-
-        return '';
-    }
-
     function resolvePromotedIssue(draw, region, now, managedIssue) {
         var managedPrefixTail = managedIssue && managedIssue.issue_prefix_tail ? String(managedIssue.issue_prefix_tail).trim() : '';
         var managedIssueNo = managedIssue && managedIssue.issue_no ? String(managedIssue.issue_no).trim() : '';
@@ -1097,12 +1071,12 @@
 
     function renderIssuePrefixes(draw, region, now, managedIssue) {
         var promotedIssue = resolvePromotedIssue(draw, region, now || new Date(), managedIssue);
-        var prefixText = formatIssuePrefix(promotedIssue, region);
+        var prefixText = issuePrefixFormatter ? issuePrefixFormatter.format(promotedIssue) : '';
         var managedAdIssue = managedIssue
             ? String(managedIssue.issue_prefix_tail || managedIssue.issue_prefix_text || managedIssue.issue_no || '').trim()
             : '';
         var adIssue = managedAdIssue || promotedIssue;
-        var adPrefixText = adIssue ? formatAdIssuePrefix(adIssue, region) : '';
+        var adPrefixText = adIssue && issuePrefixFormatter ? issuePrefixFormatter.format(adIssue) : '';
 
         qsa('.issue-prefix').forEach(function (node) {
             var isExpertPrefix = !!(node.classList && node.classList.contains('issue-prefix-expert'));
@@ -2337,7 +2311,7 @@
 
         applyFrontPostViewDisplay(frameDocument, frameDocument.location ? frameDocument.location.href : state.frame.getAttribute('src') || '');
 
-        titleNode = frameDocument.querySelector('.front-post-modal-sync-source h1, .front-panel-card h1');
+        titleNode = frameDocument.querySelector('[data-post-display-title], .front-post-modal-sync-source h1, .front-panel-card h1');
         metaItems = qsa('.front-inline-meta > span', frameDocument).map(function (node) {
             return String(node.textContent || '').replace(/\s+/g, ' ').trim();
         }).filter(function (text) {
@@ -2357,7 +2331,15 @@
         }
 
         if (state.title && titleNode) {
-            state.title.textContent = String(titleNode.textContent || '').replace(/\s+/g, ' ').trim() || state.title.textContent;
+            while (state.title.firstChild) {
+                state.title.removeChild(state.title.firstChild);
+            }
+            Array.prototype.forEach.call(titleNode.childNodes, function (childNode) {
+                state.title.appendChild(childNode.cloneNode(true));
+            });
+            if (!String(state.title.textContent || '').replace(/\s+/g, ' ').trim()) {
+                state.title.textContent = '帖子阅读';
+            }
         }
 
         setExpertPostModalMeta(buildExpertPostModalMeta(metaItems, likeState));
@@ -2962,23 +2944,15 @@
         var apiToken = String(payload.api_token || '').trim();
         var scheduleLiveHeadFit;
 
-        function setLiveHeadFitReady() {
-            if (document.body) {
-                document.body.classList.remove('is-live-head-fit-pending');
-            }
-        }
-
         function runLiveHeadFit() {
             var liveBox = byId('section-live');
 
             if (!liveBox) {
-                setLiveHeadFitReady();
                 return;
             }
 
             resetLiveHeadInlineStyles(liveBox);
             fitLiveHead();
-            setLiveHeadFitReady();
         }
 
         scheduleLiveHeadFit = createFrameScheduler(runLiveHeadFit);
@@ -3041,8 +3015,6 @@
                 scheduleLiveHeadFit(0);
             });
         }
-        window.setTimeout(setLiveHeadFitReady, 900);
-
         function scheduleClockTick() {
             var now = new Date();
             var delay = 1000 - now.getMilliseconds();

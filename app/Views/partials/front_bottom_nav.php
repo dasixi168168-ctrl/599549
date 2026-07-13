@@ -80,6 +80,7 @@ $frontNavIconSvg = static function ($name) {
 };
 
 if ($managedBottomHtml !== '') {
+    $managedBottomHtml = app()->admins()->stripManagedDrawEditorFrontendState($managedBottomHtml);
     $navDataAttributes = ' data-customer-service-unread-poll'
         . ' data-api-url="' . e(public_url('api.php')) . '"'
         . ' data-token="' . e(csrf_token('api')) . '"'

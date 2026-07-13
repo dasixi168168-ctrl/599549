@@ -26,6 +26,7 @@ $frontTopIconSvg = static function ($name) {
 };
 
 if ($managedTopHtml !== '') {
+    $managedTopHtml = app()->admins()->stripManagedDrawEditorFrontendState($managedTopHtml);
     $managedTopHtml = str_replace('./index.php"', $indexUrl . '"', $managedTopHtml);
     $managedTopHtml = str_replace('./record.php"', $recordUrl . '"', $managedTopHtml);
     $managedTopHtml = str_replace('./forecast.php"', $forecastUrl . '"', $managedTopHtml);

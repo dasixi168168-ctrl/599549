@@ -51,9 +51,8 @@
     display: none;
 }
 
-/* Public floating visual skin. Geometry and inner sizing live in this file only. */
+/* Public floating visual skin. Fixed geometry and inner sizing are collected below. */
 body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-bar {
-    position: fixed !important;
     border: 1px solid rgba(147, 197, 253, 0.65) !important;
     border-top: 0 !important;
     background: linear-gradient(105deg, #0a2f78 0%, #2f67d2 48%, #1448b8 100%) !important;
@@ -221,8 +220,6 @@ body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-action-b
 }
 
 body:not(.standalone-modal-post):not(.customer-service-embed-body) .bottom-float-nav {
-    position: fixed !important;
-    margin: 0 !important;
     border: 1px solid rgba(130, 190, 255, 0.72) !important;
     background: linear-gradient(145deg, rgba(4, 34, 80, 0.94) 0%, rgba(10, 56, 122, 0.95) 52%, rgba(4, 32, 86, 0.94) 100%) !important;
     box-shadow: none !important;
@@ -561,9 +558,11 @@ body:not(.standalone-modal-post):not(.customer-service-embed-body) .page-frame {
 
 body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-bar,
 body:not(.standalone-modal-post):not(.customer-service-embed-body) .bottom-float-nav {
+    position: fixed !important;
     box-sizing: border-box !important;
     right: auto !important;
     left: var(--front-public-center) !important;
+    margin: 0 !important;
     margin-right: 0 !important;
     margin-left: 0 !important;
     transform: translate3d(-50%, 0, 0) !important;
@@ -600,6 +599,15 @@ body:not(.standalone-modal-post):not(.customer-service-embed-body) .bottom-float
     padding: var(--front-bottom-inner-pad-y) var(--front-bottom-inner-pad-x) !important;
     border-radius: var(--front-floating-card-radius) !important;
     z-index: 10070 !important;
+}
+
+body:not(.admin-draw-preview):not(.standalone-modal-post):not(.customer-service-embed-body) .top-bar[style*="display: none"],
+body:not(.admin-draw-preview):not(.standalone-modal-post):not(.customer-service-embed-body) .top-bar[style*="display:none"],
+body:not(.admin-draw-preview):not(.standalone-modal-post):not(.customer-service-embed-body) .top-bar-spacer[style*="display: none"],
+body:not(.admin-draw-preview):not(.standalone-modal-post):not(.customer-service-embed-body) .top-bar-spacer[style*="display:none"],
+body:not(.admin-draw-preview):not(.standalone-modal-post):not(.customer-service-embed-body) .bottom-float-nav[style*="display: none"],
+body:not(.admin-draw-preview):not(.standalone-modal-post):not(.customer-service-embed-body) .bottom-float-nav[style*="display:none"] {
+    display: none !important;
 }
 
 body:not(.standalone-modal-post):not(.customer-service-embed-body) .bottom-nav-link,
@@ -717,10 +725,6 @@ body:not(.standalone-modal-post):not(.customer-service-embed-body) .bottom-nav-l
 
     body:not(.standalone-modal-post):not(.customer-service-embed-body) .top-bar {
         top: var(--front-public-top-edge-cover) !important;
-        width: var(--front-float-shell-width) !important;
-        max-width: var(--front-float-shell-width) !important;
-        border-top: 0 !important;
-        border-radius: 0 0 var(--front-floating-card-radius) var(--front-floating-card-radius) !important;
     }
 
 }

@@ -12,14 +12,13 @@
     <title><?php echo e(isset($pageTitle) ? $pageTitle : browser_title_setting(app()->config('app', 'site_name', '六合彩票论坛首页'))); ?></title>
     <meta name="description" content="<?php echo e(isset($pageDescription) ? $pageDescription : '澳门与香港六合彩论坛网站'); ?>">
     <?php
-    $frontStyleUrl = '/public/styles/style.css?v=20260706-home-marquee-overflow-01';
-    $frontHomeCriticalStyleUrl = '/public/styles/home-critical.css?v=20260706-home-marquee-overflow-01';
-    $frontForecastCriticalStyleUrl = '/public/styles/forecast-critical.css?v=20260706-front-float-contract-clean-02';
-    $frontServiceStyleUrl = '/public/styles/front-service.css?v=20260706-front-float-contract-clean-02';
+    $frontStyleUrl = '/public/styles/style.css?v=20260713-home-result-card-02';
+    $postTitleStyleUrl = asset('post-title.css?v=20260713-post-title-source-01');
+    $frontServiceStyleUrl = '/public/styles/front-service.css?v=20260709-upload-file-control-01';
     $frontFloatingStyleUrl = '/public/styles/front-floating.css?v=20260706-front-float-contract-clean-02';
     $fontAwesomeCssUrl = asset('vendor/fontawesome/css/all.min.css?v=20260621-front-fa-sync-01');
-    $homeLegacyScriptUrl = asset('home-legacy.js?v=20260706-post-modal-ad-title-contract-01');
-    $frontAppScriptUrl = asset('app.js?v=20260706-post-modal-ad-title-contract-01');
+    $homeLegacyScriptUrl = asset('home-legacy.js?v=20260713-issue-prefix-source-01');
+    $frontAppScriptUrl = asset('app.js?v=20260713-issue-prefix-source-01');
     $needsFrontServiceStyle = !empty($needsFrontServiceStyle);
     $frontContent = isset($content) ? (string) $content : '';
     $layoutBodyClass = isset($bodyClass) ? (string) $bodyClass : '';
@@ -421,13 +420,9 @@
         <link rel="stylesheet" href="<?php echo $fontAwesomeCssUrl; ?>">
     <?php endif; ?>
     <?php if ($isFrontHomeContent): ?>
-        <link rel="stylesheet" href="<?php echo $frontHomeCriticalStyleUrl; ?>">
-        <link rel="preload" href="<?php echo $frontStyleUrl; ?>" as="style" fetchpriority="low" onload="this.onload=null;this.rel='stylesheet'">
-        <noscript><link rel="stylesheet" href="<?php echo $frontStyleUrl; ?>"></noscript>
+        <link rel="stylesheet" href="<?php echo $frontStyleUrl; ?>">
     <?php elseif ($isFrontForecastContent): ?>
-        <link rel="stylesheet" href="<?php echo $frontForecastCriticalStyleUrl; ?>">
-        <link rel="preload" href="<?php echo $frontStyleUrl; ?>" as="style" fetchpriority="low" onload="this.onload=null;this.rel='stylesheet'">
-        <noscript><link rel="stylesheet" href="<?php echo $frontStyleUrl; ?>"></noscript>
+        <link rel="stylesheet" href="<?php echo $frontStyleUrl; ?>">
     <?php else: ?>
         <link rel="stylesheet" href="<?php echo $frontStyleUrl; ?>">
     <?php endif; ?>
@@ -439,6 +434,7 @@
         <link rel="stylesheet" href="/public/assets/ui-override.css?v=20260628-css-governance-01">
     <?php endif; ?>
     <link rel="stylesheet" href="<?php echo $frontFloatingStyleUrl; ?>">
+    <link rel="stylesheet" href="<?php echo e($postTitleStyleUrl); ?>">
 </head>
 <body class="<?php echo e(trim('bg-slate-100 text-slate-900 ' . ($usesFrontServiceChrome ? 'front-service-browser-chrome ' : '') . ($enableFrontUiSystem ? 'ui-front-page ui-front-bottom-safe ' : '') . (isset($bodyClass) ? (string) $bodyClass : ''))); ?>" data-region="<?php echo e(isset($region) ? $region : 'macau'); ?>"<?php echo $enableFrontPagePrefetch ? ' data-page-prefetch-enabled="1"' : ''; ?>>
 <div class="page-frame<?php echo $enableFrontUiSystem ? ' ui-front-container' : ''; ?>">
