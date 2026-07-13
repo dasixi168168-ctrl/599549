@@ -25,7 +25,7 @@ $componentLabels = array(
 
 $currentRegionLabel = $regionLabels[$currentRegion];
 $currentComponentLabel = $componentLabels[$currentComponent];
-$drawEditorBodyClass = 'is-live-head-fit-pending admin-draw-preview page-frame';
+$drawEditorBodyClass = 'admin-draw-preview page-frame';
 if ($drawMode === 'component') {
     $drawEditorBodyClass .= ' admin-draw-component-preview admin-draw-component-preview--' . str_replace('_', '-', $currentComponent);
 }
@@ -33,12 +33,16 @@ $currentEditorLabel = $drawMode === 'component' ? $currentComponentLabel : ($dra
 $editorContent = isset($drawEditor['content_html']) ? (string) $drawEditor['content_html'] : '';
 $saveAction = $drawMode === 'component' ? 'save_draw_component' : 'save_draw_material';
 $saveButtonText = $drawMode === 'component' ? ('保存' . $currentComponentLabel) : '保存资料';
+$drawEditorFontAwesomeCssUrl = asset('vendor/fontawesome/css/all.min.css?v=20260621-front-fa-sync-01');
+$drawEditorFrontStyleUrl = public_url('styles/style.css?v=20260713-home-result-card-02');
+$drawEditorFrontFloatingStyleUrl = public_url('styles/front-floating.css?v=20260706-front-float-contract-clean-02');
+$drawEditorPreviewStyleUrl = public_url('styles/home-editor-preview.css?v=20260713-home-result-card-02');
 if ($drawMode === 'component') {
-    $tipText = '组件编辑当前会默认载入首页模板里的顶部悬浮和底部悬浮结构。你保存后，首页和底部悬浮导航会优先读取这里的组件内容。';
+    $tipText = '组件编辑会载入后台已保存的顶部悬浮和底部悬浮结构；首次无保存内容时才使用本地默认模板。你保存后，首页和底部悬浮导航会优先读取这里的组件内容。';
 } elseif ($drawMode === 'images') {
     $tipText = '网站图片统一在这里上传、查看和删除。已被页面引用的图片删除后，前台对应位置会无法显示，请先确认引用关系。';
 } else {
-    $tipText = '澳门和香港资料编辑器现在会直接载入首页当前主体 HTML，框架结构、文案内容和样式类名会一起带入。保存后，前台首页会优先使用这里的主体内容。';
+    $tipText = '澳门和香港资料编辑器会载入后台已保存的资料正文；首次无保存内容时才使用本地默认模板。保存后，前台首页会优先使用这里的主体内容。';
 }
 
 $buildDrawLink = static function (array $overrides = array()) use ($drawMode, $currentRegion, $currentComponent) {
@@ -89,18 +93,16 @@ $buildDrawExternalImageUrl = static function ($url) use ($drawRequestOrigin, $dr
 };
 
 $fullscreenStorageKey = 'draw-editor-fullscreen:' . $drawMode . ':' . $currentRegion . ':' . $currentComponent;
-$latestRegionDraw = isset($drawLatestRegionDraw) && is_array($drawLatestRegionDraw) ? $drawLatestRegionDraw : app()->prediction()->latestHomepageDraw($currentRegion);
-$normalizeIssueTail = static function ($issueNo) {
-    $text = trim((string) $issueNo);
-
-    if ($text === '' || !preg_match('/^\d+$/', $text)) {
-        return '--';
-    }
-
-    $tail = strlen($text) > 3 ? substr($text, -3) : $text;
-
-    return str_pad($tail, 3, '0', STR_PAD_LEFT);
-};
+$latestRegionDraw = isset($drawLatestRegionDraw) && is_array($drawLatestRegionDraw) ? $drawLatestRegionDraw : app()->prediction()->frontHomepageDraw($currentRegion);
+$waveRed = array(1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46);
+$waveBlue = array(3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48);
+$fivePhaseGroups = array(
+    '金' => array(2, 3, 10, 11, 24, 25, 32, 33, 40, 41),
+    '木' => array(6, 7, 14, 15, 22, 23, 36, 37, 44, 45),
+    '水' => array(12, 13, 20, 21, 28, 29, 42, 43),
+    '火' => array(1, 8, 9, 16, 17, 30, 31, 38, 39, 46, 47),
+    '土' => array(4, 5, 18, 19, 26, 27, 34, 35, 48, 49),
+);
 $latestRegionDrawPreviewNumbers = array();
 $latestRegionDrawPreviewSpecialNumber = 0;
 
@@ -134,140 +136,25 @@ $managedRegionIssuePreviewPayload = array(
     'issue_prefix_tail' => is_array($managedRegionIssue) ? trim((string) ($managedRegionIssue['issue_prefix_tail'] ?? '')) : '',
     'issue_prefix_text' => is_array($managedRegionIssue) ? trim((string) ($managedRegionIssue['issue_prefix_text'] ?? '')) : '',
 );
-$latestRegionDrawLabel = $currentRegion === 'hongkong' ? '香港' : '澳门';
-$latestRegionIssueText = '--期';
-$latestRegionNumbersText = '暂无数据';
-
-if (is_array($latestRegionDraw)) {
-    $issueTail = $normalizeIssueTail($latestRegionDraw['issue_no'] ?? '');
-    $drawNumbers = json_decode((string) ($latestRegionDraw['numbers_json'] ?? '[]'), true);
-    $drawNumbers = is_array($drawNumbers) ? $drawNumbers : array();
-    $formattedDrawNumbers = array();
-
-    foreach ($drawNumbers as $drawNumber) {
-        $drawNumber = (int) $drawNumber;
-        if ($drawNumber > 0) {
-            $formattedDrawNumbers[] = str_pad((string) $drawNumber, 2, '0', STR_PAD_LEFT);
-        }
-    }
-
-    $specialNumber = (int) ($latestRegionDraw['special_number'] ?? 0);
-    $latestRegionIssueText = $issueTail . '期';
-    $latestRegionNumbersText = implode(' ', $formattedDrawNumbers);
-    if ($specialNumber > 0) {
-        $latestRegionNumbersText .= ($latestRegionNumbersText !== '' ? ' + ' : '') . str_pad((string) $specialNumber, 2, '0', STR_PAD_LEFT);
-    }
-    if ($latestRegionNumbersText === '') {
-        $latestRegionNumbersText = '暂无数据';
-    }
-}
-
-$waveRed = array(1, 2, 7, 8, 12, 13, 18, 19, 23, 24, 29, 30, 34, 35, 40, 45, 46);
-$waveBlue = array(3, 4, 9, 10, 14, 15, 20, 25, 26, 31, 36, 37, 41, 42, 47, 48);
-$latestRegionDrawDate = is_array($latestRegionDraw) ? trim((string) ($latestRegionDraw['draw_date'] ?? '')) : '';
-$fivePhaseGroups = array(
-    '金' => array(2, 3, 10, 11, 24, 25, 32, 33, 40, 41),
-    '木' => array(6, 7, 14, 15, 22, 23, 36, 37, 44, 45),
-    '水' => array(12, 13, 20, 21, 28, 29, 42, 43),
-    '火' => array(1, 8, 9, 16, 17, 30, 31, 38, 39, 46, 47),
-    '土' => array(4, 5, 18, 19, 26, 27, 34, 35, 48, 49),
-);
-$padDrawNumber = static function ($value) {
-    $number = (int) $value;
-
-    return $number < 10 ? '0' . $number : (string) $number;
-};
-$findDrawGroupName = static function (array $groups, int $value, string $fallback = '--') {
-    foreach ($groups as $groupName => $numbers) {
-        if (in_array($value, $numbers, true)) {
-            return $groupName;
-        }
-    }
-
-    return $fallback;
-};
-$waveColorClass = static function (int $value) use ($waveRed, $waveBlue) {
-    if (in_array($value, $waveRed, true)) {
-        return 'is-red';
-    }
-
-    if (in_array($value, $waveBlue, true)) {
-        return 'is-blue';
-    }
-
-    return 'is-green';
-};
-$formatAdminDrawOpenTimeText = static function (?array $draw) {
-    $nextOpenTime = trim((string) ($draw['next_open_time'] ?? ''));
-    $openTime = trim((string) ($draw['open_time'] ?? ''));
-    $value = $nextOpenTime !== '' ? $nextOpenTime : $openTime;
-
-    return '下期开奖：' . ($value !== '' ? substr($value, 0, 16) : '--');
-};
-$sumAdminDrawOddEven = static function (int $value) {
-    $digits = str_split((string) abs($value));
-    $sum = 0;
-
-    foreach ($digits as $digit) {
-        $sum += (int) $digit;
-    }
-
-    return $sum % 2 === 0 ? '合数双' : '合数单';
-};
-$renderAdminDrawBall = static function (?int $value) use ($padDrawNumber, $waveColorClass, $latestRegionDrawDate) {
-    $ballClass = $value === null ? 'is-empty' : $waveColorClass($value);
-    $numberText = $value === null ? '--' : $padDrawNumber($value);
-    $zodiacText = $value === null ? '--' : (app()->prediction()->drawZodiacByNumber($value, $latestRegionDrawDate) ?: '--');
-
-    return '<div class="admin-editor-live-ball ' . e($ballClass) . '">' .
-        '<div class="admin-editor-live-ball-code">' . e($numberText) . '</div>' .
-        '<div class="admin-editor-live-ball-zodiac">' . e($zodiacText) . '</div>' .
-        '</div>';
-};
-$latestRegionDrawLabel = $currentRegion === 'hongkong' ? '香港' : '澳门';
-$latestRegionIssueText = '--期';
-$latestRegionOpenTimeText = '下期开奖：--';
-$latestRegionMetaZodiac = '--';
-$latestRegionMetaOddEven = '--';
-$latestRegionMetaFivePhase = '--';
-$latestRegionBallsHtml = '';
-
-if (is_array($latestRegionDraw)) {
-    $issueTail = $normalizeIssueTail($latestRegionDraw['issue_no'] ?? '');
-    $drawNumbers = isset($latestRegionDraw['numbers']) && is_array($latestRegionDraw['numbers'])
-        ? array_values($latestRegionDraw['numbers'])
-        : json_decode((string) ($latestRegionDraw['numbers_json'] ?? '[]'), true);
-    $drawNumbers = is_array($drawNumbers) ? $drawNumbers : array();
-    $specialNumber = (int) ($latestRegionDraw['special_number'] ?? 0);
-
-    $latestRegionIssueText = $issueTail . '期';
-    $latestRegionOpenTimeText = $formatAdminDrawOpenTimeText($latestRegionDraw);
-
-    for ($drawIndex = 0; $drawIndex < 6; $drawIndex += 1) {
-        $drawValue = array_key_exists($drawIndex, $drawNumbers) ? (int) $drawNumbers[$drawIndex] : null;
-        $latestRegionBallsHtml .= $renderAdminDrawBall($drawValue > 0 ? $drawValue : null);
-    }
-
-    $latestRegionBallsHtml .= '<div class="admin-editor-live-ball-plus">+</div>';
-    $latestRegionBallsHtml .= $renderAdminDrawBall($specialNumber > 0 ? $specialNumber : null);
-
-    if ($specialNumber > 0) {
-        $latestRegionMetaZodiac = app()->prediction()->drawZodiacByNumber($specialNumber, $latestRegionDrawDate) ?: '--';
-        $latestRegionMetaOddEven = $sumAdminDrawOddEven($specialNumber);
-        $latestRegionMetaFivePhase = $findDrawGroupName($fivePhaseGroups, $specialNumber, '--');
-    }
-}
-
-if ($latestRegionBallsHtml === '') {
-    for ($drawIndex = 0; $drawIndex < 6; $drawIndex += 1) {
-        $latestRegionBallsHtml .= $renderAdminDrawBall(null);
-    }
-    $latestRegionBallsHtml .= '<div class="admin-editor-live-ball-plus">+</div>';
-    $latestRegionBallsHtml .= $renderAdminDrawBall(null);
-}
 ?><?php if ($drawCanManage && $drawMode !== 'images'): ?><script>
 (function () {
+    var isAppleTouchDevice = function () {
+        var nav = window.navigator || {};
+        var platform = String(nav.platform || '');
+        var userAgent = String(nav.userAgent || '');
+
+        return /iPhone|iPad|iPod/i.test(userAgent)
+            || ((platform === 'MacIntel' || platform === 'MacPPC') && Number(nav.maxTouchPoints || 0) > 1);
+    };
+
     try {
+        if (isAppleTouchDevice()) {
+            if (window.sessionStorage) {
+                window.sessionStorage.removeItem('<?php echo e($fullscreenStorageKey); ?>');
+            }
+            return;
+        }
+
         if (window.sessionStorage && window.sessionStorage.getItem('<?php echo e($fullscreenStorageKey); ?>') === '1') {
             document.documentElement.classList.add('draw-editor-is-fullscreen-pending');
             if (document.body) {
@@ -295,7 +182,7 @@ if ($latestRegionBallsHtml === '') {
     }
 })();
 </script><?php endif; ?><section>
-    <div class="admin-card front-card admin-draws-card">
+    <div class="admin-draws-card">
         <div class="admin-draws-filter-shell">
             <div class="admin-filter-chip-group">
                 <a class="admin-filter-chip admin-draws-mode-chip is-macau <?php echo $drawMode === 'material' && $currentRegion === 'macau' ? 'is-active' : ''; ?>" href="<?php echo e($buildDrawLink(array('mode' => 'material', 'region' => 'macau'))); ?>">澳门资料更新</a>
@@ -457,7 +344,7 @@ if ($latestRegionBallsHtml === '') {
                         <div class="admin-modal-heading">
                             <div class="admin-section-editor-title-row admin-modal-title-row">
                                 <div class="admin-section-editor-title admin-modal-title" id="draw-section-editor-title">广告设置</div>
-                                <label class="admin-section-editor-lock-toggle">
+                                <label class="admin-section-editor-lock-toggle" hidden>
                                     <input type="checkbox" data-section-editor-field="edit-lock">
                                     <span>锁定编辑</span>
                                 </label>
@@ -599,7 +486,7 @@ if ($latestRegionBallsHtml === '') {
                                                     <input class="admin-input" id="section-editor-card-slot-height" type="number" min="120" max="520" step="1" value="286" data-section-editor-field="card-slot-height">
                                                 </div>
                                             </div>
-                                            <div class="admin-section-editor-color-field">
+                                            <div class="admin-section-editor-color-field" hidden>
                                                 <label class="admin-label" for="section-editor-card-background-overlay">笼罩深浅</label>
                                                 <input class="admin-input" id="section-editor-card-background-overlay" type="range" min="0" max="90" step="5" value="60" data-section-editor-field="card-background-overlay">
                                             </div>
@@ -666,7 +553,7 @@ if ($latestRegionBallsHtml === '') {
         </div>
     </div>
 </section>
-<?php if ($drawCanManage): ?>
+<?php if ($drawCanManage && $drawMode !== 'images'): ?>
 <script src="<?php echo e(asset('vendor/tinymce/tinymce.min.js?v=8.4.0-local')); ?>" defer></script>
 <script>
 (function () {
@@ -714,7 +601,8 @@ if ($latestRegionBallsHtml === '') {
     var form = document.querySelector('[data-draw-material-form]');
     var textarea = document.getElementById('draw-material-editor');
     var editorBootPlaceholder = document.querySelector('[data-draw-editor-placeholder]');
-    var saveButton = form ? form.querySelector('.admin-editor-save-button') : null;
+    var headerSaveButton = document.querySelector('[data-draw-header-save]');
+    var saveButton = headerSaveButton || (form ? form.querySelector('.admin-editor-save-button') : null);
     var saveButtonSlot = form ? form.querySelector('[data-draw-save-slot]') : null;
     var csrfTokenInput = form ? form.querySelector('input[name="_token"]') : null;
     var normalizeDrawImageUploadUrl = function (url) {
@@ -729,8 +617,15 @@ if ($latestRegionBallsHtml === '') {
     var drawImageUploadUrl = normalizeDrawImageUploadUrl(form ? form.getAttribute('action') : '');
     var drawImageAccept = '.jpg,.jpeg,.png,.gif,.webp,.bmp,image/jpeg,image/png,image/gif,image/webp,image/bmp,image/x-ms-bmp';
     var pageTitleShell = document.querySelector('.admin-page-title-shell');
+    var headerActionSlot = document.querySelector('.admin-frame-title-actions');
+    var headerDrawCard = document.querySelector('.admin-header-draw-slot .admin-header-draw-card');
     var pageTitleActionSlot = null;
     var pageTitleTextSlot = null;
+    var editorTopActionsState = {
+        shell: null,
+        drawSlot: null,
+        drawCard: null
+    };
     var drawsSectionTitle = document.querySelector('.admin-draws-section-title');
     var drawsCard = document.querySelector('.admin-draws-card');
     var adminMain = document.querySelector('.admin-main');
@@ -831,8 +726,12 @@ if ($latestRegionBallsHtml === '') {
     var sectionSourceButtonOpenText = '\u6e90\u7801';
     var sectionSourceButtonCloseText = '\u6536\u8d77\u6e90\u7801';
     var defaultSectionExpertAdTitle = '\u5e7f\u544a\u63a8\u8350';
-    var lazyMaterialEditorControls = <?php echo $drawMode === 'material' ? 'true' : 'false'; ?>;
-    var sectionEditorControlsActivated = !lazyMaterialEditorControls;
+    var sectionEditorLockMetrics = {
+        frameOffset: 6,
+        frameRadius: 18,
+        frameBorderWidth: 2
+    };
+    var sectionEditorControlsActivated = true;
     var sectionDragState = {
         editor: null,
         doc: null,
@@ -861,6 +760,15 @@ if ($latestRegionBallsHtml === '') {
         originalLabel: saveButton ? (saveButton.textContent || '') : ''
     };
     var fullscreenStorageKey = '<?php echo e($fullscreenStorageKey); ?>';
+    var isAppleTouchDevice = function () {
+        var nav = window.navigator || {};
+        var platform = String(nav.platform || '');
+        var userAgent = String(nav.userAgent || '');
+
+        return /iPhone|iPad|iPod/i.test(userAgent)
+            || ((platform === 'MacIntel' || platform === 'MacPPC') && Number(nav.maxTouchPoints || 0) > 1);
+    };
+    var disableAutoFullscreenRestore = isAppleTouchDevice();
     var fullscreenState = {
         isFullscreen: false,
         shouldRestore: false,
@@ -1035,7 +943,33 @@ if ($latestRegionBallsHtml === '') {
         return;
     }
 
+    var mountSaveButtonToHeader = function () {
+        if (!saveButton || !headerActionSlot) {
+            return false;
+        }
+
+        if (saveButtonSlot) {
+            saveButtonSlot.hidden = true;
+            saveButtonSlot.style.display = 'none';
+        }
+
+        saveButton.classList.remove('is-in-editor-menubar');
+        saveButton.classList.remove('is-in-editor-header');
+        saveButton.classList.remove('is-in-editor-top-actions');
+        saveButton.classList.add('is-in-page-title-shell');
+
+        if (saveButton.parentNode !== headerActionSlot) {
+            headerActionSlot.appendChild(saveButton);
+        }
+
+        return true;
+    };
+
     var mountSaveButtonToPageTitle = function () {
+        if (mountSaveButtonToHeader()) {
+            return true;
+        }
+
         if (!saveButton || !pageTitleShell) {
             return false;
         }
@@ -1065,6 +999,7 @@ if ($latestRegionBallsHtml === '') {
         if (saveButton) {
             saveButton.classList.remove('is-in-editor-menubar');
             saveButton.classList.remove('is-in-editor-header');
+            saveButton.classList.remove('is-in-editor-top-actions');
             saveButton.classList.add('is-in-page-title-shell');
 
             if (saveButton.parentNode !== pageTitleActionSlot) {
@@ -1116,6 +1051,87 @@ if ($latestRegionBallsHtml === '') {
         resetDrawEditorHeaderFloating(editorInstance);
     };
 
+    var clearEditorTopActions = function () {
+        if (editorTopActionsState.shell && editorTopActionsState.shell.parentNode) {
+            editorTopActionsState.shell.parentNode.removeChild(editorTopActionsState.shell);
+        }
+
+        editorTopActionsState.shell = null;
+        editorTopActionsState.drawSlot = null;
+        editorTopActionsState.drawCard = null;
+    };
+
+    var ensureEditorTopActions = function (editorInstance) {
+        var currentEditor = editorInstance || (typeof window.tinymce !== 'undefined' ? window.tinymce.get('draw-material-editor') : null);
+        var container = currentEditor && currentEditor.getContainer ? currentEditor.getContainer() : null;
+        var header = container ? container.querySelector('.tox-editor-header') : null;
+        var toolbar = header ? (header.querySelector('.tox-toolbar-overlord') || header.querySelector('.tox-toolbar__primary') || header.querySelector('.tox-toolbar')) : null;
+        var shell = header ? header.querySelector('[data-draw-editor-top-actions]') : null;
+        var drawSlot;
+        var drawCard;
+
+        if (!header) {
+            return null;
+        }
+
+        if (!shell) {
+            shell = document.createElement('div');
+            shell.className = 'admin-draw-editor-top-actions';
+            shell.setAttribute('data-draw-editor-top-actions', '1');
+            shell.setAttribute('aria-label', '开奖结果与保存操作');
+
+            if (toolbar && toolbar.parentNode === header) {
+                header.insertBefore(shell, toolbar);
+            } else {
+                header.appendChild(shell);
+            }
+        }
+
+        editorTopActionsState.shell = shell;
+
+        if (headerDrawCard && !shell.querySelector('[data-draw-editor-header-draw]')) {
+            drawSlot = document.createElement('div');
+            drawSlot.className = 'admin-header-draw-slot admin-draw-editor-top-draw';
+            drawSlot.setAttribute('aria-label', '当前开奖结果');
+
+            drawCard = headerDrawCard.cloneNode(true);
+            drawCard.removeAttribute('data-admin-header-draw');
+            drawCard.setAttribute('data-draw-editor-header-draw', '1');
+
+            drawSlot.appendChild(drawCard);
+            shell.insertBefore(drawSlot, shell.firstChild);
+
+            editorTopActionsState.drawSlot = drawSlot;
+            editorTopActionsState.drawCard = drawCard;
+        }
+
+        return shell;
+    };
+
+    var mountSaveButtonToEditorTopActions = function (editorInstance) {
+        var shell;
+
+        if (!saveButton) {
+            return false;
+        }
+
+        shell = ensureEditorTopActions(editorInstance);
+        if (!shell) {
+            return false;
+        }
+
+        saveButton.classList.remove('is-in-page-title-shell');
+        saveButton.classList.remove('is-in-editor-menubar');
+        saveButton.classList.remove('is-in-editor-header');
+        saveButton.classList.add('is-in-editor-top-actions');
+
+        if (saveButton.parentNode !== shell) {
+            shell.appendChild(saveButton);
+        }
+
+        return true;
+    };
+
     var restoreSaveButton = function () {
         if (!saveButton) {
             return;
@@ -1136,6 +1152,7 @@ if ($latestRegionBallsHtml === '') {
             saveButton.classList.remove('is-in-page-title-shell');
             saveButton.classList.remove('is-in-editor-menubar');
             saveButton.classList.remove('is-in-editor-header');
+            saveButton.classList.remove('is-in-editor-top-actions');
             saveButtonSlot.appendChild(saveButton);
         }
 
@@ -1187,6 +1204,13 @@ if ($latestRegionBallsHtml === '') {
 
     var readFullscreenPreference = function () {
         try {
+            if (disableAutoFullscreenRestore) {
+                if (window.sessionStorage) {
+                    window.sessionStorage.removeItem(fullscreenStorageKey);
+                }
+                return false;
+            }
+
             return window.sessionStorage && window.sessionStorage.getItem(fullscreenStorageKey) === '1';
         } catch (error) {
             return false;
@@ -1196,6 +1220,12 @@ if ($latestRegionBallsHtml === '') {
     var writeFullscreenPreference = function (isFullscreen) {
         try {
             if (!window.sessionStorage) {
+                return;
+            }
+
+            if (disableAutoFullscreenRestore) {
+                fullscreenState.shouldRestore = false;
+                window.sessionStorage.removeItem(fullscreenStorageKey);
                 return;
             }
 
@@ -1480,11 +1510,10 @@ if ($latestRegionBallsHtml === '') {
             return declaration !== '' && !/^background(?:-[a-z-]+)?\s*:/i.test(declaration);
         });
         var normalizedUrl = (imageUrl || '').trim();
-        var overlayOpacity = formatHeaderBackgroundOverlayOpacity(overlayPercent);
 
         if (normalizedUrl !== '') {
             declarations.push(
-                'background: linear-gradient(rgba(0,0,0,' + overlayOpacity + '), rgba(0,0,0,' + overlayOpacity + ')), url(' +
+                'background: #0f172a url(' +
                 escapeSectionEditorCssUrl(normalizedUrl) +
                 ') center/100% 100% no-repeat'
             );
@@ -1493,11 +1522,20 @@ if ($latestRegionBallsHtml === '') {
         return declarations.join('; ') + (declarations.length ? ';' : '');
     };
 
+    var normalizeHeaderBackgroundDefaultStyle = function (styleText) {
+        var imageUrl = extractSectionEditorCssBackgroundUrl(styleText || '');
+
+        if (imageUrl === '') {
+            return styleText || '';
+        }
+
+        return mergeHeaderBackgroundStyleText(styleText || '', imageUrl, 0);
+    };
+
     var refreshSectionEditorHeaderBackgroundControls = function () {
         var isHeaderSection = isSectionEditorHeaderBlock(activeSectionState.blockEl);
         var imageUrl = extractSectionEditorCssBackgroundUrl(sectionEditorCardStyle ? sectionEditorCardStyle.value : '');
         var overlayPercent = extractHeaderBackgroundOverlayPercent(sectionEditorCardStyle ? sectionEditorCardStyle.value : '');
-        var overlayOpacity = formatHeaderBackgroundOverlayOpacity(overlayPercent);
         var styleText = sectionEditorCardStyle ? sectionEditorCardStyle.value : '';
         var slotWidth = normalizeSectionEditorSlotDimension(
             extractSectionEditorCssPixelVar(styleText, '--home-hero-editor-width', 708),
@@ -1543,13 +1581,12 @@ if ($latestRegionBallsHtml === '') {
 
             if (imageUrl !== '') {
                 sectionEditorHeaderBackgroundPreview.style.background =
-                    'linear-gradient(rgba(0,0,0,' + overlayOpacity + '), rgba(0,0,0,' + overlayOpacity + ')), url(' +
+                    '#0f172a url(' +
                     escapeSectionEditorCssUrl(imageUrl) +
                     ') center/100% 100% no-repeat';
                 sectionEditorHeaderBackgroundPreview.textContent = '当前已设置自定义背景图';
             } else {
-                sectionEditorHeaderBackgroundPreview.style.background =
-                    'linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 64, 175, 0.88))';
+                sectionEditorHeaderBackgroundPreview.style.background = '#0f172a';
                 sectionEditorHeaderBackgroundPreview.textContent = '未设置自定义背景图';
             }
         }
@@ -2929,8 +2966,9 @@ if ($latestRegionBallsHtml === '') {
             ? bodyEl.querySelector('.expert-item-card:not(.expert-ad-slot-card) .issue-prefix-expert, .expert-item-card:not([data-expert-ad-slot="1"]) .issue-prefix-expert')
             : null;
         var text = prefixNode ? String(prefixNode.textContent || '').replace(/\s+/g, ' ').trim() : '';
+        var defaultText = window.AppIssuePrefix ? window.AppIssuePrefix.format('171') : '';
 
-        return text || '171期：';
+        return text || defaultText;
     };
 
     var resolveSectionEditorExpertAdViewText = function (existingAdRows, index) {
@@ -3017,7 +3055,7 @@ if ($latestRegionBallsHtml === '') {
 
         mainNode.className = 'expert-item-main';
         prefixNode.className = 'issue-prefix issue-prefix-expert';
-        prefixNode.textContent = issuePrefixText || '171期：';
+        prefixNode.textContent = issuePrefixText || (window.AppIssuePrefix ? window.AppIssuePrefix.format('171') : '');
         if (resolveSectionEditorExpertPrefixTextStyle(titleTextStyle) !== '') {
             prefixNode.setAttribute('style', resolveSectionEditorExpertPrefixTextStyle(titleTextStyle));
         }
@@ -3404,6 +3442,7 @@ if ($latestRegionBallsHtml === '') {
         }
 
         clone = element.cloneNode(true);
+        stripSectionEditorRuntimeState(clone);
         controls = clone.querySelectorAll('[data-section-editor-control]');
 
         for (index = 0; index < controls.length; index += 1) {
@@ -4122,6 +4161,17 @@ if ($latestRegionBallsHtml === '') {
         );
     };
 
+    var isMaterialDrawEditorPreview = function (element) {
+        var body = element && element.ownerDocument ? element.ownerDocument.body : null;
+
+        return !!(
+            body
+            && body.classList
+            && body.classList.contains('admin-draw-preview')
+            && !body.classList.contains('admin-draw-component-preview')
+        );
+    };
+
     var getSectionNodesFromBlock = function (blockEl) {
         var titleEl = null;
         var bodyEl = null;
@@ -4181,6 +4231,57 @@ if ($latestRegionBallsHtml === '') {
         }
 
         return getSectionNodesFromBlock(titleEl.closest('section'));
+    };
+
+    var sectionEditorLegacyControlTextPattern = /^\s*(?:\u22ee\u22ee\s*)?\u62d6\u62fd\s*\u7f16\u8f91\s*\u6e90\u7801\s*\u9690\u85cf\s*\u5220\u9664\s*/;
+    var sectionEditorLegacyControlTextExactPattern = /^\s*(?:\u22ee\u22ee\s*)?\u62d6\u62fd\s*\u7f16\u8f91\s*\u6e90\u7801\s*\u9690\u85cf\s*\u5220\u9664\s*$/;
+
+    var isSectionEditorControlElement = function (element) {
+        return !!(
+            element &&
+            element.nodeType === 1 &&
+            element.closest &&
+            element.closest('[data-section-editor-control], .editor-section-floating-handle-row, .editor-section-drop-indicator')
+        );
+    };
+
+    var getSectionBlockFallbackText = function (blockEl) {
+        var clone = null;
+        var controls = [];
+        var index = 0;
+        var text = '';
+
+        if (!blockEl) {
+            return '';
+        }
+
+        if (isSectionEditorHeaderBlock(blockEl)) {
+            return '首页主图';
+        }
+
+        if (typeof isLiveDrawBlock === 'function' && isLiveDrawBlock(blockEl)) {
+            return '开奖卡片';
+        }
+
+        if (blockEl.classList && blockEl.classList.contains('marquee')) {
+            return '公告条';
+        }
+
+        if (blockEl.classList && blockEl.classList.contains('calendar-panel')) {
+            return '日历卡片';
+        }
+
+        clone = blockEl.cloneNode(true);
+        controls = clone.querySelectorAll('[data-section-editor-control], .editor-section-floating-handle-row, .editor-section-drop-indicator');
+
+        for (index = 0; index < controls.length; index += 1) {
+            if (controls[index] && controls[index].parentNode) {
+                controls[index].parentNode.removeChild(controls[index]);
+            }
+        }
+
+        text = clone.textContent.replace(/\s+/g, ' ').trim();
+        return text.replace(sectionEditorLegacyControlTextPattern, '').replace(/\s+/g, ' ').trim().slice(0, 16);
     };
 
     var setBodyFieldsDisabled = function (disabled) {
@@ -4243,11 +4344,7 @@ if ($latestRegionBallsHtml === '') {
         }
 
         if (!titleText && blockEl) {
-            if (blockEl.classList && blockEl.classList.contains('marquee')) {
-                fallbackText = '公告条';
-            } else {
-                fallbackText = blockEl.textContent.replace(/\s+/g, ' ').trim().slice(0, 16);
-            }
+            fallbackText = getSectionBlockFallbackText(blockEl);
         }
 
         return '主卡片 #' + position + (titleText ? ' · ' + titleText : (fallbackText ? ' · ' + fallbackText : ''));
@@ -4547,7 +4644,10 @@ if ($latestRegionBallsHtml === '') {
         }
 
         if (sectionEditorCardStyle) {
-            sectionEditorCardStyle.value = nodes.styleTargetEl ? (nodes.styleTargetEl.getAttribute('style') || '') : '';
+            sectionEditorCardStyle.value = nodes.styleTargetEl ? normalizeHeaderBackgroundDefaultStyle(nodes.styleTargetEl.getAttribute('style') || '') : '';
+            if (nodes.styleTargetEl && isHeaderSection) {
+                setInlineStyle(nodes.styleTargetEl, sectionEditorCardStyle.value);
+            }
         }
 
         refreshSectionEditorHeaderBackgroundControls();
@@ -4650,6 +4750,42 @@ if ($latestRegionBallsHtml === '') {
         );
     };
 
+    var isManagedDrawMaterialDynamicShellBlock = function (element) {
+        return !!(
+            element
+            && isMaterialDrawEditorPreview(element)
+            && (
+                isSectionEditorHeaderBlock(element)
+                || isLiveDrawBlock(element)
+                || (element.classList && element.classList.contains('marquee'))
+                || (
+                    element.tagName === 'SECTION'
+                    && element.classList
+                    && element.classList.contains('calendar-panel')
+                )
+            )
+        );
+    };
+
+    var refreshManagedDrawMaterialProtectedStates = function (root) {
+        var blocks = root ? root.querySelectorAll('#section-home, #section-live.hero-live-box, .marquee, section.calendar-panel') : [];
+        var index = 0;
+
+        for (index = 0; index < blocks.length; index += 1) {
+            if (!isManagedDrawMaterialDynamicShellBlock(blocks[index])) {
+                continue;
+            }
+
+            if (
+                blocks[index].getAttribute
+                && blocks[index].getAttribute('contenteditable') === 'false'
+                && !isSectionEditLocked(blocks[index])
+            ) {
+                blocks[index].removeAttribute('contenteditable');
+            }
+        }
+    };
+
     var isSortableBlock = function (element) {
         if (!element || !element.tagName) {
             return false;
@@ -4711,6 +4847,42 @@ if ($latestRegionBallsHtml === '') {
 
         blockEl.removeAttribute('data-section-edit-locked');
         blockEl.removeAttribute('contenteditable');
+    };
+
+    var applySectionEditLockButtonState = function (button, isLocked) {
+        if (!button) {
+            return;
+        }
+
+        setSectionControlButtonContent(button, isLocked ? '解锁' : '锁定', '');
+        button.classList.toggle('is-section-locked', isLocked);
+        button.setAttribute('aria-pressed', isLocked ? 'true' : 'false');
+        button.setAttribute('title', isLocked ? '解除锁定编辑' : '锁定编辑');
+    };
+
+    var toggleSectionEditLock = function (editor, blockEl) {
+        var currentBlock = blockEl;
+        var shouldLock = false;
+
+        if (!currentBlock || !currentBlock.setAttribute) {
+            return;
+        }
+
+        shouldLock = !isSectionEditLocked(currentBlock);
+        applySectionEditLockState(currentBlock, shouldLock);
+
+        if (
+            sectionEditorEditLock &&
+            activeSectionState.blockEl &&
+            getSectionEditorBlockId(activeSectionState.blockEl) === getSectionEditorBlockId(currentBlock)
+        ) {
+            sectionEditorEditLock.checked = shouldLock;
+        }
+
+        ensureSectionEditorButtons(editor || window.tinymce.get('draw-material-editor'), {
+            force: true
+        });
+        syncEditorTextarea();
     };
 
     var refreshSectionEditLockStates = function (root) {
@@ -4793,8 +4965,14 @@ if ($latestRegionBallsHtml === '') {
         }
 
         if (sectionDragState.doc) {
+            sectionDragState.doc.removeEventListener('pointermove', handleSectionDragMove, true);
+            sectionDragState.doc.removeEventListener('pointerup', handleSectionDragEnd, true);
+            sectionDragState.doc.removeEventListener('pointercancel', handleSectionDragEnd, true);
             sectionDragState.doc.removeEventListener('mousemove', handleSectionDragMove, true);
             sectionDragState.doc.removeEventListener('mouseup', handleSectionDragEnd, true);
+            sectionDragState.doc.removeEventListener('touchmove', handleSectionDragMove, true);
+            sectionDragState.doc.removeEventListener('touchend', handleSectionDragEnd, true);
+            sectionDragState.doc.removeEventListener('touchcancel', handleSectionDragEnd, true);
         }
 
         if (sectionDragState.win && sectionDragState.rafId) {
@@ -4900,17 +5078,48 @@ if ($latestRegionBallsHtml === '') {
         }
     };
 
+    var getSectionEventPoint = function (event) {
+        var touch = null;
+
+        if (!event) {
+            return null;
+        }
+
+        if (typeof event.clientX === 'number' && typeof event.clientY === 'number') {
+            return {
+                clientX: event.clientX,
+                clientY: event.clientY
+            };
+        }
+
+        if (event.touches && event.touches.length) {
+            touch = event.touches[0];
+        } else if (event.changedTouches && event.changedTouches.length) {
+            touch = event.changedTouches[0];
+        }
+
+        if (!touch || typeof touch.clientX !== 'number' || typeof touch.clientY !== 'number') {
+            return null;
+        }
+
+        return {
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        };
+    };
+
     function handleSectionDragMove(event) {
         var deltaX = 0;
         var deltaY = 0;
+        var point = getSectionEventPoint(event);
 
-        if (!sectionDragState.sectionEl || !sectionDragState.win) {
+        if (!sectionDragState.sectionEl || !sectionDragState.win || !point) {
             return;
         }
 
         event.preventDefault();
-        deltaX = Math.abs(event.clientX - sectionDragState.startX);
-        deltaY = Math.abs(event.clientY - sectionDragState.startY);
+        deltaX = Math.abs(point.clientX - sectionDragState.startX);
+        deltaY = Math.abs(point.clientY - sectionDragState.startY);
 
         if (!sectionDragState.isActive && Math.max(deltaX, deltaY) < 6) {
             return;
@@ -4921,8 +5130,8 @@ if ($latestRegionBallsHtml === '') {
         }
 
         sectionDragState.moved = true;
-        sectionDragState.pendingClientX = event.clientX;
-        sectionDragState.pendingClientY = event.clientY;
+        sectionDragState.pendingClientX = point.clientX;
+        sectionDragState.pendingClientY = point.clientY;
 
         if (sectionDragState.rafId) {
             return;
@@ -4962,15 +5171,17 @@ if ($latestRegionBallsHtml === '') {
 
         if (moved && wasActive) {
             syncEditorTextarea();
-        } else {
-            ensureSectionEditorButtons(window.tinymce.get('draw-material-editor'));
+            ensureSectionEditorButtons(window.tinymce.get('draw-material-editor'), {
+                force: true
+            });
         }
     }
 
     var startSectionDrag = function (editor, blockEl, titleEl, event) {
         var placeholderEl = null;
+        var point = getSectionEventPoint(event);
 
-        if (!blockEl || !editor || (typeof event.button === 'number' && event.button !== 0)) {
+        if (!blockEl || !editor || !point || (event && typeof event.button === 'number' && event.button !== 0)) {
             return;
         }
 
@@ -4994,13 +5205,19 @@ if ($latestRegionBallsHtml === '') {
         sectionDragState.placeholderEl = placeholderEl;
         sectionDragState.moved = false;
 
-        sectionDragState.startX = event.clientX;
-        sectionDragState.startY = event.clientY;
-        sectionDragState.pendingClientX = event.clientX;
-        sectionDragState.pendingClientY = event.clientY;
+        sectionDragState.startX = point.clientX;
+        sectionDragState.startY = point.clientY;
+        sectionDragState.pendingClientX = point.clientX;
+        sectionDragState.pendingClientY = point.clientY;
 
+        sectionDragState.doc.addEventListener('pointermove', handleSectionDragMove, true);
+        sectionDragState.doc.addEventListener('pointerup', handleSectionDragEnd, true);
+        sectionDragState.doc.addEventListener('pointercancel', handleSectionDragEnd, true);
         sectionDragState.doc.addEventListener('mousemove', handleSectionDragMove, true);
         sectionDragState.doc.addEventListener('mouseup', handleSectionDragEnd, true);
+        sectionDragState.doc.addEventListener('touchmove', handleSectionDragMove, true);
+        sectionDragState.doc.addEventListener('touchend', handleSectionDragEnd, true);
+        sectionDragState.doc.addEventListener('touchcancel', handleSectionDragEnd, true);
     };
 
     var consumeSectionControlEvent = function (event) {
@@ -5014,6 +5231,10 @@ if ($latestRegionBallsHtml === '') {
 
         if (typeof event.stopPropagation === 'function') {
             event.stopPropagation();
+        }
+
+        if (typeof event.stopImmediatePropagation === 'function') {
+            event.stopImmediatePropagation();
         }
     };
 
@@ -5044,6 +5265,9 @@ if ($latestRegionBallsHtml === '') {
             return;
         }
 
+        button._sectionEditorOwnHandlerBound = true;
+        button.setAttribute('data-section-editor-bound', '1');
+
         ['pointerdown', 'mousedown', 'touchstart'].forEach(function (eventName) {
             button.addEventListener(eventName, function (event) {
                 runSectionControlOnce(button, event, handler);
@@ -5056,20 +5280,36 @@ if ($latestRegionBallsHtml === '') {
     };
 
     var bindSectionDragButton = function (button, editor, blockEl, titleEl) {
+        var resolveDragBlock = function () {
+            return findSectionEditorControlBlock(editor, button) || blockEl;
+        };
+
         if (!button || !editor || !blockEl) {
             return;
         }
 
-        button.addEventListener('mousedown', function (event) {
+        button._sectionEditorOwnHandlerBound = true;
+        button.setAttribute('data-section-editor-bound', '1');
+
+        button.addEventListener('pointerdown', function (event) {
             runSectionControlOnce(button, event, function (currentEvent) {
-                startSectionDrag(editor, blockEl, titleEl || null, currentEvent);
+                var currentBlock = resolveDragBlock();
+                startSectionDrag(editor, currentBlock, getDirectSectionTitle(currentBlock) || titleEl || null, currentEvent);
             });
         }, false);
 
-        button.addEventListener('pointerdown', function (event) {
-            if (event && typeof event.stopPropagation === 'function') {
-                event.stopPropagation();
-            }
+        button.addEventListener('mousedown', function (event) {
+            runSectionControlOnce(button, event, function (currentEvent) {
+                var currentBlock = resolveDragBlock();
+                startSectionDrag(editor, currentBlock, getDirectSectionTitle(currentBlock) || titleEl || null, currentEvent);
+            });
+        }, false);
+
+        button.addEventListener('touchstart', function (event) {
+            runSectionControlOnce(button, event, function (currentEvent) {
+                var currentBlock = resolveDragBlock();
+                startSectionDrag(editor, currentBlock, getDirectSectionTitle(currentBlock) || titleEl || null, currentEvent);
+            });
         }, false);
 
         button.addEventListener('click', function (event) {
@@ -5078,7 +5318,7 @@ if ($latestRegionBallsHtml === '') {
     };
 
     var removeSectionEditorControls = function (root, options) {
-        var controls = root ? root.querySelectorAll('[data-section-editor-control]') : [];
+        var controls = root ? root.querySelectorAll('[data-section-editor-control], .editor-section-floating-handle-row, .editor-section-drop-indicator') : [];
         var index = 0;
         var keepSourcePanel = !!(options && options.keepSourcePanel);
         var current = null;
@@ -5103,6 +5343,48 @@ if ($latestRegionBallsHtml === '') {
 
         if (root) {
             root._sectionEditorControlsSignature = '';
+        }
+    };
+
+    var stripSectionEditorRuntimeState = function (root, options) {
+        var nodes = root ? Array.prototype.slice.call(root.querySelectorAll ? root.querySelectorAll('*') : []) : [];
+        var index = 0;
+        var current = null;
+        var removeEditLock = !options || options.removeEditLock !== false;
+        var hadEditLock = false;
+
+        if (!root) {
+            return;
+        }
+
+        nodes.unshift(root);
+
+        for (index = 0; index < nodes.length; index += 1) {
+            current = nodes[index];
+            if (!current || !current.removeAttribute) {
+                continue;
+            }
+
+            hadEditLock = current.hasAttribute && current.hasAttribute('data-section-edit-locked');
+
+            current.removeAttribute('data-section-editor-active');
+            current.removeAttribute('data-section-editor-block-key');
+            current.removeAttribute('data-section-editor-bound');
+
+            if (removeEditLock) {
+                current.removeAttribute('data-section-edit-locked');
+                if (hadEditLock && current.getAttribute('contenteditable') === 'false') {
+                    current.removeAttribute('contenteditable');
+                }
+            }
+
+            if (current.classList) {
+                current.classList.remove('editor-sortable-block');
+                current.classList.remove('editor-sortable-block--floating');
+                current.classList.remove('editor-sortable-block--control-anchor');
+                current.classList.remove('editor-section-dragging');
+                current.classList.remove('editor-section-sort-mode');
+            }
         }
     };
 
@@ -5149,6 +5431,86 @@ if ($latestRegionBallsHtml === '') {
         }
     };
 
+    var normalizeLegacyExpertTemplateRows = function (root) {
+        var scoreNodes = root && root.querySelectorAll ? root.querySelectorAll('.data-frame > div .admin-template-score') : [];
+        var index = 0;
+        var scoreEl = null;
+        var rowEl = null;
+        var doc = null;
+        var sourceMainEl = null;
+        var prefixEl = null;
+        var mainEl = null;
+        var titleEl = null;
+        var metaEl = null;
+        var resultEl = null;
+        var viewEl = null;
+        var iconEl = null;
+        var countEl = null;
+        var prefixText = '';
+        var titleText = '';
+        var scoreText = '';
+
+        for (index = 0; index < scoreNodes.length; index += 1) {
+            scoreEl = scoreNodes[index];
+            rowEl = scoreEl && scoreEl.closest ? scoreEl.closest('.data-frame > div') : null;
+            sourceMainEl = rowEl && rowEl.querySelector ? rowEl.querySelector('.expert-item-main') : null;
+            prefixEl = sourceMainEl && sourceMainEl.querySelector ? sourceMainEl.querySelector('.issue-prefix-expert') : null;
+
+            if (!rowEl || !sourceMainEl || !prefixEl || (rowEl.classList && rowEl.classList.contains('expert-item-card'))) {
+                continue;
+            }
+
+            doc = rowEl.ownerDocument || document;
+            prefixText = String(prefixEl.textContent || '').replace(/\s+/g, ' ').trim();
+            titleText = String(sourceMainEl.textContent || '').replace(/\s+/g, ' ').trim();
+            if (prefixText !== '') {
+                titleText = titleText.replace(prefixText, '').replace(/\s+/g, ' ').trim();
+            }
+            scoreText = String(scoreEl.textContent || '').replace(/\s+/g, ' ').trim() || '待更新';
+            titleText = titleText || '高手资料';
+
+            rowEl.className = 'expert-item-card bg-white p-4 rounded-xl';
+            rowEl.removeAttribute('style');
+            prefixEl.className = 'issue-prefix issue-prefix-expert';
+
+            titleEl = doc.createElement('span');
+            titleEl.className = 'expert-item-title';
+            titleEl.textContent = titleText;
+
+            mainEl = doc.createElement('span');
+            mainEl.className = 'expert-item-main';
+            mainEl.appendChild(prefixEl);
+            mainEl.appendChild(titleEl);
+
+            resultEl = doc.createElement('span');
+            resultEl.className = 'expert-item-result';
+            resultEl.textContent = scoreText;
+
+            iconEl = doc.createElement('span');
+            iconEl.className = 'expert-view-icon';
+            iconEl.setAttribute('aria-hidden', 'true');
+            iconEl.textContent = '\uD83D\uDC41';
+
+            countEl = doc.createElement('span');
+            countEl.className = 'expert-view-number';
+            countEl.textContent = '0';
+
+            viewEl = doc.createElement('span');
+            viewEl.className = 'expert-view-count';
+            viewEl.appendChild(iconEl);
+            viewEl.appendChild(countEl);
+
+            metaEl = doc.createElement('div');
+            metaEl.className = 'expert-item-meta';
+            metaEl.appendChild(resultEl);
+            metaEl.appendChild(viewEl);
+
+            rowEl.innerHTML = '';
+            rowEl.appendChild(mainEl);
+            rowEl.appendChild(metaEl);
+        }
+    };
+
     var syncEditorTextarea = function (options) {
         var editor = null;
         var body = null;
@@ -5170,11 +5532,14 @@ if ($latestRegionBallsHtml === '') {
             return;
         }
 
+        stripLegacySectionEditorControlText(body);
+        normalizeLegacyExpertTemplateRows(body);
         applyAdminLivePreview(body, previewNow);
         applyManagedTitleBackgrounds(body);
         applyAdItemMiddleColorPreview(body);
         applyAdItemTailTextPreview(body);
         normalizeManagedSectionCardStyles(body);
+        refreshManagedDrawMaterialProtectedStates(body);
         clearActiveSection();
 
         if (!keepSourcePanel && sectionSourceState.panelEl && sectionSourceState.panelEl.parentNode) {
@@ -5400,6 +5765,52 @@ if ($latestRegionBallsHtml === '') {
         node.textContent = value;
     };
 
+    var ensureAdminLiveBadge = function (root) {
+        var doc = root && root.ownerDocument ? root.ownerDocument : document;
+        var box = root && root.querySelector ? root.querySelector('#section-live.hero-live-box') : null;
+        var left = box && box.querySelector ? box.querySelector('.hero-live-left') : null;
+        var period = box && box.querySelector ? box.querySelector('#hero-result-period') : null;
+        var badge = box && box.querySelector ? box.querySelector('.hero-live-badge') : null;
+        var icon = null;
+        var label = null;
+
+        if (!box || !left || !period) {
+            return;
+        }
+
+        if (!badge) {
+            badge = doc.createElement('button');
+            badge.id = 'hero-mode-badge';
+            badge.type = 'button';
+            badge.className = 'hero-live-badge';
+            badge.setAttribute('aria-live', 'polite');
+            badge.setAttribute('title', '点击查看开奖记录');
+
+            icon = doc.createElement('i');
+            icon.id = 'hero-mode-icon';
+            icon.className = 'fa-solid fa-clock-rotate-left';
+            badge.appendChild(icon);
+
+            label = doc.createElement('span');
+            label.id = 'hero-mode-label';
+            label.textContent = '开奖记录';
+            badge.appendChild(label);
+
+            left.insertBefore(badge, period);
+            return;
+        }
+
+        label = badge.querySelector ? badge.querySelector('#hero-mode-label') : null;
+        if (!label) {
+            label = doc.createElement('span');
+            label.id = 'hero-mode-label';
+            badge.appendChild(label);
+        }
+        if (!String(label.textContent || '').trim()) {
+            label.textContent = '开奖记录';
+        }
+    };
+
     var padAdminPreviewNumber = function (value) {
         var number = Number(value || 0);
 
@@ -5497,41 +5908,6 @@ if ($latestRegionBallsHtml === '') {
         return regionLabel + ' ' + normalizeAdminPreviewIssueTail(issueNo) + '期';
     };
 
-    var normalizeAdminPreviewDynamicIssueTail = function (issueNo) {
-        var text = String(issueNo || '').trim().replace(/[^0-9]+/g, '');
-
-        if (!text) {
-            return '';
-        }
-
-        text = text.length > 3 ? text.slice(-3) : text;
-        while (text.length < 3) {
-            text = '0' + text;
-        }
-
-        return text;
-    };
-
-    var resolveAdminPreviewCurrentIssueTail = function () {
-        var issue = adminPreviewCurrentIssue && typeof adminPreviewCurrentIssue === 'object' ? adminPreviewCurrentIssue : {};
-
-        return normalizeAdminPreviewDynamicIssueTail(
-            issue.issue_prefix_tail || issue.issue_prefix_text || issue.issue_no || (adminPreviewDraw ? adminPreviewDraw.issue_no : '')
-        );
-    };
-
-    var formatAdminPreviewAdIssuePrefixText = function () {
-        var issueTail = resolveAdminPreviewCurrentIssueTail();
-
-        return issueTail ? issueTail + '期：' : '';
-    };
-
-    var formatAdminPreviewPostIssuePrefixText = function () {
-        var issueTail = resolveAdminPreviewCurrentIssueTail();
-
-        return issueTail ? issueTail + '期：' : '';
-    };
-
     var findAdminIssuePrefixTitleNode = function (node) {
         var section = node && node.closest ? node.closest('section') : null;
 
@@ -5592,8 +5968,11 @@ if ($latestRegionBallsHtml === '') {
 
     var applyAdminIssuePrefixPreview = function (root) {
         var nodes = root && root.querySelectorAll ? root.querySelectorAll('.issue-prefix') : [];
-        var adPrefixText = formatAdminPreviewAdIssuePrefixText();
-        var postPrefixText = formatAdminPreviewPostIssuePrefixText();
+        var issue = adminPreviewCurrentIssue && typeof adminPreviewCurrentIssue === 'object' ? adminPreviewCurrentIssue : {};
+        var issueValue = issue.issue_prefix_tail || issue.issue_prefix_text || issue.issue_no || (adminPreviewDraw ? adminPreviewDraw.issue_no : '');
+        var issuePrefixText = window.AppIssuePrefix ? window.AppIssuePrefix.format(issueValue) : '';
+        var adPrefixText = issuePrefixText;
+        var postPrefixText = issuePrefixText;
         var index = 0;
         var node = null;
         var savedPostPrefixText = '';
@@ -5716,6 +6095,7 @@ if ($latestRegionBallsHtml === '') {
             return;
         }
 
+        ensureAdminLiveBadge(root);
         setAdminPreviewText(root, 'hero-result-period', formatAdminPreviewDrawIssueText(draw, region));
         setAdminPreviewText(root, 'hero-result-open-time', formatAdminPreviewDrawOpenTimeText(draw));
 
@@ -5807,6 +6187,7 @@ if ($latestRegionBallsHtml === '') {
             return;
         }
 
+        normalizeLegacyExpertTemplateRows(body);
         applyAdminLivePreview(body, previewNow);
         applyManagedTitleBackgrounds(body);
         applyAdItemMiddleColorPreview(body);
@@ -6148,64 +6529,58 @@ if ($latestRegionBallsHtml === '') {
         syncManualFontSizeInput(editor);
     };
 
-    var enhanceSectionEditButton = function (button) {
+    var setSectionControlButtonContent = function (button, label, iconText) {
+        var doc = button ? (button.ownerDocument || document) : document;
+        var iconEl = null;
+        var labelEl = null;
+
         if (!button) {
             return;
         }
 
+        while (button.firstChild) {
+            button.removeChild(button.firstChild);
+        }
+
+        if (iconText) {
+            iconEl = doc.createElement('span');
+            iconEl.className = 'editor-section-control-icon';
+            iconEl.setAttribute('aria-hidden', 'true');
+            iconEl.textContent = iconText;
+            button.appendChild(iconEl);
+        }
+
+        labelEl = doc.createElement('span');
+        labelEl.className = 'editor-section-control-label';
+        labelEl.textContent = label || '';
+        button.appendChild(labelEl);
+    };
+
+    var normalizeSectionControlButton = function (button, variantClass, label, iconText) {
+        if (!button || !button.classList) {
+            return;
+        }
+
+        button.classList.add('editor-section-control-btn');
+        if (variantClass) {
+            button.classList.add(variantClass);
+        }
         button.style.pointerEvents = 'auto';
-        button.style.minWidth = '66px';
-        button.style.padding = '0 14px';
-        button.style.background = 'linear-gradient(135deg, #2563eb, #1d4ed8)';
-        button.style.color = '#ffffff';
-        button.style.fontSize = '12px';
-        button.style.fontWeight = '900';
-        button.style.letterSpacing = '0.02em';
-        button.style.boxShadow = '0 10px 20px rgba(37, 99, 235, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.22)';
-        button.style.textShadow = '0 1px 1px rgba(15, 23, 42, 0.22)';
-        button.style.border = '0';
         button.style.userSelect = 'none';
         button.style.touchAction = 'manipulation';
+        setSectionControlButtonContent(button, label, iconText || '');
+    };
+
+    var enhanceSectionEditButton = function (button) {
+        normalizeSectionControlButton(button, 'editor-section-control-btn--edit', '编辑', '');
     };
 
     var enhanceSectionSourceButton = function (button) {
-        if (!button) {
-            return;
-        }
-
-        button.style.pointerEvents = 'auto';
-        button.style.minWidth = '66px';
-        button.style.padding = '0 14px';
-        button.style.background = 'linear-gradient(135deg, #0f172a, #334155)';
-        button.style.color = '#ffffff';
-        button.style.fontSize = '12px';
-        button.style.fontWeight = '900';
-        button.style.letterSpacing = '0.02em';
-        button.style.boxShadow = '0 10px 20px rgba(15, 23, 42, 0.22), inset 0 0 0 1px rgba(255, 255, 255, 0.12)';
-        button.style.textShadow = '0 1px 1px rgba(15, 23, 42, 0.22)';
-        button.style.border = '0';
-        button.style.cursor = 'pointer';
-        button.style.userSelect = 'none';
-        button.style.touchAction = 'manipulation';
+        normalizeSectionControlButton(button, 'editor-section-control-btn--source', '源码', '');
     };
 
     var enhanceSectionVisibilityButton = function (button) {
-        if (!button) {
-            return;
-        }
-
-        button.style.pointerEvents = 'auto';
-        button.style.minWidth = '48px';
-        button.style.padding = '0 12px';
-        button.style.color = '#ffffff';
-        button.style.fontSize = '12px';
-        button.style.fontWeight = '900';
-        button.style.letterSpacing = '0.02em';
-        button.style.textShadow = '0 1px 1px rgba(15, 23, 42, 0.22)';
-        button.style.border = '0';
-        button.style.cursor = 'pointer';
-        button.style.userSelect = 'none';
-        button.style.touchAction = 'manipulation';
+        normalizeSectionControlButton(button, 'editor-section-control-btn--visibility', '隐藏', '');
     };
 
     var applySectionVisibilityButtonState = function (button, isHidden) {
@@ -6213,40 +6588,52 @@ if ($latestRegionBallsHtml === '') {
             return;
         }
 
-        button.textContent = '\u2611\ufe0f';
+        setSectionControlButtonContent(button, isHidden ? '显示' : '隐藏', '');
+        button.classList.toggle('is-section-hidden', isHidden);
         button.setAttribute('aria-pressed', isHidden ? 'true' : 'false');
         button.setAttribute('title', isHidden ? '当前区块已隐藏，点击重新显示' : '隐藏当前区块');
-        button.style.background = isHidden
-            ? 'linear-gradient(135deg, #f59e0b, #d97706)'
-            : 'linear-gradient(135deg, #10b981, #059669)';
-        button.style.boxShadow = isHidden
-            ? '0 10px 20px rgba(217, 119, 6, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.18)'
-            : '0 10px 20px rgba(5, 150, 105, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.18)';
     };
 
     var enhanceSectionDeleteButton = function (button) {
-        if (!button) {
-            return;
+        normalizeSectionControlButton(button, 'editor-section-control-btn--delete', '删除', '');
+    };
+
+    var isSectionInlineDisplayNone = function (blockEl) {
+        var styleText = '';
+
+        if (!blockEl || !blockEl.getAttribute) {
+            return false;
         }
 
-        button.style.pointerEvents = 'auto';
-        button.style.minWidth = '66px';
-        button.style.padding = '0 14px';
-        button.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
-        button.style.color = '#ffffff';
-        button.style.fontSize = '12px';
-        button.style.fontWeight = '900';
-        button.style.letterSpacing = '0.02em';
-        button.style.boxShadow = '0 10px 20px rgba(220, 38, 38, 0.24), inset 0 0 0 1px rgba(255, 255, 255, 0.18)';
-        button.style.textShadow = '0 1px 1px rgba(15, 23, 42, 0.22)';
-        button.style.border = '0';
-        button.style.cursor = 'pointer';
-        button.style.userSelect = 'none';
-        button.style.touchAction = 'manipulation';
+        if (blockEl.style && String(blockEl.style.display || '').toLowerCase() === 'none') {
+            return true;
+        }
+
+        styleText = String(blockEl.getAttribute('style') || '').toLowerCase();
+        return /(?:^|;)\s*display\s*:\s*none\s*(?:;|$)/i.test(styleText);
     };
 
     var isSectionBlockHidden = function (blockEl) {
-        return !!(blockEl && blockEl.getAttribute && blockEl.getAttribute('data-section-hidden') === '1');
+        return !!(blockEl && blockEl.getAttribute && (
+            blockEl.getAttribute('data-section-hidden') === '1' ||
+            isSectionInlineDisplayNone(blockEl)
+        ));
+    };
+
+    var normalizeSectionHiddenPreviewStates = function (blocks) {
+        var index = 0;
+        var blockEl = null;
+
+        for (index = 0; index < blocks.length; index += 1) {
+            blockEl = blocks[index];
+            if (!blockEl || !blockEl.setAttribute) {
+                continue;
+            }
+
+            if (isSectionInlineDisplayNone(blockEl) || blockEl.getAttribute('data-section-hidden') === '1') {
+                blockEl.setAttribute('data-section-hidden', '1');
+            }
+        }
     };
 
     var setSectionBlockHidden = function (blockEl, shouldHide) {
@@ -6297,6 +6684,79 @@ if ($latestRegionBallsHtml === '') {
         return null;
     };
 
+    var stripLegacySectionEditorControlText = function (root) {
+        var blocks = [];
+        var index = 0;
+        var blockEl = null;
+        var current = null;
+        var next = null;
+        var originalText = '';
+        var cleanedText = '';
+        var guard = 0;
+
+        if (!root) {
+            return;
+        }
+
+        if (isSortableBlock(root)) {
+            blocks.push(root);
+        }
+
+        blocks = blocks.concat(getSortableBlocks(root));
+
+        for (index = 0; index < blocks.length; index += 1) {
+            blockEl = blocks[index];
+            current = blockEl ? blockEl.firstChild : null;
+            guard = 0;
+
+            while (current && guard < 12) {
+                next = current.nextSibling;
+                guard += 1;
+
+                if (isSectionEditorControlElement(current)) {
+                    current = next;
+                    continue;
+                }
+
+                if (current.nodeType === 3) {
+                    originalText = current.nodeValue || '';
+                    cleanedText = originalText.replace(sectionEditorLegacyControlTextPattern, '');
+
+                    if (cleanedText !== originalText) {
+                        if (cleanedText.replace(/\s+/g, '') === '') {
+                            current.parentNode.removeChild(current);
+                        } else {
+                            current.nodeValue = cleanedText;
+                        }
+                        current = next;
+                        continue;
+                    }
+
+                    if (originalText.replace(/\s+/g, '') !== '') {
+                        break;
+                    }
+
+                    current = next;
+                    continue;
+                }
+
+                if (current.nodeType === 1) {
+                    originalText = current.textContent ? current.textContent.replace(/\s+/g, '').trim() : '';
+                    if (
+                        sectionEditorLegacyControlTextExactPattern.test(current.textContent || '') &&
+                        !current.querySelector('img, picture, video, table, iframe, input, textarea, select, canvas, svg')
+                    ) {
+                        current.parentNode.removeChild(current);
+                        current = next;
+                        continue;
+                    }
+                }
+
+                break;
+            }
+        }
+    };
+
     var findSectionEditorControlBlock = function (editor, control) {
         var body = editor ? editor.getBody() : null;
         var blockId = control && control.getAttribute ? (control.getAttribute('data-section-editor-block-id') || '') : '';
@@ -6335,32 +6795,32 @@ if ($latestRegionBallsHtml === '') {
             return false;
         }
 
-        if (action === 'button') {
-            openSectionEditor(editor, blockEl || (control.closest ? control.closest('.section-title') : null) || titleEl);
-            return true;
-        }
-
         if (action === 'floating-button') {
             openSectionEditor(editor, blockEl);
             return true;
         }
 
-        if (action === 'source-button' || action === 'floating-source-button') {
+        if (action === 'floating-lock-button') {
+            toggleSectionEditLock(editor, blockEl);
+            return true;
+        }
+
+        if (action === 'floating-source-button') {
             showSectionSourceEditor(editor, blockEl);
             return true;
         }
 
-        if (action === 'visibility-button' || action === 'floating-visibility-button') {
+        if (action === 'floating-visibility-button') {
             toggleSectionBlockHidden(editor, blockEl);
             return true;
         }
 
-        if (action === 'delete-button' || action === 'floating-delete-button') {
+        if (action === 'floating-delete-button') {
             removeSectionBlock(editor, blockEl);
             return true;
         }
 
-        if (action === 'handle' || action === 'floating-handle') {
+        if (action === 'floating-handle') {
             startSectionDrag(editor, blockEl, titleEl, event);
             return true;
         }
@@ -6372,6 +6832,7 @@ if ($latestRegionBallsHtml === '') {
         var target = event ? (event.target || null) : null;
         var control = null;
         var hitTarget = null;
+        var point = getSectionEventPoint(event);
 
         if (target && target.nodeType === 3) {
             target = target.parentNode;
@@ -6382,11 +6843,11 @@ if ($latestRegionBallsHtml === '') {
             return control;
         }
 
-        if (typeof event.clientX !== 'number' || typeof event.clientY !== 'number') {
+        if (!point) {
             return null;
         }
 
-        hitTarget = doc.elementFromPoint(event.clientX, event.clientY);
+        hitTarget = doc.elementFromPoint(point.clientX, point.clientY);
         if (hitTarget && hitTarget.nodeType === 3) {
             hitTarget = hitTarget.parentNode;
         }
@@ -6413,7 +6874,16 @@ if ($latestRegionBallsHtml === '') {
             return false;
         }
 
-        if ((action === 'handle' || action === 'floating-handle') && eventName !== 'mousedown') {
+        if (control._sectionEditorOwnHandlerBound) {
+            return false;
+        }
+
+        if (
+            action === 'floating-handle' &&
+            eventName !== 'mousedown' &&
+            eventName !== 'pointerdown' &&
+            eventName !== 'touchstart'
+        ) {
             if (event && typeof event.stopPropagation === 'function') {
                 event.stopPropagation();
             }
@@ -6427,7 +6897,6 @@ if ($latestRegionBallsHtml === '') {
 
         consumeSectionControlEvent(event);
         control._sectionEditorBridgeRunAt = now;
-        control._sectionEditorLastRunAt = now;
 
         return runSectionEditorControlAction(editor, control, event);
     };
@@ -6470,12 +6939,44 @@ if ($latestRegionBallsHtml === '') {
         styleEl = doc.createElement('style');
         styleEl.id = 'section-editor-preview-style';
         styleEl.textContent = ''
-            + '.editor-sortable-block[data-section-hidden="1"] { display: block !important; opacity: 0.54; filter: grayscale(0.08); }'
-            + '.editor-sortable-block[data-section-hidden="1"]::after { content: "\\5DF2\\9690\\85CF"; position: absolute; top: 12px; left: 12px; z-index: 14; padding: 4px 10px; border-radius: 999px; background: rgba(15, 23, 42, 0.82); color: #ffffff; font-size: 12px; font-weight: 900; line-height: 1; box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18); }'
-            + '.editor-sortable-block[data-section-edit-locked="1"] { outline: 2px dashed rgba(37, 99, 235, 0.32); outline-offset: 4px; }'
-            + '.editor-sortable-block[data-section-edit-locked="1"]::before { content: "\\5DF2\\9501\\5B9A"; position: absolute; top: 48px; right: 12px; z-index: 14; padding: 4px 10px; border-radius: 999px; background: rgba(37, 99, 235, 0.88); color: #ffffff; font-size: 12px; font-weight: 900; line-height: 1; box-shadow: 0 8px 20px rgba(37, 99, 235, 0.18); }'
-            + '.editor-section-floating-handle-row { pointer-events: auto !important; z-index: 20 !important; }'
-            + '.editor-section-drag-handle, .editor-section-edit-button { pointer-events: auto !important; position: relative; z-index: 21; }';
+            + 'body.admin-draw-preview { --editor-lock-frame-offset: ' + sectionEditorLockMetrics.frameOffset + 'px; --editor-lock-frame-radius: ' + sectionEditorLockMetrics.frameRadius + 'px; --editor-lock-frame-border-width: ' + sectionEditorLockMetrics.frameBorderWidth + 'px; }'
+            + '.editor-sortable-block[data-section-hidden="1"] { display: block !important; opacity: 1 !important; filter: none !important; isolation: isolate !important; }'
+            + '.editor-sortable-block[data-section-hidden="1"] > :not([data-section-editor-control]) { opacity: 0.54 !important; filter: grayscale(0.12) saturate(0.78) !important; }'
+            + '.editor-sortable-block[data-section-hidden="1"]::before { content: "" !important; position: absolute !important; inset: 0 !important; z-index: 28 !important; border-radius: inherit !important; background: linear-gradient(180deg, rgba(248, 250, 252, 0.58), rgba(226, 232, 240, 0.72)) !important; pointer-events: none !important; box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.26) !important; }'
+            + '.editor-sortable-block[data-section-hidden="1"]::after { content: "\\5DF2\\9690\\85CF"; position: absolute !important; top: 12px !important; left: 12px !important; z-index: 29 !important; box-sizing: border-box !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; min-height: 20px !important; padding: 3px 9px !important; border-radius: 999px !important; background: rgba(15, 23, 42, 0.82) !important; color: #ffffff !important; font-size: 12px !important; font-weight: 500 !important; line-height: 1 !important; white-space: nowrap !important; box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18) !important; pointer-events: none !important; }'
+            + 'body.admin-draw-preview:not(.standalone-modal-post):not(.customer-service-embed-body) .editor-sortable-block[data-section-hidden="1"]::before { content: "" !important; position: absolute !important; inset: 0 !important; z-index: 28 !important; border-radius: inherit !important; display: block !important; background: linear-gradient(180deg, rgba(248, 250, 252, 0.58), rgba(226, 232, 240, 0.72)) !important; pointer-events: none !important; box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.26) !important; animation: none !important; }'
+            + 'body.admin-draw-preview:not(.standalone-modal-post):not(.customer-service-embed-body) .editor-sortable-block[data-section-hidden="1"]::after { content: "\\5DF2\\9690\\85CF" !important; position: absolute !important; top: 12px !important; left: 12px !important; right: auto !important; bottom: auto !important; width: auto !important; height: auto !important; max-width: calc(100% - 24px) !important; z-index: 29 !important; box-sizing: border-box !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; min-height: 20px !important; padding: 3px 9px !important; border-radius: 999px !important; background: rgba(15, 23, 42, 0.82) !important; color: #ffffff !important; font-size: 12px !important; font-weight: 500 !important; line-height: 1 !important; white-space: nowrap !important; box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18) !important; transform: none !important; animation: none !important; pointer-events: none !important; }'
+            + '.editor-sortable-block[data-section-edit-locked="1"] { position: relative !important; outline: 0 !important; outline-offset: 0 !important; isolation: isolate !important; }'
+            + 'body.admin-draw-preview:not(.standalone-modal-post):not(.customer-service-embed-body) .editor-sortable-block[data-section-hidden="1"][data-section-edit-locked="1"]::after { content: "\\5DF2\\9690\\85CF\\00A0/\\00A0\\5DF2\\9501\\5B9A" !important; z-index: 30 !important; min-width: 0 !important; background: rgba(15, 23, 42, 0.88) !important; border: 1px solid rgba(37, 99, 235, 0.34) !important; white-space: nowrap !important; box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18), 0 0 0 2px rgba(37, 99, 235, 0.08) !important; }'
+            + '.editor-sortable-block[data-section-edit-locked="1"]:not([data-section-hidden="1"])::after { content: none !important; display: none !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }'
+            + '.editor-sortable-block[data-section-edit-locked="1"]:not([data-section-hidden="1"])::before { content: none !important; display: none !important; background: transparent !important; border: 0 !important; box-shadow: none !important; }'
+            + 'body.admin-draw-preview > #section-live.hero-live-box.editor-sortable-block[data-section-hidden="1"][data-section-edit-locked="1"]::after { display: inline-flex !important; }'
+            + '.editor-section-lock-frame { position: absolute !important; z-index: 12 !important; box-sizing: border-box !important; display: block !important; border: var(--editor-lock-frame-border-width) dashed rgba(37, 99, 235, 0.42) !important; border-radius: var(--editor-lock-frame-radius) !important; background: transparent !important; box-shadow: none !important; pointer-events: none !important; }'
+            + '.editor-section-state-chip { position: relative !important; z-index: 63 !important; box-sizing: border-box !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; flex: 0 0 auto !important; min-width: 0 !important; height: 24px !important; min-height: 24px !important; margin: 0 !important; padding: 0 8px !important; border-radius: 999px !important; background: rgba(37, 99, 235, 0.88) !important; color: #ffffff !important; font-size: 12px !important; font-weight: 500 !important; line-height: 1 !important; letter-spacing: 0 !important; white-space: nowrap !important; pointer-events: none !important; box-shadow: 0 6px 14px rgba(37, 99, 235, 0.16) !important; }'
+            + '.editor-sortable-block--control-anchor { position: relative !important; }'
+            + 'body.editor-section-sort-mode { cursor: grabbing !important; }'
+            + '.editor-section-dragging { opacity: 0.46 !important; transform: scale(0.995) !important; }'
+            + '.editor-section-dragging, .editor-section-dragging * { pointer-events: none !important; }'
+            + '.editor-section-drop-indicator { position: relative !important; height: 0 !important; margin: 10px 0 !important; border-top: 3px dashed #f59e0b !important; }'
+            + '.editor-section-drop-indicator::after { content: "\\653E\\5230\\8FD9\\91CC"; position: absolute !important; top: -13px !important; right: 18px !important; padding: 2px 10px !important; border-radius: 999px !important; background: #fff7ed !important; color: #c2410c !important; font-size: 12px !important; font-weight: 800 !important; line-height: 1.6 !important; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08) !important; }'
+            + '.editor-section-floating-handle-row { position: absolute !important; top: 8px !important; right: 8px !important; z-index: 62 !important; box-sizing: border-box !important; display: inline-flex !important; align-items: center !important; justify-content: flex-end !important; gap: 4px !important; max-width: calc(100% - 16px) !important; min-height: 34px !important; padding: 3px !important; border: 1px solid rgba(148, 163, 184, 0.38) !important; border-radius: 999px !important; background: rgba(255, 255, 255, 0.88) !important; box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16) !important; pointer-events: auto !important; overflow: visible !important; white-space: nowrap !important; scrollbar-width: none !important; }'
+            + '.editor-section-floating-handle-row::-webkit-scrollbar { display: none !important; }'
+            + '.editor-section-action-drawer { position: relative !important; z-index: 63 !important; box-sizing: border-box !important; display: inline-flex !important; align-items: center !important; justify-content: flex-end !important; flex: 0 1 auto !important; gap: 4px !important; max-width: 0 !important; min-width: 0 !important; opacity: 0 !important; overflow: hidden !important; white-space: nowrap !important; transform: translateX(12px) !important; transition: max-width 0.18s ease, opacity 0.14s ease, transform 0.18s ease !important; pointer-events: none !important; }'
+            + '.editor-section-floating-handle-row:hover .editor-section-action-drawer, .editor-section-floating-handle-row:focus-within .editor-section-action-drawer, .editor-section-floating-handle-row.is-drawer-open .editor-section-action-drawer { max-width: 296px !important; opacity: 1 !important; transform: translateX(0) !important; pointer-events: auto !important; }'
+            + '.editor-section-control-btn, .editor-section-drag-handle, .editor-section-edit-button { position: relative !important; z-index: 63 !important; box-sizing: border-box !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; flex: 0 0 auto !important; min-width: 44px !important; height: 27px !important; min-height: 27px !important; margin: 0 !important; padding: 0 8px !important; border: 0 !important; border-radius: 999px !important; color: #ffffff !important; font-size: 12px !important; font-weight: 500 !important; line-height: 1 !important; letter-spacing: 0 !important; text-align: center !important; text-decoration: none !important; text-shadow: none !important; white-space: nowrap !important; cursor: pointer !important; user-select: none !important; touch-action: manipulation !important; pointer-events: auto !important; box-shadow: 0 6px 14px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.14) !important; }'
+            + '.editor-section-control-btn:hover, .editor-section-drag-handle:hover, .editor-section-edit-button:hover { filter: brightness(1.04) !important; }'
+            + '.editor-section-control-icon, .editor-section-drag-handle-icon { display: inline-flex !important; align-items: center !important; justify-content: center !important; min-width: 12px !important; margin-right: 2px !important; font-size: 12px !important; line-height: 1 !important; }'
+            + '.editor-section-control-label, .editor-section-drag-handle-label { display: inline-flex !important; align-items: center !important; justify-content: center !important; min-width: 0 !important; line-height: 1 !important; }'
+            + '.editor-section-drag-handle, .editor-section-control-btn--drag { min-width: 48px !important; cursor: grab !important; background: linear-gradient(135deg, #475569, #1e293b) !important; }'
+            + '.editor-section-drag-handle:active, .editor-section-control-btn--drag:active { cursor: grabbing !important; }'
+            + '.editor-section-lock-button, .editor-section-control-btn--lock { min-width: 44px !important; background: linear-gradient(135deg, #64748b, #334155) !important; }'
+            + '.editor-section-lock-button.is-section-locked, .editor-section-control-btn--lock.is-section-locked { background: linear-gradient(135deg, #2563eb, #1d4ed8) !important; }'
+            + '.editor-section-edit-button, .editor-section-control-btn--edit { background: linear-gradient(135deg, #2563eb, #1d4ed8) !important; }'
+            + '.editor-section-source-button, .editor-section-control-btn--source { background: linear-gradient(135deg, #0f172a, #334155) !important; }'
+            + '.editor-section-visibility-button, .editor-section-control-btn--visibility { min-width: 44px !important; background: linear-gradient(135deg, #10b981, #059669) !important; }'
+            + '.editor-section-visibility-button.is-section-hidden, .editor-section-control-btn--visibility.is-section-hidden { background: linear-gradient(135deg, #f59e0b, #d97706) !important; }'
+            + '.editor-section-delete-button, .editor-section-control-btn--delete { background: linear-gradient(135deg, #ef4444, #dc2626) !important; }'
+            + '@media (max-width: 430px) { .editor-section-floating-handle-row { top: 6px !important; right: 6px !important; max-width: calc(100% - 12px) !important; min-height: 31px !important; gap: 3px !important; padding: 2px !important; } .editor-section-action-drawer { gap: 3px !important; transform: translateX(10px) !important; } .editor-section-floating-handle-row:hover .editor-section-action-drawer, .editor-section-floating-handle-row:focus-within .editor-section-action-drawer, .editor-section-floating-handle-row.is-drawer-open .editor-section-action-drawer { max-width: 202px !important; transform: translateX(0) !important; } .editor-section-state-chip { height: 23px !important; min-height: 23px !important; padding: 0 7px !important; font-size: 11.5px !important; } .editor-section-control-btn, .editor-section-drag-handle, .editor-section-edit-button { min-width: 38px !important; height: 26px !important; min-height: 26px !important; padding: 0 6px !important; font-size: 11.5px !important; } .editor-section-drag-handle, .editor-section-control-btn--drag { min-width: 58px !important; } }';
         doc.head.appendChild(styleEl);
         installSectionEditorControlBridge(editor);
     };
@@ -6483,7 +6984,7 @@ if ($latestRegionBallsHtml === '') {
     var refreshSectionVisibilityButtons = function (editor) {
         var currentEditor = editor || (typeof window.tinymce !== 'undefined' ? window.tinymce.get('draw-material-editor') : null);
         var body = currentEditor ? currentEditor.getBody() : null;
-        var buttons = body ? body.querySelectorAll('[data-section-editor-control="visibility-button"], [data-section-editor-control="floating-visibility-button"]') : [];
+        var buttons = body ? body.querySelectorAll('[data-section-editor-control="floating-visibility-button"]') : [];
         var index = 0;
         var currentButton = null;
         var blockId = '';
@@ -6510,7 +7011,12 @@ if ($latestRegionBallsHtml === '') {
 
         shouldHide = !isSectionBlockHidden(blockEl);
         setSectionBlockHidden(blockEl, shouldHide);
+        refreshSectionVisibilityButtons(editor);
         syncEditorTextarea();
+        ensureSectionEditorButtons(editor, {
+            force: true
+        });
+        refreshSectionVisibilityButtons(editor);
         showDrawEditorNotice(shouldHide ? '当前区块已隐藏。' : '当前区块已恢复显示。', 'success');
     };
 
@@ -6538,8 +7044,33 @@ if ($latestRegionBallsHtml === '') {
 
             blockEl.parentNode.removeChild(blockEl);
             syncEditorTextarea();
+            ensureSectionEditorButtons(editor, {
+                force: true
+            });
             showDrawEditorNotice('当前区块已删除。', 'success');
         });
+    };
+
+    var ensureSectionControlAnchor = function (editor, blockEl) {
+        var doc = editor ? editor.getDoc() : null;
+        var win = doc ? doc.defaultView : null;
+        var computedStyle = null;
+        var positionValue = '';
+
+        if (!blockEl || !blockEl.classList) {
+            return;
+        }
+
+        if (win && typeof win.getComputedStyle === 'function') {
+            computedStyle = win.getComputedStyle(blockEl);
+            positionValue = computedStyle ? (computedStyle.position || '') : '';
+        }
+
+        if (!positionValue || positionValue === 'static') {
+            blockEl.classList.add('editor-sortable-block--control-anchor');
+        } else {
+            blockEl.classList.remove('editor-sortable-block--control-anchor');
+        }
     };
 
     var isVoidHtmlElement = function (tagName) {
@@ -6569,6 +7100,9 @@ if ($latestRegionBallsHtml === '') {
             return;
         }
 
+        stripSectionEditorRuntimeState(root, {
+            removeEditLock: false
+        });
         root.removeAttribute('data-section-editor-active');
         root.removeAttribute('data-section-editor-block-key');
 
@@ -6582,6 +7116,8 @@ if ($latestRegionBallsHtml === '') {
                 controls[index].parentNode.removeChild(controls[index]);
             }
         }
+
+        stripLegacySectionEditorControlText(root);
 
         nodes = root ? root.querySelectorAll('*') : [];
 
@@ -6698,7 +7234,7 @@ if ($latestRegionBallsHtml === '') {
     var refreshSectionSourceButtons = function (editor) {
         var currentEditor = editor || sectionSourceState.editor || (typeof window.tinymce !== 'undefined' ? window.tinymce.get('draw-material-editor') : null);
         var body = currentEditor ? currentEditor.getBody() : null;
-        var buttons = body ? body.querySelectorAll('[data-section-editor-control="source-button"], [data-section-editor-control="floating-source-button"]') : [];
+        var buttons = body ? body.querySelectorAll('[data-section-editor-control="floating-source-button"]') : [];
         var activeBlockId = sectionSourceState.blockEl && isSectionSourcePanelOpenForBlock(currentEditor, sectionSourceState.blockEl)
             ? getSectionEditorBlockId(sectionSourceState.blockEl)
             : '';
@@ -6718,9 +7254,13 @@ if ($latestRegionBallsHtml === '') {
                 continue;
             }
 
-            currentButton.textContent = buttonBlockId !== '' && buttonBlockId === activeBlockId
-                ? sectionSourceButtonCloseText
-                : sectionSourceButtonOpenText;
+            setSectionControlButtonContent(
+                currentButton,
+                buttonBlockId !== '' && buttonBlockId === activeBlockId
+                    ? sectionSourceButtonCloseText
+                    : sectionSourceButtonOpenText,
+                ''
+            );
             currentButton.setAttribute('aria-pressed', buttonBlockId !== '' && buttonBlockId === activeBlockId ? 'true' : 'false');
         }
     };
@@ -6734,6 +7274,9 @@ if ($latestRegionBallsHtml === '') {
 
         clearActiveSection();
         resetSectionSourceState();
+        ensureSectionEditorButtons(currentEditor, {
+            force: true
+        });
         refreshSectionSourceButtons(currentEditor);
     };
 
@@ -7023,39 +7566,44 @@ if ($latestRegionBallsHtml === '') {
         }
     };
 
-    var hasCompleteSectionEditorControls = function (titledBlocks, blocks) {
+    var getDirectSectionEditorControlRows = function (blockEl) {
+        var rows = blockEl ? blockEl.querySelectorAll('[data-section-editor-control="floating-handle-wrap"], .editor-section-floating-handle-row') : [];
+        var filtered = [];
         var index = 0;
-        var wrap = null;
-        var titleEl = null;
 
-        for (index = 0; index < titledBlocks.length; index += 1) {
-            wrap = titledBlocks[index].blockEl ? titledBlocks[index].blockEl.querySelector('[data-section-editor-control="floating-handle-wrap"]') : null;
-            if (
-                !wrap ||
-                !wrap.querySelector('[data-section-editor-control="floating-handle"]') ||
-                !wrap.querySelector('[data-section-editor-control="floating-button"]') ||
-                !wrap.querySelector('[data-section-editor-control="floating-source-button"]') ||
-                !wrap.querySelector('[data-section-editor-control="floating-visibility-button"]') ||
-                !wrap.querySelector('[data-section-editor-control="floating-delete-button"]')
-            ) {
-                return false;
+        for (index = 0; index < rows.length; index += 1) {
+            if (rows[index] && rows[index].parentNode === blockEl) {
+                filtered.push(rows[index]);
             }
         }
 
-        for (index = 0; index < blocks.length; index += 1) {
-            if (blocks[index].querySelector('.section-title')) {
-                continue;
-            }
+        return filtered;
+    };
 
-            wrap = blocks[index].querySelector('[data-section-editor-control="floating-handle-wrap"]');
-            if (
-                !wrap ||
-                !wrap.querySelector('[data-section-editor-control="floating-handle"]') ||
-                !wrap.querySelector('[data-section-editor-control="floating-button"]') ||
-                !wrap.querySelector('[data-section-editor-control="floating-source-button"]') ||
-                !wrap.querySelector('[data-section-editor-control="floating-visibility-button"]') ||
-                !wrap.querySelector('[data-section-editor-control="floating-delete-button"]')
-            ) {
+    var hasCompleteSectionEditorControlRow = function (wrap) {
+        return !!(
+            wrap &&
+            wrap.querySelector('[data-section-editor-control="floating-handle"]') &&
+            wrap.querySelector('[data-section-editor-control="floating-lock-button"]') &&
+            wrap.querySelector('[data-section-editor-control="floating-button"]') &&
+            wrap.querySelector('[data-section-editor-control="floating-source-button"]') &&
+            wrap.querySelector('[data-section-editor-control="floating-visibility-button"]') &&
+            wrap.querySelector('[data-section-editor-control="floating-delete-button"]')
+        );
+    };
+
+    var hasStandardSectionEditorControls = function (blocks, body) {
+        var rows = body ? body.querySelectorAll('[data-section-editor-control="floating-handle-wrap"], .editor-section-floating-handle-row') : [];
+        var directRows = [];
+        var index = 0;
+
+        if (!body || rows.length !== blocks.length) {
+            return false;
+        }
+
+        for (index = 0; index < blocks.length; index += 1) {
+            directRows = getDirectSectionEditorControlRows(blocks[index]);
+            if (directRows.length !== 1 || !hasCompleteSectionEditorControlRow(directRows[0])) {
                 return false;
             }
         }
@@ -7063,270 +7611,325 @@ if ($latestRegionBallsHtml === '') {
         return true;
     };
 
-    var ensureSectionEditorButtons = function (editor, options) {
+    var readSectionEditorPixelVariable = function (element, name, fallback) {
+        var value = '';
+        var numericValue = 0;
+        var win = null;
+
+        if (!element || !name) {
+            return fallback;
+        }
+
+        try {
+            win = element.ownerDocument ? element.ownerDocument.defaultView : window;
+            value = win && win.getComputedStyle ? win.getComputedStyle(element).getPropertyValue(name) : '';
+            numericValue = parseFloat(value);
+        } catch (error) {
+            numericValue = NaN;
+        }
+
+        return Number.isFinite(numericValue) ? numericValue : fallback;
+    };
+
+    var refreshSectionEditLockFrames = function (editor) {
         var body = editor ? editor.getBody() : null;
         var doc = editor ? editor.getDoc() : null;
-        var blocks = body ? getSortableBlocks(body) : [];
-        var titledBlocks = body ? getSortableBlocksWithDirectTitles(body) : [];
-        var signature = body ? getSectionEditorStructureSignature(body) : '';
-        var existingControlCount = body ? body.querySelectorAll('[data-section-editor-control="handle"], [data-section-editor-control="floating-handle"]').length : 0;
-        var controlsComplete = false;
+        var frames = body ? body.querySelectorAll('[data-section-editor-control="lock-frame"], [data-section-editor-control="lock-badge"]') : [];
+        var blocks = [];
+        var bodyRect = null;
         var index = 0;
+        var blockEl = null;
+        var rect = null;
+        var frame = null;
+        var frameOffset = 0;
+
+        if (!body || !doc) {
+            return;
+        }
+
+        for (index = 0; index < frames.length; index += 1) {
+            if (frames[index] && frames[index].parentNode) {
+                frames[index].parentNode.removeChild(frames[index]);
+            }
+        }
+
+        if (body.style) {
+            body.style.position = 'relative';
+        }
+
+        blocks = getSortableBlocks(body);
+        bodyRect = body.getBoundingClientRect ? body.getBoundingClientRect() : null;
+        if (!bodyRect) {
+            return;
+        }
+
+        frameOffset = readSectionEditorPixelVariable(body, '--editor-lock-frame-offset', sectionEditorLockMetrics.frameOffset);
+
+        for (index = 0; index < blocks.length; index += 1) {
+            blockEl = blocks[index];
+            if (!isSectionEditLocked(blockEl) || !blockEl.getBoundingClientRect) {
+                continue;
+            }
+
+            rect = blockEl.getBoundingClientRect();
+            if (rect.width <= 0 || rect.height <= 0) {
+                continue;
+            }
+
+            frame = doc.createElement('div');
+            frame.setAttribute('contenteditable', 'false');
+            frame.setAttribute('data-section-editor-control', 'lock-frame');
+            frame.setAttribute('data-section-editor-block-id', getSectionEditorBlockId(blockEl));
+            frame.setAttribute('data-mce-bogus', '1');
+            frame.className = 'editor-section-lock-frame';
+            frame.style.left = (rect.left - bodyRect.left - frameOffset) + 'px';
+            frame.style.top = (rect.top - bodyRect.top - frameOffset) + 'px';
+            frame.style.width = (rect.width + (frameOffset * 2)) + 'px';
+            frame.style.height = (rect.height + (frameOffset * 2)) + 'px';
+            body.appendChild(frame);
+        }
+    };
+
+    var createSectionEditorFloatingControlRow = function (editor, blockEl) {
+        var doc = editor ? editor.getDoc() : null;
+        var wrap = null;
+        var blockId = '';
+        var titleEl = getDirectSectionTitle(blockEl);
+        var createButton = null;
         var handleButton = null;
-        var floatingHandleWrap = null;
-        var button = null;
+        var lockButton = null;
+        var editButton = null;
         var sourceButton = null;
         var visibilityButton = null;
         var deleteButton = null;
+        var drawerEl = null;
+        var stateChip = null;
+        var resolveCurrentBlock = null;
+        var setDrawerOpen = null;
+        var closeDrawerIfBlurred = null;
+
+        if (!doc || !blockEl) {
+            return null;
+        }
+
+        blockId = getSectionEditorBlockId(blockEl);
+        resolveCurrentBlock = function () {
+            return getSectionBlockById(editor.getBody(), blockId) || blockEl;
+        };
+        wrap = doc.createElement('div');
+        wrap.setAttribute('contenteditable', 'false');
+        wrap.setAttribute('data-section-editor-control', 'floating-handle-wrap');
+        wrap.setAttribute('data-mce-bogus', '1');
+        wrap.className = 'editor-section-floating-handle-row';
+        setDrawerOpen = function (isOpen) {
+            var openedRows = null;
+            var index = 0;
+
+            if (wrap && wrap.classList) {
+                if (isOpen && doc) {
+                    openedRows = doc.querySelectorAll('.editor-section-floating-handle-row.is-drawer-open');
+                    for (index = 0; index < openedRows.length; index += 1) {
+                        if (openedRows[index] !== wrap && openedRows[index].classList) {
+                            openedRows[index].classList.remove('is-drawer-open');
+                        }
+                    }
+                }
+                wrap.classList.toggle('is-drawer-open', !!isOpen);
+            }
+        };
+        closeDrawerIfBlurred = function () {
+            var win = doc.defaultView || window;
+            win.setTimeout(function () {
+                if (!wrap || !doc.activeElement || !wrap.contains(doc.activeElement)) {
+                    setDrawerOpen(false);
+                }
+            }, 0);
+        };
+        wrap.addEventListener('mouseenter', function () {
+            setDrawerOpen(true);
+        }, false);
+        wrap.addEventListener('mouseleave', function () {
+            if (doc.activeElement && wrap.contains(doc.activeElement)) {
+                return;
+            }
+            setDrawerOpen(false);
+        }, false);
+        wrap.addEventListener('focusin', function () {
+            setDrawerOpen(true);
+        }, false);
+        wrap.addEventListener('focusout', closeDrawerIfBlurred, false);
+        wrap.addEventListener('pointerdown', function () {
+            setDrawerOpen(true);
+        }, true);
+        wrap.addEventListener('touchstart', function () {
+            setDrawerOpen(true);
+        }, true);
+
+        createButton = function (action, className, label, handler, options) {
+            var button = doc.createElement('button');
+            button.setAttribute('type', 'button');
+            button.setAttribute('contenteditable', 'false');
+            button.setAttribute('data-section-editor-control', action);
+            button.setAttribute('data-section-editor-block-id', blockId);
+            button.setAttribute('data-mce-bogus', '1');
+            button.className = className;
+            normalizeSectionControlButton(button, '', label, options && options.iconText ? options.iconText : '');
+
+            if (options && options.title) {
+                button.setAttribute('title', options.title);
+            }
+
+            if (action === 'floating-handle') {
+                button.style.userSelect = 'none';
+                button.style.touchAction = 'none';
+                button.style.pointerEvents = 'auto';
+                bindSectionDragButton(button, editor, blockEl, titleEl || null);
+            } else {
+                bindSectionActionButton(button, handler);
+            }
+
+            return button;
+        };
+
+        handleButton = createButton(
+            'floating-handle',
+            'editor-section-control-btn editor-section-control-btn--drag editor-section-drag-handle editor-section-drag-handle--floating',
+            '拖拽',
+            null,
+            {
+                iconText: '⋮⋮',
+                title: '拖拽排序'
+            }
+        );
+        lockButton = createButton(
+            'floating-lock-button',
+            'editor-section-control-btn editor-section-control-btn--lock editor-section-edit-button editor-section-lock-button editor-section-lock-button--floating',
+            isSectionEditLocked(blockEl) ? '解锁' : '锁定',
+            function () {
+                toggleSectionEditLock(editor, resolveCurrentBlock());
+            }
+        );
+        applySectionEditLockButtonState(lockButton, isSectionEditLocked(blockEl));
+        editButton = createButton(
+            'floating-button',
+            'editor-section-control-btn editor-section-control-btn--edit editor-section-edit-button editor-section-edit-button--floating',
+            '编辑',
+            function () {
+                openSectionEditor(editor, resolveCurrentBlock());
+            }
+        );
+        sourceButton = createButton(
+            'floating-source-button',
+            'editor-section-control-btn editor-section-control-btn--source editor-section-edit-button editor-section-source-button editor-section-source-button--floating',
+            '源码',
+            function () {
+                showSectionSourceEditor(editor, resolveCurrentBlock());
+            }
+        );
+        visibilityButton = createButton(
+            'floating-visibility-button',
+            'editor-section-control-btn editor-section-control-btn--visibility editor-section-edit-button editor-section-visibility-button editor-section-visibility-button--floating',
+            isSectionBlockHidden(blockEl) ? '显示' : '隐藏',
+            function () {
+                toggleSectionBlockHidden(editor, resolveCurrentBlock());
+            }
+        );
+        applySectionVisibilityButtonState(visibilityButton, isSectionBlockHidden(blockEl));
+        deleteButton = createButton(
+            'floating-delete-button',
+            'editor-section-control-btn editor-section-control-btn--delete editor-section-edit-button editor-section-delete-button editor-section-delete-button--floating',
+            '删除',
+            function () {
+                removeSectionBlock(editor, resolveCurrentBlock());
+            }
+        );
+
+        drawerEl = doc.createElement('div');
+        drawerEl.setAttribute('contenteditable', 'false');
+        drawerEl.setAttribute('data-mce-bogus', '1');
+        drawerEl.className = 'editor-section-action-drawer';
+        drawerEl.appendChild(lockButton);
+        drawerEl.appendChild(editButton);
+        drawerEl.appendChild(sourceButton);
+        drawerEl.appendChild(visibilityButton);
+        drawerEl.appendChild(deleteButton);
+
+        if (isSectionEditLocked(blockEl) && !isSectionBlockHidden(blockEl)) {
+            stateChip = doc.createElement('span');
+            stateChip.setAttribute('contenteditable', 'false');
+            stateChip.setAttribute('data-mce-bogus', '1');
+            stateChip.className = 'editor-section-state-chip editor-section-state-chip--locked';
+            stateChip.textContent = '已锁定';
+            wrap.appendChild(stateChip);
+        }
+
+        wrap.appendChild(drawerEl);
+        wrap.appendChild(handleButton);
+
+        return wrap;
+    };
+
+    var ensureSectionEditorButtons = function (editor, options) {
+        var body = editor ? editor.getBody() : null;
+        var doc = editor ? editor.getDoc() : null;
+        var blocks = [];
+        var signature = '';
+        var controlsStandard = false;
+        var index = 0;
+        var floatingHandleWrap = null;
 
         if (!body || !doc) {
             return;
         }
 
         sectionEditorControlsActivated = true;
+        normalizeLegacyExpertTemplateRows(body);
+        refreshManagedDrawMaterialProtectedStates(body);
+        blocks = getSortableBlocks(body);
+        signature = getSectionEditorStructureSignature(body);
         ensureSectionEditorPreviewStyles(editor);
+        normalizeSectionHiddenPreviewStates(blocks);
+
+        controlsStandard = hasStandardSectionEditorControls(blocks, body);
 
         if (!options || !options.force) {
-            if (body._sectionEditorControlsSignature === signature && (existingControlCount > 0 || blocks.length === 0)) {
-                return;
-            }
-        }
-
-        controlsComplete = hasCompleteSectionEditorControls(titledBlocks, blocks);
-
-        if (!options || !options.force) {
-            if (body._sectionEditorControlsSignature === signature && controlsComplete && (existingControlCount > 0 || blocks.length === 0)) {
+            if (body._sectionEditorControlsSignature === signature && controlsStandard) {
+                refreshSectionEditLockFrames(editor);
                 return;
             }
         }
 
         removeSectionEditorControls(body, options);
+        stripSectionEditorRuntimeState(body, {
+            removeEditLock: false
+        });
+        stripLegacySectionEditorControlText(body);
+        refreshManagedDrawMaterialProtectedStates(body);
+        blocks = getSortableBlocks(body);
+        signature = getSectionEditorStructureSignature(body);
 
         for (index = 0; index < blocks.length; index += 1) {
             blocks[index].classList.add('editor-sortable-block');
+            if (getDirectSectionTitle(blocks[index])) {
+                blocks[index].classList.remove('editor-sortable-block--floating');
+            } else {
+                blocks[index].classList.add('editor-sortable-block--floating');
+            }
+            ensureSectionControlAnchor(editor, blocks[index]);
             getSectionEditorBlockId(blocks[index]);
         }
 
-        for (index = 0; index < titledBlocks.length; index += 1) {
-            var currentTitle = titledBlocks[index].titleEl;
-            var currentBlock = titledBlocks[index].blockEl;
-
-            handleButton = doc.createElement('button');
-            handleButton.setAttribute('type', 'button');
-            handleButton.setAttribute('contenteditable', 'false');
-            handleButton.setAttribute('data-section-editor-control', 'handle');
-            handleButton.setAttribute('data-mce-bogus', '1');
-            handleButton.className = 'editor-section-drag-handle';
-            handleButton.style.userSelect = 'none';
-            handleButton.style.touchAction = 'none';
-            handleButton.setAttribute('title', '拖拽排序');
-            handleButton.innerHTML = '<span class="editor-section-drag-handle-icon" aria-hidden="true">⋮⋮</span><span class="editor-section-drag-handle-label">拖拽</span>';
-
-            bindSectionDragButton(handleButton, editor, currentBlock, currentTitle);
-
-            button = doc.createElement('button');
-            button.setAttribute('type', 'button');
-            button.setAttribute('contenteditable', 'false');
-            button.setAttribute('data-section-editor-control', 'button');
-            button.setAttribute('data-mce-bogus', '1');
-            button.setAttribute('data-section-editor-block-id', getSectionEditorBlockId(currentBlock));
-            button.className = 'editor-section-edit-button';
-            enhanceSectionEditButton(button);
-            button.textContent = '编辑';
-
-            button.textContent = '编辑';
-            bindSectionActionButton(button, (function (currentTitle) {
-                return function (event) {
-                    openSectionEditor(editor, currentTitle);
-                };
-            })(currentTitle));
-
-            sourceButton = doc.createElement('button');
-            sourceButton.setAttribute('type', 'button');
-            sourceButton.setAttribute('contenteditable', 'false');
-            sourceButton.setAttribute('data-section-editor-control', 'source-button');
-            sourceButton.setAttribute('data-mce-bogus', '1');
-            sourceButton.setAttribute('data-section-editor-block-id', getSectionEditorBlockId(currentBlock));
-            sourceButton.className = 'editor-section-edit-button editor-section-source-button';
-            enhanceSectionSourceButton(sourceButton);
-            sourceButton.textContent = '源码';
-            bindSectionActionButton(sourceButton, (function (currentBlock) {
-                return function (event) {
-                    showSectionSourceEditor(editor, currentBlock);
-                };
-            })(currentBlock));
-
-            visibilityButton = doc.createElement('button');
-            visibilityButton.setAttribute('type', 'button');
-            visibilityButton.setAttribute('contenteditable', 'false');
-            visibilityButton.setAttribute('data-section-editor-control', 'visibility-button');
-            visibilityButton.setAttribute('data-mce-bogus', '1');
-            visibilityButton.setAttribute('data-section-editor-block-id', getSectionEditorBlockId(currentBlock));
-            visibilityButton.className = 'editor-section-edit-button editor-section-visibility-button';
-            enhanceSectionVisibilityButton(visibilityButton);
-            applySectionVisibilityButtonState(visibilityButton, isSectionBlockHidden(currentBlock));
-            bindSectionActionButton(visibilityButton, (function (currentBlock) {
-                return function (event) {
-                    toggleSectionBlockHidden(editor, currentBlock);
-                };
-            })(currentBlock));
-
-            deleteButton = doc.createElement('button');
-            deleteButton.setAttribute('type', 'button');
-            deleteButton.setAttribute('contenteditable', 'false');
-            deleteButton.setAttribute('data-section-editor-control', 'delete-button');
-            deleteButton.setAttribute('data-mce-bogus', '1');
-            deleteButton.setAttribute('data-section-editor-block-id', getSectionEditorBlockId(currentBlock));
-            deleteButton.className = 'editor-section-edit-button editor-section-delete-button';
-            enhanceSectionDeleteButton(deleteButton);
-            deleteButton.textContent = '删除';
-            bindSectionActionButton(deleteButton, (function (currentBlock) {
-                return function (event) {
-                    removeSectionBlock(editor, currentBlock);
-                };
-            })(currentBlock));
-
-            floatingHandleWrap = doc.createElement('div');
-            floatingHandleWrap.setAttribute('contenteditable', 'false');
-            floatingHandleWrap.setAttribute('data-section-editor-control', 'floating-handle-wrap');
-            floatingHandleWrap.setAttribute('data-mce-bogus', '1');
-            floatingHandleWrap.className = 'editor-section-floating-handle-row';
-            floatingHandleWrap.style.display = 'inline-flex';
-            floatingHandleWrap.style.alignItems = 'center';
-            floatingHandleWrap.style.gap = '8px';
-            floatingHandleWrap.style.pointerEvents = 'auto';
-
-            handleButton.setAttribute('data-section-editor-control', 'floating-handle');
-            handleButton.className = 'editor-section-drag-handle editor-section-drag-handle--floating';
-            button.setAttribute('data-section-editor-control', 'floating-button');
-            button.className = 'editor-section-edit-button editor-section-edit-button--floating';
-            sourceButton.setAttribute('data-section-editor-control', 'floating-source-button');
-            sourceButton.className = 'editor-section-edit-button editor-section-source-button editor-section-source-button--floating';
-            visibilityButton.setAttribute('data-section-editor-control', 'floating-visibility-button');
-            visibilityButton.className = 'editor-section-edit-button editor-section-visibility-button editor-section-visibility-button--floating';
-            deleteButton.setAttribute('data-section-editor-control', 'floating-delete-button');
-            deleteButton.className = 'editor-section-edit-button editor-section-delete-button editor-section-delete-button--floating';
-
-            floatingHandleWrap.appendChild(handleButton);
-            floatingHandleWrap.appendChild(button);
-            floatingHandleWrap.appendChild(sourceButton);
-            floatingHandleWrap.appendChild(visibilityButton);
-            floatingHandleWrap.appendChild(deleteButton);
-            currentBlock.insertBefore(floatingHandleWrap, currentBlock.firstChild);
-        }
-
         for (index = 0; index < blocks.length; index += 1) {
-            if (blocks[index].querySelector('.section-title')) {
+            floatingHandleWrap = createSectionEditorFloatingControlRow(editor, blocks[index]);
+            if (!floatingHandleWrap) {
                 continue;
             }
-
-            blocks[index].classList.add('editor-sortable-block--floating');
-
-            floatingHandleWrap = doc.createElement('div');
-            floatingHandleWrap.setAttribute('contenteditable', 'false');
-            floatingHandleWrap.setAttribute('data-section-editor-control', 'floating-handle-wrap');
-            floatingHandleWrap.setAttribute('data-mce-bogus', '1');
-            floatingHandleWrap.className = 'editor-section-floating-handle-row';
-            floatingHandleWrap.style.display = 'inline-flex';
-            floatingHandleWrap.style.alignItems = 'center';
-            floatingHandleWrap.style.gap = '8px';
-            floatingHandleWrap.style.pointerEvents = 'auto';
-
-            handleButton = doc.createElement('button');
-            handleButton.setAttribute('type', 'button');
-            handleButton.setAttribute('contenteditable', 'false');
-            handleButton.setAttribute('data-section-editor-control', 'floating-handle');
-            handleButton.setAttribute('data-mce-bogus', '1');
-            handleButton.className = 'editor-section-drag-handle editor-section-drag-handle--floating';
-            handleButton.style.userSelect = 'none';
-            handleButton.style.touchAction = 'none';
-            handleButton.style.pointerEvents = 'auto';
-            handleButton.setAttribute('title', '拖拽排序');
-            handleButton.innerHTML = '<span class="editor-section-drag-handle-icon" aria-hidden="true">⋮⋮</span><span class="editor-section-drag-handle-label">拖拽</span>';
-
-            bindSectionDragButton(handleButton, editor, blocks[index], null);
-
-            floatingHandleWrap.appendChild(handleButton);
-
-            button = doc.createElement('button');
-            button.setAttribute('type', 'button');
-            button.setAttribute('contenteditable', 'false');
-            button.setAttribute('data-section-editor-control', 'floating-button');
-            button.setAttribute('data-mce-bogus', '1');
-            button.setAttribute('data-section-editor-block-id', getSectionEditorBlockId(blocks[index]));
-            button.className = 'editor-section-edit-button editor-section-edit-button--floating';
-            enhanceSectionEditButton(button);
-            button.style.display = 'inline-flex';
-            button.textContent = '编辑';
-            button.style.pointerEvents = 'auto';
-
-            button.textContent = '编辑';
-            bindSectionActionButton(button, (function (currentBlock) {
-                return function (event) {
-                    openSectionEditor(editor, currentBlock);
-                };
-            })(blocks[index]));
-
-            sourceButton = doc.createElement('button');
-            sourceButton.setAttribute('type', 'button');
-            sourceButton.setAttribute('contenteditable', 'false');
-            sourceButton.setAttribute('data-section-editor-control', 'floating-source-button');
-            sourceButton.setAttribute('data-mce-bogus', '1');
-            sourceButton.setAttribute('data-section-editor-block-id', getSectionEditorBlockId(blocks[index]));
-            sourceButton.className = 'editor-section-edit-button editor-section-source-button editor-section-source-button--floating';
-            enhanceSectionSourceButton(sourceButton);
-            sourceButton.style.display = 'inline-flex';
-            sourceButton.style.pointerEvents = 'auto';
-            sourceButton.textContent = '源码';
-            bindSectionActionButton(sourceButton, (function (currentBlock) {
-                return function (event) {
-                    showSectionSourceEditor(editor, currentBlock);
-                };
-            })(blocks[index]));
-
-            visibilityButton = doc.createElement('button');
-            visibilityButton.setAttribute('type', 'button');
-            visibilityButton.setAttribute('contenteditable', 'false');
-            visibilityButton.setAttribute('data-section-editor-control', 'floating-visibility-button');
-            visibilityButton.setAttribute('data-mce-bogus', '1');
-            visibilityButton.setAttribute('data-section-editor-block-id', getSectionEditorBlockId(blocks[index]));
-            visibilityButton.className = 'editor-section-edit-button editor-section-visibility-button editor-section-visibility-button--floating';
-            enhanceSectionVisibilityButton(visibilityButton);
-            visibilityButton.style.display = 'inline-flex';
-            visibilityButton.style.pointerEvents = 'auto';
-            applySectionVisibilityButtonState(visibilityButton, isSectionBlockHidden(blocks[index]));
-            bindSectionActionButton(visibilityButton, (function (currentBlock) {
-                return function (event) {
-                    toggleSectionBlockHidden(editor, currentBlock);
-                };
-            })(blocks[index]));
-
-            deleteButton = doc.createElement('button');
-            deleteButton.setAttribute('type', 'button');
-            deleteButton.setAttribute('contenteditable', 'false');
-            deleteButton.setAttribute('data-section-editor-control', 'floating-delete-button');
-            deleteButton.setAttribute('data-mce-bogus', '1');
-            deleteButton.setAttribute('data-section-editor-block-id', getSectionEditorBlockId(blocks[index]));
-            deleteButton.className = 'editor-section-edit-button editor-section-delete-button editor-section-delete-button--floating';
-            enhanceSectionDeleteButton(deleteButton);
-            deleteButton.style.display = 'inline-flex';
-            deleteButton.style.pointerEvents = 'auto';
-            deleteButton.textContent = '删除';
-            bindSectionActionButton(deleteButton, (function (currentBlock) {
-                return function (event) {
-                    removeSectionBlock(editor, currentBlock);
-                };
-            })(blocks[index]));
-
-            floatingHandleWrap.appendChild(button);
-            floatingHandleWrap.appendChild(sourceButton);
-            floatingHandleWrap.appendChild(visibilityButton);
-            floatingHandleWrap.appendChild(deleteButton);
             blocks[index].insertBefore(floatingHandleWrap, blocks[index].firstChild);
         }
 
-        body._sectionEditorControlsSignature = signature;
+        body._sectionEditorControlsSignature = getSectionEditorStructureSignature(body);
         refreshSectionEditLockStates(body);
+        refreshSectionEditLockFrames(editor);
         refreshSectionSourceButtons(editor);
         refreshSectionVisibilityButtons(editor);
     };
@@ -7432,6 +8035,62 @@ if ($latestRegionBallsHtml === '') {
         syncEditorTextarea();
     };
 
+    var resolveDrawFormSubmitUrl = function () {
+        var target = normalizeDrawImageUploadUrl(form ? form.getAttribute('action') : '');
+        var resolvedUrl = null;
+
+        if (!target) {
+            return window.location.pathname + window.location.search;
+        }
+
+        try {
+            resolvedUrl = new URL(target, window.location.href);
+            if (resolvedUrl.host === window.location.host) {
+                return resolvedUrl.pathname + resolvedUrl.search + resolvedUrl.hash;
+            }
+
+            return resolvedUrl.href;
+        } catch (error) {
+            return target || window.location.href;
+        }
+    };
+
+    var isDrawFormFetchTransportError = function (error) {
+        var message = error && error.message ? String(error.message).toLowerCase() : '';
+
+        return message.indexOf('failed to fetch') !== -1
+            || message.indexOf('networkerror') !== -1
+            || message.indexOf('load failed') !== -1
+            || message.indexOf('network request failed') !== -1;
+    };
+
+    var submitDrawFormNative = function () {
+        var nativeSubmit = window.HTMLFormElement && window.HTMLFormElement.prototype
+            ? window.HTMLFormElement.prototype.submit
+            : null;
+
+        if (!form) {
+            return false;
+        }
+
+        try {
+            syncEditorTextarea();
+            if (typeof nativeSubmit === 'function') {
+                nativeSubmit.call(form);
+                return true;
+            }
+
+            if (typeof form.submit === 'function') {
+                form.submit();
+                return true;
+            }
+        } catch (error) {
+            return false;
+        }
+
+        return false;
+    };
+
     var submitDrawFormAjax = function (editor) {
         var formData = null;
 
@@ -7457,7 +8116,7 @@ if ($latestRegionBallsHtml === '') {
         formData = new FormData(form);
         formData.set('_response_format', 'json');
 
-        fetch(form.getAttribute('action') || window.location.href, {
+        fetch(resolveDrawFormSubmitUrl(), {
             method: 'POST',
             body: formData,
             credentials: 'same-origin',
@@ -7481,6 +8140,10 @@ if ($latestRegionBallsHtml === '') {
             setSaveButtonBusy(false);
             showDrawEditorNotice((payload && payload.message) || '资料内容已保存。', 'success');
         }).catch(function (error) {
+            if (isDrawFormFetchTransportError(error) && submitDrawFormNative()) {
+                return;
+            }
+
             fullscreenState.isSubmitting = false;
             saveRequestState.pending = false;
             setSaveButtonBusy(false);
@@ -7490,7 +8153,82 @@ if ($latestRegionBallsHtml === '') {
         return true;
     };
 
-    var getInsertableSectionTemplate = function (templateType) {
+    var resolveExpertSegmentNoFromText = function (text) {
+        var key = String(text || '').replace(/\s+/g, '');
+
+        if (key.indexOf('高手') === -1) {
+            return 0;
+        }
+
+        if (/[1１一壹①]/u.test(key)) {
+            return 1;
+        }
+        if (/[2２二贰②]/u.test(key)) {
+            return 2;
+        }
+        if (/[3３三叁③]/u.test(key)) {
+            return 3;
+        }
+
+        return 0;
+    };
+
+    var resolveExpertSectionSegmentNo = function (section) {
+        var attr = section && section.getAttribute ? parseInt(section.getAttribute('data-managed-expert-segment') || '', 10) : 0;
+        var titleNode = null;
+
+        if (attr >= 1 && attr <= 3) {
+            return attr;
+        }
+
+        titleNode = section && section.querySelector ? section.querySelector(':scope > .section-title, .section-title') : null;
+
+        return resolveExpertSegmentNoFromText(titleNode ? titleNode.textContent : '');
+    };
+
+    var resolveInsertableExpertSegmentNo = function (editor) {
+        var body = editor ? editor.getBody() : null;
+        var sections = body && body.querySelectorAll ? Array.prototype.slice.call(body.querySelectorAll('section')) : [];
+        var used = {};
+        var expertCount = 0;
+        var index = 0;
+        var section = null;
+        var segmentNo = 0;
+
+        for (index = 0; index < sections.length; index += 1) {
+            section = sections[index];
+            if (!section.querySelector || !section.querySelector('.section-title')) {
+                continue;
+            }
+            if (!section.querySelector('.expert-item-card, .expert-item-main, .issue-prefix-expert') && String(section.textContent || '').indexOf('高手') === -1) {
+                continue;
+            }
+
+            expertCount += 1;
+            segmentNo = resolveExpertSectionSegmentNo(section);
+            if (segmentNo >= 1 && segmentNo <= 3) {
+                used[segmentNo] = true;
+            }
+        }
+
+        for (segmentNo = 1; segmentNo <= 3; segmentNo += 1) {
+            if (!used[segmentNo]) {
+                return segmentNo;
+            }
+        }
+
+        return (expertCount % 3) + 1;
+    };
+
+    var getInsertableSectionTemplate = function (templateType, options) {
+        var expertSegmentNo = options && options.expertSegmentNo ? parseInt(options.expertSegmentNo, 10) : 1;
+        var expertSegmentTextMap = {
+            1: '\u2460',
+            2: '\u2461',
+            3: '\u2462'
+        };
+        var expertSegmentText = '';
+
         if (templateType === 'ad') {
             return [
                 '<section class="max-w-7xl mx-auto px-[14px] pt-[10px] pb-0 bottom-nav-target">',
@@ -7505,13 +8243,16 @@ if ($latestRegionBallsHtml === '') {
         }
 
         if (templateType === 'expert') {
+            expertSegmentNo = expertSegmentNo >= 1 && expertSegmentNo <= 3 ? expertSegmentNo : 1;
+            expertSegmentText = expertSegmentTextMap[expertSegmentNo] || '\u4e00';
+
             return [
-                '<section class="max-w-7xl mx-auto px-[14px] pt-[10px] pb-0 bottom-nav-target">',
-                '<div class="section-title is-template-title-expert" data-title-bg-start="#f59e0b" data-title-bg-end="#ef4444"><i class="fa-solid fa-crown"></i>\u9ad8\u624b\u699c\u533a</div>',
+                '<section class="max-w-7xl mx-auto px-[14px] pt-[10px] pb-0 bottom-nav-target" data-managed-expert-segment="' + expertSegmentNo + '" data-expert-ad-interval="0" data-expert-ad-title="\u5e7f\u544a\u63a8\u8350">',
+                '<div class="section-title is-template-title-expert" data-title-bg-start="#f59e0b" data-title-bg-end="#ef4444"><i class="fa-solid fa-crown"></i>\u9ad8\u624b\u699c' + expertSegmentText + '\u533a</div>',
                 '<div class="data-frame space-y-3">',
-                '<div class="flex justify-between items-center bg-white p-4 rounded-xl"><span class="expert-item-main"><span class="issue-prefix issue-prefix-expert"></span><span>\u72ec\u80c6\u738b</span></span><span class="admin-template-score is-red">12\u4e2d8</span></div>',
-                '<div class="flex justify-between items-center bg-white p-4 rounded-xl"><span class="expert-item-main"><span class="issue-prefix issue-prefix-expert"></span><span>\u4e09\u4e2d\u4e09\u9ad8\u624b</span></span><span class="admin-template-score is-blue">9\u4e2d6</span></div>',
-                '<div class="flex justify-between items-center bg-white p-4 rounded-xl"><span class="expert-item-main"><span class="issue-prefix issue-prefix-expert"></span><span>\u7279\u7801\u5b9a\u4f4d</span></span><span class="admin-template-score is-green">7\u4e2d5</span></div>',
+                '<div class="expert-item-card bg-white p-4 rounded-xl"><span class="expert-item-main"><span class="issue-prefix issue-prefix-expert"></span><span class="expert-item-title">\u72ec\u80c6\u738b</span></span><div class="expert-item-meta"><span class="expert-item-result">12\u4e2d8</span><span class="expert-view-count"><span class="expert-view-icon" aria-hidden="true">\ud83d\udc41</span><span class="expert-view-number">0</span></span></div></div>',
+                '<div class="expert-item-card bg-white p-4 rounded-xl"><span class="expert-item-main"><span class="issue-prefix issue-prefix-expert"></span><span class="expert-item-title">\u4e09\u4e2d\u4e09\u9ad8\u624b</span></span><div class="expert-item-meta"><span class="expert-item-result">9\u4e2d6</span><span class="expert-view-count"><span class="expert-view-icon" aria-hidden="true">\ud83d\udc41</span><span class="expert-view-number">0</span></span></div></div>',
+                '<div class="expert-item-card bg-white p-4 rounded-xl"><span class="expert-item-main"><span class="issue-prefix issue-prefix-expert"></span><span class="expert-item-title">\u7279\u7801\u5b9a\u4f4d</span></span><div class="expert-item-meta"><span class="expert-item-result">7\u4e2d5</span><span class="expert-view-count"><span class="expert-view-icon" aria-hidden="true">\ud83d\udc41</span><span class="expert-view-number">0</span></span></div></div>',
                 '</div>',
                 '</section>'
             ].join('');
@@ -7543,7 +8284,9 @@ if ($latestRegionBallsHtml === '') {
             return;
         }
 
-        html = getInsertableSectionTemplate(templateType);
+        html = getInsertableSectionTemplate(templateType, {
+            expertSegmentNo: templateType === 'expert' ? resolveInsertableExpertSegmentNo(editor) : 0
+        });
         if (!html) {
             return;
         }
@@ -7586,6 +8329,22 @@ if ($latestRegionBallsHtml === '') {
         }
 
         initDrawMaterialEditor.started = true;
+        var drawEditorPlugins = '<?php echo $drawMode === 'material'
+            ? 'advlist autolink lists link image table code preview searchreplace fullscreen charmap anchor'
+            : 'advlist autolink lists link image table code preview searchreplace fullscreen wordcount autoresize charmap anchor'; ?>';
+        var drawEditorMenubar = 'file edit view insert format table tools sectiontools help';
+        var drawEditorMenuConfig = {
+            sectiontools: {
+                title: '\u65b0\u589e\u533a',
+                items: 'insertdatasection insertadsection insertexpertsection'
+            }
+        };
+        var drawEditorToolbarRows = [
+            'undo redo | blocks fontfamily fontsize',
+            'bold italic underline strikethrough | forecolor backcolor | removeformat',
+            'alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image table | code preview fullscreen'
+        ];
+
         window.tinymce.init({
         selector: '#draw-material-editor',
         license_key: 'gpl',
@@ -7594,9 +8353,12 @@ if ($latestRegionBallsHtml === '') {
         height: 680,
         min_height: 680,
         content_css: [
-            '<?php echo e(asset('vendor/fontawesome/css/all.min.css?v=20260621-front-fa-sync-01')); ?>',
-            '<?php echo e(public_url('styles/style.css?v=20260629-brand-gap-02')); ?>',
-            '<?php echo e(public_url('styles/home-editor-preview.css?v=20260630-component-controls-01')); ?>'
+            '<?php echo e($drawEditorFontAwesomeCssUrl); ?>',
+            '<?php echo e($drawEditorFrontStyleUrl); ?>',
+            <?php if ($drawMode === 'component'): ?>
+            '<?php echo e($drawEditorFrontFloatingStyleUrl); ?>',
+            <?php endif; ?>
+            '<?php echo e($drawEditorPreviewStyleUrl); ?>'
         ],
         body_class: '<?php echo e($drawEditorBodyClass); ?>',
         font_family_formats: '微软雅黑=Microsoft YaHei,PingFang SC,sans-serif;' +
@@ -7609,18 +8371,18 @@ if ($latestRegionBallsHtml === '') {
             '无衬线=Arial,Helvetica,sans-serif;' +
             '衬线=Times New Roman,Times,serif;' +
             '等宽=Courier New,Courier,monospace',
-        menubar: 'file edit view insert format table tools sectiontools help',
-        plugins: '<?php echo $drawMode === 'material'
-            ? 'advlist autolink lists link image table code preview searchreplace fullscreen charmap anchor'
-            : 'advlist autolink lists link image table code preview searchreplace fullscreen wordcount autoresize charmap anchor'; ?>',
-        menu: {
-            sectiontools: {
-                title: '\u65b0\u589e\u533a',
-                items: 'insertdatasection insertadsection insertexpertsection'
-            }
-        },
+        menubar: drawEditorMenubar,
+        plugins: drawEditorPlugins,
+        menu: drawEditorMenuConfig,
         toolbar_mode: 'wrap',
-        toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | forecolor backcolor | removeformat | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image table | code preview fullscreen',
+        toolbar: drawEditorToolbarRows,
+        mobile: {
+            menubar: drawEditorMenubar,
+            plugins: drawEditorPlugins,
+            menu: drawEditorMenuConfig,
+            toolbar_mode: 'wrap',
+            toolbar: drawEditorToolbarRows
+        },
         automatic_uploads: true,
         file_picker_types: 'image',
         images_file_types: 'jpg,jpeg,png,gif,webp,bmp',
@@ -7671,6 +8433,11 @@ if ($latestRegionBallsHtml === '') {
                 var root = editor.getDoc() ? editor.getDoc().documentElement : null;
 
                 if (body) {
+                    removeSectionEditorControls(body);
+                    stripLegacySectionEditorControlText(body);
+                    stripSectionEditorRuntimeState(body, {
+                        removeEditLock: false
+                    });
                     body.setAttribute('data-region', '<?php echo e($currentRegion); ?>');
                     body.classList.remove('mce-visualblocks');
                 }
@@ -7725,22 +8492,28 @@ if ($latestRegionBallsHtml === '') {
 
                 fullscreenState.explicitToggle = false;
 
-                if (!saveButton) {
-                    return;
-                }
-
                 if (isFullscreen) {
                     var menubar = editor.getContainer() ? editor.getContainer().querySelector('.tox-menubar') : null;
                     var header = editor.getContainer() ? editor.getContainer().querySelector('.tox-editor-header') : null;
 
+                    if (mountSaveButtonToEditorTopActions(editor)) {
+                        return;
+                    }
+
+                    if (!saveButton) {
+                        return;
+                    }
+
                     if (menubar) {
                         saveButton.classList.remove('is-in-page-title-shell');
                         saveButton.classList.remove('is-in-editor-header');
+                        saveButton.classList.remove('is-in-editor-top-actions');
                         saveButton.classList.add('is-in-editor-menubar');
                         menubar.appendChild(saveButton);
                     } else if (header) {
                         saveButton.classList.remove('is-in-page-title-shell');
                         saveButton.classList.remove('is-in-editor-menubar');
+                        saveButton.classList.remove('is-in-editor-top-actions');
                         saveButton.classList.add('is-in-editor-header');
                         header.appendChild(saveButton);
                     }
@@ -7749,6 +8522,7 @@ if ($latestRegionBallsHtml === '') {
                 }
 
                 restoreSaveButton();
+                clearEditorTopActions();
                 scheduleDrawStickyLayout(editor);
             });
 
@@ -7760,6 +8534,7 @@ if ($latestRegionBallsHtml === '') {
                 closeSectionEditor();
                 resetDrawEditorHeaderFloating(editor);
                 restoreSaveButton();
+                clearEditorTopActions();
                 scheduleDrawStickyLayout(editor);
             });
 

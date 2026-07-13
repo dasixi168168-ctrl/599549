@@ -2538,7 +2538,7 @@ class AdminService extends Service
             return $this->dashboardStatsRequestCache;
         }
 
-        $cacheKey = 'admin_dashboard_stats';
+        $cacheKey = 'admin_dashboard_stats_v18';
         $cached = $this->app->cache()->get($cacheKey, null, 30);
         if (is_array($cached)) {
             $this->dashboardStatsRequestCache = $cached;
@@ -2553,66 +2553,131 @@ class AdminService extends Service
         $yesterdayStart = $yesterday . ' 00:00:00';
         $weekStart = date('Y-m-d 00:00:00', strtotime('monday this week', strtotime($todayStart)));
         $visitRetentionStart = date('Y-m-d H:i:s', strtotime('-7 days'));
-        $memberRoleSql = "'member','vip1','vip2','vip3','vip_annual','super_vip'";
-        $todayMemberCountRow = $this->db()->fetch(
-            'SELECT COUNT(*) AS total_count
-             FROM users
-             INNER JOIN roles ON roles.id = users.role_id
-             WHERE roles.role_key IN (' . $memberRoleSql . ')
-               AND users.created_at >= :today_start
-               AND users.created_at < :tomorrow_start',
-            array(
-                'today_start' => $todayStart,
-                'tomorrow_start' => $tomorrowStart,
-            )
+        $dashboardTableNames = array('page_views', 'admin_operation_logs', 'admin_logs', 'purchases', 'customer_service_sessions', 'password_reset_requests');
+        $dashboardTables = array_fill_keys($dashboardTableNames, false);
+        $dashboardTableParams = array();
+        $dashboardTablePlaceholders = array();
+        foreach ($dashboardTableNames as $index => $tableName) {
+            $paramKey = 'dashboard_table_' . $index;
+            $dashboardTablePlaceholders[] = ':' . $paramKey;
+            $dashboardTableParams[$paramKey] = $tableName;
+        }
+        $dashboardTableRows = $this->db()->fetchAll(
+            'SELECT TABLE_NAME
+             FROM information_schema.TABLES
+             WHERE TABLE_SCHEMA = DATABASE()
+               AND TABLE_NAME IN (' . implode(',', $dashboardTablePlaceholders) . ')',
+            $dashboardTableParams
         );
-        $yesterdayMemberCountRow = $this->db()->fetch(
-            'SELECT COUNT(*) AS total_count
-             FROM users
-             INNER JOIN roles ON roles.id = users.role_id
-             WHERE roles.role_key IN (' . $memberRoleSql . ')
-               AND users.created_at >= :yesterday_start
-               AND users.created_at < :today_start',
-            array(
-                'yesterday_start' => $yesterdayStart,
-                'today_start' => $todayStart,
-            )
+        foreach ($dashboardTableRows as $row) {
+            $tableName = (string) ($row['TABLE_NAME'] ?? '');
+            if (array_key_exists($tableName, $dashboardTables)) {
+                $dashboardTables[$tableName] = true;
+                $this->tableExistsCache[$tableName] = true;
+            }
+        }
+        $hasRechargeScoreTotalColumn = $this->columnExists($this->db(), 'users', 'recharge_score_total');
+        $memberTotalRow = $this->db()->fetch(
+            'SELECT COUNT(*) AS members_total,
+                    ' . ($hasRechargeScoreTotalColumn ? 'COALESCE(SUM(recharge_score_total), 0)' : '0') . ' AS recharge_score_total
+             FROM users',
+            array()
         );
-        $todayMemberRows = $this->db()->fetchAll(
+        $memberActivityStart = $yesterdayStart < $weekStart ? $yesterdayStart : $weekStart;
+        $memberRoleMap = array_fill_keys(array('member', 'vip1', 'vip2', 'vip3', 'vip_annual', 'super_vip'), true);
+        $memberActivityRows = $this->db()->fetchAll(
             'SELECT users.id,
                     users.username,
                     users.email,
                     users.created_at,
-                    COALESCE(
-                        (
-                            SELECT login_logs.login_ip
-                            FROM login_logs
-                            WHERE login_logs.user_id = users.id
-                              AND login_logs.login_status = :login_status
-                            ORDER BY login_logs.id ASC
-                            LIMIT 1
-                        ),
-                        users.last_login_ip,
-                        \'\'
-                    ) AS register_ip
+                    users.last_login_ip,
+                    roles.role_key
              FROM users
-             INNER JOIN roles ON roles.id = users.role_id
-             WHERE roles.role_key IN (' . $memberRoleSql . ')
-               AND users.created_at >= :today_start
-               AND users.created_at < :tomorrow_start
-             ORDER BY users.created_at DESC
-             LIMIT 12',
+             LEFT JOIN roles ON roles.id = users.role_id
+             WHERE users.created_at >= :members_activity_start
+               AND users.created_at < :members_activity_end
+             ORDER BY users.created_at DESC',
             array(
-                'login_status' => 'success',
-                'today_start' => $todayStart,
-                'tomorrow_start' => $tomorrowStart,
+                'members_activity_start' => $memberActivityStart,
+                'members_activity_end' => $tomorrowStart,
             )
         );
+        $membersTotal = (int) ($memberTotalRow['members_total'] ?? 0);
+        $rechargeScoreTotal = max(0, (int) ($memberTotalRow['recharge_score_total'] ?? 0));
+        $membersThisWeek = 0;
+        $todayMemberCount = 0;
+        $yesterdayMemberCount = 0;
+        $todayMemberRows = array();
+        foreach ($memberActivityRows as $row) {
+            $createdAt = (string) ($row['created_at'] ?? '');
+            if ($createdAt >= $weekStart && $createdAt < $tomorrowStart) {
+                $membersThisWeek++;
+            }
+
+            $roleKey = (string) ($row['role_key'] ?? '');
+            if (!isset($memberRoleMap[$roleKey])) {
+                continue;
+            }
+
+            if ($createdAt >= $todayStart && $createdAt < $tomorrowStart) {
+                $todayMemberCount++;
+                if (count($todayMemberRows) < 12) {
+                    $todayMemberRows[] = array(
+                        'id' => (int) ($row['id'] ?? 0),
+                        'username' => (string) ($row['username'] ?? ''),
+                        'email' => (string) ($row['email'] ?? ''),
+                        'created_at' => $createdAt,
+                        'register_ip' => (string) ($row['last_login_ip'] ?? ''),
+                    );
+                }
+            } elseif ($createdAt >= $yesterdayStart && $createdAt < $todayStart) {
+                $yesterdayMemberCount++;
+            }
+        }
+
+        if (!empty($todayMemberRows)) {
+            $loginParams = array('login_status' => 'success');
+            $loginPlaceholders = array();
+            foreach ($todayMemberRows as $index => $row) {
+                $paramKey = 'user_id_' . $index;
+                $loginPlaceholders[] = ':' . $paramKey;
+                $loginParams[$paramKey] = (int) ($row['id'] ?? 0);
+            }
+            $loginIpRows = $this->db()->fetchAll(
+                'SELECT user_id, login_ip
+                 FROM login_logs
+                 WHERE login_status = :login_status
+                   AND user_id IN (' . implode(',', $loginPlaceholders) . ')
+                 ORDER BY id ASC',
+                $loginParams
+            );
+            $loginIpByUserId = array();
+            foreach ($loginIpRows as $row) {
+                $userId = (int) ($row['user_id'] ?? 0);
+                if ($userId > 0 && !isset($loginIpByUserId[$userId])) {
+                    $loginIpByUserId[$userId] = (string) ($row['login_ip'] ?? '');
+                }
+            }
+            foreach ($todayMemberRows as $index => $row) {
+                $userId = (int) ($row['id'] ?? 0);
+                if ($userId > 0 && isset($loginIpByUserId[$userId]) && $loginIpByUserId[$userId] !== '') {
+                    $todayMemberRows[$index]['register_ip'] = $loginIpByUserId[$userId];
+                }
+            }
+        }
 
         $visitsToday = 0;
         $visitsYesterday = 0;
         $uniqueVisitorsToday = 0;
         $uniqueVisitorsYesterday = 0;
+        $frontVisitsToday = 0;
+        $frontVisitsYesterday = 0;
+        $frontVisitsGrowthPercent = 0.0;
+        $returnVisitsToday = 0;
+        $returnVisitsThisWeek = 0;
+        $memberVisitsToday = 0;
+        $memberVisitsYesterday = 0;
+        $memberVisitsGrowthCount = 0;
         $homeVisitSummary = array(
             'total_count' => 0,
             'ip_count' => 0,
@@ -2620,144 +2685,435 @@ class AdminService extends Service
             'desktop_count' => 0,
         );
         $homeVisitRows = array();
-        if ($this->tableExists($this->db(), 'page_views')) {
-            $visitsToday = (int) ($this->db()->fetch(
-                'SELECT COUNT(*) AS total_count FROM page_views WHERE viewed_on = :viewed_on',
-                array('viewed_on' => $today)
-            )['total_count'] ?? 0);
-            $visitsYesterday = (int) ($this->db()->fetch(
-                'SELECT COUNT(*) AS total_count FROM page_views WHERE viewed_on = :viewed_on',
-                array('viewed_on' => $yesterday)
-            )['total_count'] ?? 0);
-            $uniqueVisitorsToday = (int) ($this->db()->fetch(
-                'SELECT COUNT(DISTINCT ip_address) AS total_count FROM page_views WHERE viewed_on = :viewed_on',
-                array('viewed_on' => $today)
-            )['total_count'] ?? 0);
-            $uniqueVisitorsYesterday = (int) ($this->db()->fetch(
-                'SELECT COUNT(DISTINCT ip_address) AS total_count FROM page_views WHERE viewed_on = :viewed_on',
-                array('viewed_on' => $yesterday)
-            )['total_count'] ?? 0);
+        $dashboardVisitorKey = static function (array $row) {
+            $userId = (int) ($row['user_id'] ?? 0);
+            if ($userId > 0) {
+                return 'u:' . $userId;
+            }
 
-            $todayHomeVisitRows = $this->db()->fetchAll(
-                "SELECT page_views.ip_address,
+            $ipAddress = trim((string) ($row['ip_address'] ?? ''));
+            $userAgent = trim((string) ($row['user_agent'] ?? ''));
+
+            return 'a:' . ($ipAddress !== '' ? $ipAddress : '-') . '|' . $userAgent;
+        };
+        $dashboardVisitorKeySet = static function (array $rows) use ($dashboardVisitorKey) {
+            $keys = array();
+            foreach ($rows as $row) {
+                $key = $dashboardVisitorKey(is_array($row) ? $row : array());
+                if ($key !== '') {
+                    $keys[$key] = true;
+                }
+            }
+
+            return $keys;
+        };
+        $dashboardUserIdCount = static function (array $rows) {
+            $ids = array();
+            foreach ($rows as $row) {
+                $userId = (int) ($row['user_id'] ?? 0);
+                if ($userId > 0) {
+                    $ids[$userId] = true;
+                }
+            }
+
+            return count($ids);
+        };
+        if ($dashboardTables['page_views']) {
+            $dailyVisitRows = $this->db()->fetchAll(
+                'SELECT viewed_on,
+                        COUNT(*) AS total_count,
+                        COUNT(DISTINCT ip_address) AS unique_count
+                 FROM page_views
+                 WHERE viewed_on IN (:today_viewed_on, :yesterday_viewed_on)
+                 GROUP BY viewed_on',
+                array(
+                    'today_viewed_on' => $today,
+                    'yesterday_viewed_on' => $yesterday,
+                )
+            );
+            foreach ($dailyVisitRows as $row) {
+                $viewedOn = (string) ($row['viewed_on'] ?? '');
+                if ($viewedOn === $today) {
+                    $visitsToday = (int) ($row['total_count'] ?? 0);
+                    $uniqueVisitorsToday = (int) ($row['unique_count'] ?? 0);
+                } elseif ($viewedOn === $yesterday) {
+                    $visitsYesterday = (int) ($row['total_count'] ?? 0);
+                    $uniqueVisitorsYesterday = (int) ($row['unique_count'] ?? 0);
+                }
+            }
+
+            $frontHomeVisitRows = $this->db()->fetchAll(
+                "SELECT page_views.viewed_on,
+                        COALESCE(page_views.user_id, 0) AS user_id,
+                        page_views.ip_address,
                         COALESCE(page_views.user_agent, '') AS user_agent
                  FROM page_views
                  WHERE page_views.route_name IN ('front_macau', 'front_hongkong')
-                   AND page_views.created_at >= :today_start
+                   AND page_views.created_at >= :retention_start
                    AND page_views.created_at < :tomorrow_start
-                 GROUP BY page_views.viewed_on, page_views.ip_address, COALESCE(page_views.user_agent, '')
-                 ORDER BY MAX(page_views.created_at) DESC",
+                 GROUP BY page_views.viewed_on, COALESCE(page_views.user_id, 0), page_views.ip_address, COALESCE(page_views.user_agent, '')",
                 array(
-                    'today_start' => $todayStart,
+                    'retention_start' => $visitRetentionStart,
                     'tomorrow_start' => $tomorrowStart,
                 )
             );
+            $todayHomeVisitRows = array();
+            $yesterdayHomeVisitRows = array();
+            $priorHomeVisitRows = array();
+            $weekHomeVisitRows = array();
+            $weekStartDate = substr($weekStart, 0, 10);
+            foreach ($frontHomeVisitRows as $row) {
+                $viewedOn = trim((string) ($row['viewed_on'] ?? ''));
+                if ($viewedOn === $today) {
+                    $todayHomeVisitRows[] = $row;
+                } elseif ($viewedOn === $yesterday) {
+                    $yesterdayHomeVisitRows[] = $row;
+                }
 
-            $todayHomeIpSet = array();
-            foreach ($todayHomeVisitRows as $homeRow) {
+                if ($viewedOn !== '' && $viewedOn < $today) {
+                    $priorHomeVisitRows[] = $row;
+                }
+                if ($viewedOn !== '' && $viewedOn >= $weekStartDate && $viewedOn <= $today) {
+                    $weekHomeVisitRows[] = $row;
+                }
+            }
+
+            $frontVisitsTodayKeys = $dashboardVisitorKeySet($todayHomeVisitRows);
+            $frontVisitsYesterdayKeys = $dashboardVisitorKeySet($yesterdayHomeVisitRows);
+            $frontVisitsPriorKeys = $dashboardVisitorKeySet($priorHomeVisitRows);
+            $frontVisitsToday = count($frontVisitsTodayKeys);
+            $frontVisitsYesterday = count($frontVisitsYesterdayKeys);
+            $frontVisitsGrowthPercent = $frontVisitsYesterday > 0
+                ? round((($frontVisitsToday - $frontVisitsYesterday) / $frontVisitsYesterday) * 100, 1)
+                : ($frontVisitsToday > 0 ? 100.0 : 0.0);
+            $returnVisitsToday = count(array_intersect_key($frontVisitsTodayKeys, $frontVisitsPriorKeys));
+
+            $weekVisitDaysByKey = array();
+            foreach ($weekHomeVisitRows as $homeRow) {
+                $key = $dashboardVisitorKey(is_array($homeRow) ? $homeRow : array());
+                $viewedOn = trim((string) ($homeRow['viewed_on'] ?? ''));
+                if ($key !== '' && $viewedOn !== '') {
+                    if (!isset($weekVisitDaysByKey[$key])) {
+                        $weekVisitDaysByKey[$key] = array();
+                    }
+                    $weekVisitDaysByKey[$key][$viewedOn] = true;
+                }
+            }
+            foreach ($weekVisitDaysByKey as $visitDays) {
+                if (count($visitDays) > 1) {
+                    $returnVisitsThisWeek++;
+                }
+            }
+
+            $homeVisitIpSet = array();
+            $homeVisitSummaryKeys = array();
+            foreach (array_merge($priorHomeVisitRows, $todayHomeVisitRows) as $homeRow) {
+                $key = $dashboardVisitorKey(is_array($homeRow) ? $homeRow : array());
+                if ($key === '' || isset($homeVisitSummaryKeys[$key])) {
+                    continue;
+                }
+
                 $deviceLabel = $this->dashboardSourceDeviceLabel($homeRow['user_agent'] ?? '');
+                $homeVisitSummaryKeys[$key] = true;
                 $homeVisitSummary['total_count']++;
-                $todayHomeIpSet[(string) ($homeRow['ip_address'] ?? '')] = true;
+                $ipAddress = trim((string) ($homeRow['ip_address'] ?? ''));
+                if ($ipAddress !== '') {
+                    $homeVisitIpSet[$ipAddress] = true;
+                }
                 if ($deviceLabel === '电脑') {
                     $homeVisitSummary['desktop_count']++;
                 } else {
                     $homeVisitSummary['mobile_count']++;
                 }
             }
-            $homeVisitSummary['ip_count'] = count($todayHomeIpSet);
+            $homeVisitSummary['ip_count'] = count($homeVisitIpSet);
 
-            $homeVisitRawRows = $this->db()->fetchAll(
-                "SELECT MAX(page_views.created_at) AS created_at,
-                        MAX(page_views.referer) AS referer,
-                        MAX(page_views.path_name) AS path_name,
-                        MAX(page_views.ip_address) AS ip_address,
-                        MAX(COALESCE(page_views.province_name, '')) AS province_name,
-                        MAX(COALESCE(page_views.city_name, '')) AS city_name,
-                        MAX(COALESCE(page_views.user_agent, '')) AS user_agent,
-                        MAX(COALESCE(users.username, '')) AS username
+            $memberVisitsToday = $dashboardUserIdCount($todayHomeVisitRows);
+            $memberVisitsYesterday = $dashboardUserIdCount($yesterdayHomeVisitRows);
+            $memberVisitsGrowthCount = $memberVisitsToday - $memberVisitsYesterday;
+
+            $homeVisitRecentLimit = 800;
+            $homeVisitRecentRows = $this->db()->fetchAll(
+                "SELECT page_views.viewed_on,
+                        page_views.created_at,
+                        page_views.referer,
+                        page_views.path_name,
+                        page_views.ip_address,
+                        COALESCE(page_views.province_name, '') AS province_name,
+                        COALESCE(page_views.city_name, '') AS city_name,
+                        COALESCE(page_views.user_agent, '') AS user_agent
                  FROM page_views
-                 LEFT JOIN users ON users.id = page_views.user_id
                  WHERE page_views.route_name IN ('front_macau', 'front_hongkong')
                    AND page_views.created_at >= :retention_start
-                 GROUP BY page_views.viewed_on, page_views.ip_address, COALESCE(page_views.user_agent, '')
-                 ORDER BY MAX(page_views.created_at) DESC
-                 LIMIT 30",
+                 ORDER BY page_views.created_at DESC
+                 LIMIT " . $homeVisitRecentLimit,
                 array(
                     'retention_start' => $visitRetentionStart,
                 )
             );
+            $homeVisitSourceRows = array();
+            foreach ($homeVisitRecentRows as $row) {
+                $sourceKey = (string) ($row['viewed_on'] ?? '')
+                    . '|'
+                    . (string) ($row['ip_address'] ?? '')
+                    . '|'
+                    . (string) ($row['user_agent'] ?? '');
+                if (!isset($homeVisitSourceRows[$sourceKey])) {
+                    $homeVisitSourceRows[$sourceKey] = array(
+                        'created_at' => '',
+                        'referer' => '',
+                        'path_name' => '',
+                        'ip_address' => '',
+                        'province_name' => '',
+                        'city_name' => '',
+                        'user_agent' => '',
+                    );
+                }
+                foreach (array('created_at', 'referer', 'path_name', 'ip_address', 'province_name', 'city_name', 'user_agent') as $field) {
+                    $fieldValue = (string) ($row[$field] ?? '');
+                    if ($fieldValue > (string) ($homeVisitSourceRows[$sourceKey][$field] ?? '')) {
+                        $homeVisitSourceRows[$sourceKey][$field] = $fieldValue;
+                    }
+                }
+            }
+            if (count($homeVisitSourceRows) < 30 && count($homeVisitRecentRows) >= $homeVisitRecentLimit) {
+                $homeVisitSourceRows = $this->db()->fetchAll(
+                    "SELECT MAX(page_views.created_at) AS created_at,
+                            MAX(page_views.referer) AS referer,
+                            MAX(page_views.path_name) AS path_name,
+                            MAX(page_views.ip_address) AS ip_address,
+                            MAX(COALESCE(page_views.province_name, '')) AS province_name,
+                            MAX(COALESCE(page_views.city_name, '')) AS city_name,
+                            MAX(COALESCE(page_views.user_agent, '')) AS user_agent
+                     FROM page_views
+                     WHERE page_views.route_name IN ('front_macau', 'front_hongkong')
+                       AND page_views.created_at >= :retention_start
+                     GROUP BY page_views.viewed_on, page_views.ip_address, COALESCE(page_views.user_agent, '')
+                     ORDER BY MAX(page_views.created_at) DESC
+                     LIMIT 30",
+                    array(
+                        'retention_start' => $visitRetentionStart,
+                    )
+                );
+            }
+            $homeVisitRawRows = array_values($homeVisitSourceRows);
+            usort($homeVisitRawRows, static function (array $left, array $right) {
+                return strcmp((string) ($right['created_at'] ?? ''), (string) ($left['created_at'] ?? ''));
+            });
+            $homeVisitRawRows = array_slice($homeVisitRawRows, 0, 30);
 
             foreach ($homeVisitRawRows as $homeRow) {
                 $ipAddress = trim((string) ($homeRow['ip_address'] ?? '')) !== '' ? (string) $homeRow['ip_address'] : '-';
                 $provinceName = trim((string) ($homeRow['province_name'] ?? ''));
                 $cityName = trim((string) ($homeRow['city_name'] ?? ''));
+                $sourceLocation = $this->dashboardSourceLocationLabels($ipAddress, $provinceName, $cityName);
                 $homeVisitRows[] = array(
                     'source_url' => $this->dashboardSourceReferer($homeRow['referer'] ?? ''),
                     'visit_url' => $this->dashboardSourcePath($homeRow['path_name'] ?? ''),
                     'ip_address' => $ipAddress,
-                    'province_name' => $provinceName !== '' ? $provinceName : $this->dashboardSourceProvinceLabel($ipAddress),
-                    'city_name' => $cityName !== '' ? $cityName : $this->dashboardSourceCityLabel($ipAddress),
+                    'province_name' => $sourceLocation['province'],
+                    'city_name' => $sourceLocation['city'],
                     'visited_at' => $homeRow['created_at'] ?? '',
-                    'visitor_identity' => $this->dashboardSourceIdentity($homeRow['username'] ?? ''),
                     'device_label' => $this->dashboardSourceDeviceLabel($homeRow['user_agent'] ?? ''),
                 );
             }
         }
 
-        $membersTotal = (int) ($this->db()->fetch(
-            'SELECT COUNT(*) AS total_count FROM users',
-            array()
-        )['total_count'] ?? 0);
-        $membersThisWeek = (int) ($this->db()->fetch(
-            'SELECT COUNT(*) AS total_count
-             FROM users
-             WHERE created_at >= :week_start
-               AND created_at < :tomorrow_start',
-            array(
-                'week_start' => $weekStart,
-                'tomorrow_start' => $tomorrowStart,
-            )
-        )['total_count'] ?? 0);
-        $postsToday = (int) ($this->db()->fetch(
-            "SELECT COUNT(*) AS total_count
+        $postCountRow = $this->db()->fetch(
+            "SELECT COALESCE(SUM(CASE WHEN created_at >= :today_count_start AND created_at < :today_count_end THEN 1 ELSE 0 END), 0) AS today_count,
+                    COALESCE(SUM(CASE WHEN created_at >= :yesterday_count_start AND created_at < :yesterday_count_end THEN 1 ELSE 0 END), 0) AS yesterday_count
              FROM posts
-             WHERE created_at >= :today_start
-               AND created_at < :tomorrow_start
-               AND status <> 'deleted'",
+             WHERE created_at >= :range_start
+               AND created_at < :range_end
+               AND status <> :deleted_status",
             array(
-                'today_start' => $todayStart,
-                'tomorrow_start' => $tomorrowStart,
+                'today_count_start' => $todayStart,
+                'today_count_end' => $tomorrowStart,
+                'yesterday_count_start' => $yesterdayStart,
+                'yesterday_count_end' => $todayStart,
+                'range_start' => $yesterdayStart,
+                'range_end' => $tomorrowStart,
+                'deleted_status' => 'deleted',
             )
-        )['total_count'] ?? 0);
-        $postsYesterday = (int) ($this->db()->fetch(
-            "SELECT COUNT(*) AS total_count
-             FROM posts
-             WHERE created_at >= :yesterday_start
-               AND created_at < :today_start
-               AND status <> 'deleted'",
-            array(
-                'yesterday_start' => $yesterdayStart,
-                'today_start' => $todayStart,
-            )
-        )['total_count'] ?? 0);
+        );
+        $postsToday = (int) ($postCountRow['today_count'] ?? 0);
+        $postsYesterday = (int) ($postCountRow['yesterday_count'] ?? 0);
 
-        $todayMemberCount = (int) ($todayMemberCountRow['total_count'] ?? 0);
-        $yesterdayMemberCount = (int) ($yesterdayMemberCountRow['total_count'] ?? 0);
-        $trafficConversionToday = $uniqueVisitorsToday > 0
-            ? round(($todayMemberCount / $uniqueVisitorsToday) * 100, 1)
+        $parseRechargeScoreAmount = static function (array $row) {
+            $payload = json_decode((string) ($row['request_data'] ?? ''), true);
+            $payload = is_array($payload) ? $payload : array();
+            $amount = isset($payload['score_amount']) ? (int) $payload['score_amount'] : 0;
+            if ($amount === 0 && preg_match('/=>\s*([+-]?\d+)/u', (string) ($row['summary'] ?? ''), $matches)) {
+                $amount = (int) $matches[1];
+            }
+
+            return $amount > 0 ? $amount : 0;
+        };
+        $rechargeScoreToday = 0;
+        $rechargeScoreYesterday = 0;
+        $addRechargeScoreByCreatedAt = static function ($createdAt, $amount) use (&$rechargeScoreToday, &$rechargeScoreYesterday, $yesterdayStart, $todayStart, $tomorrowStart) {
+            $createdAt = (string) $createdAt;
+            $amount = (int) $amount;
+            if ($amount <= 0) {
+                return;
+            }
+            if ($createdAt >= $todayStart && $createdAt < $tomorrowStart) {
+                $rechargeScoreToday += $amount;
+            } elseif ($createdAt >= $yesterdayStart && $createdAt < $todayStart) {
+                $rechargeScoreYesterday += $amount;
+            }
+        };
+        $hasOperationLogsTable = $dashboardTables['admin_operation_logs'];
+        $hasAdminLogsTable = $dashboardTables['admin_logs'];
+        if ($hasOperationLogsTable) {
+            $rechargeOperationRows = $this->db()->fetchAll(
+                'SELECT summary, request_data, created_at
+                 FROM admin_operation_logs
+                 WHERE module = :module
+                   AND action = :action
+                   AND target_type = :target_type
+                   AND created_at >= :range_start
+                   AND created_at < :range_end',
+                array(
+                    'module' => 'users',
+                    'action' => 'score',
+                    'target_type' => 'user',
+                    'range_start' => $yesterdayStart,
+                    'range_end' => $tomorrowStart,
+                )
+            );
+            foreach ($rechargeOperationRows as $row) {
+                $addRechargeScoreByCreatedAt($row['created_at'] ?? '', $parseRechargeScoreAmount($row));
+            }
+        }
+        if ($hasAdminLogsTable) {
+            $legacyRechargeSql = 'SELECT admin_logs.description AS summary, admin_logs.created_at
+                 FROM admin_logs
+                 WHERE admin_logs.module_name = :module
+                   AND admin_logs.action_name = :action
+                   AND admin_logs.target_type = :target_type
+                   AND admin_logs.target_id <> \'\'
+                   AND admin_logs.created_at >= :range_start
+                   AND admin_logs.created_at < :range_end';
+            if ($hasOperationLogsTable) {
+                $legacyRechargeSql .= ' AND NOT EXISTS (
+                       SELECT 1
+                       FROM admin_operation_logs
+                       WHERE admin_operation_logs.module = :operation_module
+                         AND admin_operation_logs.action = :operation_action
+                         AND admin_operation_logs.target_type = :operation_target_type
+                         AND admin_operation_logs.target_id = CAST(admin_logs.target_id AS UNSIGNED)
+                         AND ABS(TIMESTAMPDIFF(SECOND, admin_operation_logs.created_at, admin_logs.created_at)) <= 2
+                       LIMIT 1
+                   )';
+            }
+            $legacyRechargeParams = array(
+                'module' => 'members',
+                'action' => 'charge',
+                'target_type' => 'user',
+                'range_start' => $yesterdayStart,
+                'range_end' => $tomorrowStart,
+            );
+            if ($hasOperationLogsTable) {
+                $legacyRechargeParams['operation_module'] = 'users';
+                $legacyRechargeParams['operation_action'] = 'score';
+                $legacyRechargeParams['operation_target_type'] = 'user';
+            }
+            $legacyRechargeRows = $this->db()->fetchAll(
+                $legacyRechargeSql,
+                $legacyRechargeParams
+            );
+            foreach ($legacyRechargeRows as $row) {
+                $addRechargeScoreByCreatedAt($row['created_at'] ?? '', $parseRechargeScoreAmount($row));
+            }
+        }
+
+        $purchasesToday = 0;
+        $purchasePostsToday = 0;
+        $purchaseScoreToday = 0;
+        $repeatPurchasesToday = 0;
+        if ($dashboardTables['purchases']) {
+            $purchaseRow = $this->db()->fetch(
+                'SELECT COUNT(*) AS total_count,
+                        COUNT(DISTINCT post_id) AS post_count,
+                        COALESCE(SUM(price), 0) AS score_count,
+                        GREATEST(
+                            COALESCE(SUM(CASE WHEN user_id IS NOT NULL AND user_id > 0 THEN 1 ELSE 0 END), 0)
+                            - COUNT(DISTINCT CASE WHEN user_id IS NOT NULL AND user_id > 0 THEN user_id END),
+                            0
+                        ) AS repeat_count
+                 FROM purchases
+                 WHERE created_at >= :today_start
+                   AND created_at < :tomorrow_start',
+                array(
+                    'today_start' => $todayStart,
+                    'tomorrow_start' => $tomorrowStart,
+                )
+            );
+            $purchasesToday = (int) ($purchaseRow['total_count'] ?? 0);
+            $purchasePostsToday = (int) ($purchaseRow['post_count'] ?? 0);
+            $purchaseScoreToday = (int) ($purchaseRow['score_count'] ?? 0);
+            $repeatPurchasesToday = (int) ($purchaseRow['repeat_count'] ?? 0);
+        }
+
+        $conversionVisitorsToday = $frontVisitsToday > 0 ? $frontVisitsToday : $uniqueVisitorsToday;
+        $conversionVisitorsYesterday = $frontVisitsYesterday > 0 ? $frontVisitsYesterday : $uniqueVisitorsYesterday;
+        $trafficConversionToday = $conversionVisitorsToday > 0
+            ? round(($todayMemberCount / $conversionVisitorsToday) * 100, 1)
             : 0.0;
-        $trafficConversionYesterday = $uniqueVisitorsYesterday > 0
-            ? round(($yesterdayMemberCount / $uniqueVisitorsYesterday) * 100, 1)
+        $trafficConversionYesterday = $conversionVisitorsYesterday > 0
+            ? round(($yesterdayMemberCount / $conversionVisitorsYesterday) * 100, 1)
             : 0.0;
         $visitsGrowthPercent = $visitsYesterday > 0
             ? round((($visitsToday - $visitsYesterday) / $visitsYesterday) * 100, 1)
             : ($visitsToday > 0 ? 100.0 : 0.0);
         $trafficConversionDiffPercent = round($trafficConversionToday - $trafficConversionYesterday, 1);
+        $dashboardQuickMetrics = array(
+            'open_threads' => 0,
+            'pending_resets' => 0,
+        );
+        $dashboardQuickMetricSql = array();
+        $dashboardQuickMetricParams = array();
+        if ($dashboardTables['customer_service_sessions']) {
+            $dashboardQuickMetricSql[] = "SELECT 'open_threads' AS metric_name,
+                    COUNT(*) AS total_count
+                 FROM customer_service_sessions
+                 WHERE status IN (:open_threads_waiting_status, :open_threads_open_status)";
+            $dashboardQuickMetricParams['open_threads_waiting_status'] = 'waiting';
+            $dashboardQuickMetricParams['open_threads_open_status'] = 'open';
+        }
+        if ($dashboardTables['password_reset_requests']) {
+            $dashboardQuickMetricSql[] = "SELECT 'pending_resets' AS metric_name,
+                    COUNT(*) AS total_count
+                 FROM password_reset_requests
+                 WHERE status = :pending_resets_status";
+            $dashboardQuickMetricParams['pending_resets_status'] = 'pending';
+        }
+        if (!empty($dashboardQuickMetricSql)) {
+            $dashboardQuickMetricRows = $this->db()->fetchAll(
+                implode(' UNION ALL ', $dashboardQuickMetricSql),
+                $dashboardQuickMetricParams
+            );
+            foreach ($dashboardQuickMetricRows as $row) {
+                $metricName = (string) ($row['metric_name'] ?? '');
+                if (array_key_exists($metricName, $dashboardQuickMetrics)) {
+                    $dashboardQuickMetrics[$metricName] = (int) ($row['total_count'] ?? 0);
+                }
+            }
+        }
 
         $stats = array(
             'visits_today' => $visitsToday,
             'visits_yesterday' => $visitsYesterday,
             'visits_growth_percent' => $visitsGrowthPercent,
+            'front_visits_today' => $frontVisitsToday,
+            'front_visits_yesterday' => $frontVisitsYesterday,
+            'front_visits_growth_percent' => $frontVisitsGrowthPercent,
+            'return_visits_today' => $returnVisitsToday,
+            'return_visits_this_week' => $returnVisitsThisWeek,
+            'member_visits_today' => $memberVisitsToday,
+            'member_visits_yesterday' => $memberVisitsYesterday,
+            'member_visits_growth_count' => $memberVisitsGrowthCount,
             'members_total' => $membersTotal,
             'members_this_week' => $membersThisWeek,
             'posts_today' => $postsToday,
@@ -2766,10 +3122,15 @@ class AdminService extends Service
             'traffic_conversion_rate' => $trafficConversionToday,
             'traffic_conversion_rate_yesterday' => $trafficConversionYesterday,
             'traffic_conversion_diff_percent' => $trafficConversionDiffPercent,
-            'open_threads' => $this->tableExists($this->db(), 'customer_service_sessions')
-                ? (int) $this->db()->fetch('SELECT COUNT(*) AS total_count FROM customer_service_sessions WHERE status IN (:waiting_status, :open_status)', array('waiting_status' => 'waiting', 'open_status' => 'open'))['total_count']
-                : 0,
-            'pending_resets' => (int) $this->db()->fetch('SELECT COUNT(*) AS total_count FROM password_reset_requests WHERE status = :status', array('status' => 'pending'))['total_count'],
+            'recharge_score_total' => $rechargeScoreTotal,
+            'recharge_score_today' => $rechargeScoreToday,
+            'recharge_score_yesterday' => $rechargeScoreYesterday,
+            'purchases_today' => $purchasesToday,
+            'purchase_posts_today' => $purchasePostsToday,
+            'purchase_score_today' => $purchaseScoreToday,
+            'repeat_purchases_today' => $repeatPurchasesToday,
+            'open_threads' => $dashboardQuickMetrics['open_threads'],
+            'pending_resets' => $dashboardQuickMetrics['pending_resets'],
             'members_today_count' => $todayMemberCount,
             'members_today_list' => is_array($todayMemberRows) ? $todayMemberRows : array(),
             'home_visit_summary' => $homeVisitSummary,
@@ -2780,13 +3141,6 @@ class AdminService extends Service
         $this->dashboardStatsRequestCache = $stats;
 
         return $stats;
-    }
-
-    protected function dashboardSourceIdentity($username)
-    {
-        $name = trim((string) $username);
-
-        return $name !== '' ? $name : '游客';
     }
 
     protected function dashboardSourceReferer($referer)
@@ -2812,26 +3166,57 @@ class AdminService extends Service
 
     protected function dashboardSourceProvinceLabel($ipAddress)
     {
-        $value = trim((string) $ipAddress);
-        if ($value === '' || $value === '-') {
-            return '未知省份';
-        }
-
-        $location = Security::ipLocationFromAddress($value);
+        $location = $this->dashboardSourceLocationLabels($ipAddress);
 
         return (string) ($location['province'] ?? '未知省份');
     }
 
     protected function dashboardSourceCityLabel($ipAddress)
     {
+        $location = $this->dashboardSourceLocationLabels($ipAddress);
+
+        return (string) ($location['city'] ?? '未知城市');
+    }
+
+    protected function dashboardSourceLocationLabels($ipAddress, $provinceName = '', $cityName = '')
+    {
         $value = trim((string) $ipAddress);
+        $provinceName = trim((string) $provinceName);
+        $cityName = trim((string) $cityName);
+
+        if (!$this->dashboardLocationLabelIsUnknown($provinceName) && !$this->dashboardLocationLabelIsUnknown($cityName)) {
+            return array('province' => $provinceName, 'city' => $cityName);
+        }
+
         if ($value === '' || $value === '-') {
-            return '未知城市';
+            if ($this->dashboardLocationLabelIsUnknown($cityName) && !$this->dashboardLocationLabelIsUnknown($provinceName)) {
+                $cityName = '地区未细分';
+            }
+
+            return array(
+                'province' => !$this->dashboardLocationLabelIsUnknown($provinceName) ? $provinceName : '未知省份',
+                'city' => !$this->dashboardLocationLabelIsUnknown($cityName) ? $cityName : '未知城市',
+            );
         }
 
         $location = Security::ipLocationFromAddress($value);
+        $resolvedProvince = trim((string) ($location['province'] ?? ''));
+        $resolvedCity = trim((string) ($location['city'] ?? ''));
 
-        return (string) ($location['city'] ?? '未知城市');
+        if ($this->dashboardLocationLabelIsUnknown($provinceName) && !$this->dashboardLocationLabelIsUnknown($resolvedProvince)) {
+            $provinceName = $resolvedProvince;
+        }
+        if ($this->dashboardLocationLabelIsUnknown($cityName) && !$this->dashboardLocationLabelIsUnknown($resolvedCity)) {
+            $cityName = $resolvedCity;
+        }
+        if ($this->dashboardLocationLabelIsUnknown($cityName) && !$this->dashboardLocationLabelIsUnknown($provinceName)) {
+            $cityName = '地区未细分';
+        }
+
+        return array(
+            'province' => !$this->dashboardLocationLabelIsUnknown($provinceName) ? $provinceName : '未知省份',
+            'city' => !$this->dashboardLocationLabelIsUnknown($cityName) ? $cityName : '未知城市',
+        );
     }
 
     protected function dashboardLocationLabelIsUnknown($label)
@@ -2887,7 +3272,7 @@ class AdminService extends Service
             'date_to' => trim((string) ($filters['date_to'] ?? '')),
             'page_no' => max(1, (int) ($filters['page_no'] ?? 1)),
         );
-        $cacheKey = 'admin_login_log_page_' . md5(json_encode($normalizedFilters));
+        $cacheKey = 'admin_login_log_page_v2_' . md5(json_encode($normalizedFilters));
         if (isset($this->adminLoginLogPageRequestCache[$cacheKey])) {
             return $this->adminLoginLogPageRequestCache[$cacheKey];
         }
@@ -2911,8 +3296,10 @@ class AdminService extends Service
         $dateTo = (string) $normalizedFilters['date_to'];
 
         if ($keyword !== '') {
-            $sql .= ' AND (admin_login_logs.username LIKE :keyword OR admin_login_logs.ip LIKE :keyword OR admin_login_logs.fail_reason LIKE :keyword)';
-            $params['keyword'] = '%' . $keyword . '%';
+            $sql .= ' AND (admin_login_logs.username LIKE :keyword_username OR admin_login_logs.ip LIKE :keyword_ip OR admin_login_logs.fail_reason LIKE :keyword_fail_reason)';
+            $params['keyword_username'] = '%' . $keyword . '%';
+            $params['keyword_ip'] = '%' . $keyword . '%';
+            $params['keyword_fail_reason'] = '%' . $keyword . '%';
         }
 
         if ($status !== '' && in_array($status, array('0', '1'), true)) {
@@ -2942,10 +3329,24 @@ class AdminService extends Service
             (int) $normalizedFilters['page_no'],
             20
         );
+        $page['items'] = $this->enrichAdminLoginLogAreaRows((array) ($page['items'] ?? array()));
         $this->adminLoginLogPageRequestCache[$cacheKey] = $page;
         $this->app->cache()->put($cacheKey, $page);
 
         return $page;
+    }
+
+    protected function enrichAdminLoginLogAreaRows(array $rows)
+    {
+        foreach ($rows as $index => $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $rows[$index]['area'] = $this->loginAreaDisplayLabel($row['ip'] ?? '', $row['area'] ?? '');
+        }
+
+        return $rows;
     }
 
     public function listAdminOperationLogsPage(array $filters = array())
@@ -3125,8 +3526,10 @@ class AdminService extends Service
         }
 
         if ($keyword !== '') {
-            $sql .= ' AND (message LIKE :keyword OR scene LIKE :keyword OR request_path LIKE :keyword)';
-            $params['keyword'] = '%' . $keyword . '%';
+            $sql .= ' AND (message LIKE :keyword_message OR scene LIKE :keyword_scene OR request_path LIKE :keyword_path)';
+            $params['keyword_message'] = '%' . $keyword . '%';
+            $params['keyword_scene'] = '%' . $keyword . '%';
+            $params['keyword_path'] = '%' . $keyword . '%';
         }
 
         if ($dateFrom !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom)) {
@@ -13430,8 +13833,9 @@ class AdminService extends Service
         $drawDate = trim((string) ($filters['draw_date'] ?? ''));
 
         if ($keyword !== '') {
-            $sql .= ' AND (lottery_draws.issue_no LIKE :keyword OR lottery_draws.note LIKE :keyword)';
-            $params['keyword'] = '%' . $keyword . '%';
+            $sql .= ' AND (lottery_draws.issue_no LIKE :keyword_issue_no OR lottery_draws.note LIKE :keyword_note)';
+            $params['keyword_issue_no'] = '%' . $keyword . '%';
+            $params['keyword_note'] = '%' . $keyword . '%';
         }
 
         if (in_array($region, array('macau', 'hongkong'), true)) {
@@ -13618,6 +14022,15 @@ class AdminService extends Service
         return 0;
     }
 
+    protected function managedExpertExplicitSegmentNoFromSection(string $sectionHtml, string $titleText): int
+    {
+        if (preg_match('/\sdata-managed-expert-segment\s*=\s*(["\']?)([1-3])\1/iu', $sectionHtml, $matches)) {
+            return (int) ($matches[2] ?? 0);
+        }
+
+        return $this->managedExpertExplicitSegmentNo($titleText);
+    }
+
     protected function extractManagedExpertSections(string $html): array
     {
         $sections = array();
@@ -13641,7 +14054,7 @@ class AdminService extends Service
                 'html' => $sectionHtml,
                 'title' => $titleText,
                 'title_key' => $titleKey,
-                'explicit_segment_no' => $this->managedExpertExplicitSegmentNo($titleKey),
+                'explicit_segment_no' => $this->managedExpertExplicitSegmentNoFromSection($sectionHtml, $titleKey),
                 'is_legacy_default' => strpos($sectionHtml, 'data-home-expert-segment="') !== false && in_array($titleKey, $defaultTitleKeys, true),
             );
         }
@@ -13733,7 +14146,7 @@ class AdminService extends Service
                 'html' => $sectionHtml,
                 'title' => $titleText,
                 'title_key' => $titleKey,
-                'explicit_segment_no' => $this->managedExpertExplicitSegmentNo($titleKey),
+                'explicit_segment_no' => $this->managedExpertExplicitSegmentNoFromSection($sectionHtml, $titleKey),
                 'is_legacy_default' => strpos($sectionHtml, 'data-home-expert-segment="') !== false,
             );
         }
@@ -13765,7 +14178,7 @@ class AdminService extends Service
 
         foreach ($sections as $index => $section) {
             $segmentNo = (int) ($section['explicit_segment_no'] ?? 0);
-            if ($segmentNo < 1 || $segmentNo > 3 || isset($usedSegments[$segmentNo])) {
+            if ($segmentNo < 1 || $segmentNo > 3) {
                 continue;
             }
 
@@ -13786,6 +14199,10 @@ class AdminService extends Service
                 $sections[$index]['segment_no'] = $segmentNo;
                 $usedSegments[$segmentNo] = true;
                 break;
+            }
+
+            if (!isset($sections[$index]['segment_no'])) {
+                $sections[$index]['segment_no'] = ($index % 3) + 1;
             }
         }
 
@@ -13880,41 +14297,16 @@ class AdminService extends Service
         $templateHtml = (string) preg_replace('/\s*<script id="legacy-home-data"[\s\S]*?<\/script>\s*$/u', '', $templateHtml, 1);
 
         if (preg_match('/(<section id="section-home"[\s\S]*?)(?=\s*<nav class="bottom-float-nav"[\s\S]*?<\/nav>)/u', $templateHtml, $matches)) {
-            return $this->moveManagedDrawLiveBlockBelowHomeSection(trim((string) ($matches[1] ?? '')));
+            return $this->ensureManagedDrawLiveBadgeHtml(
+                $this->moveManagedDrawLiveBlockBelowHomeSection(trim((string) ($matches[1] ?? '')))
+            );
         }
 
-        return $this->moveManagedDrawLiveBlockBelowHomeSection(trim($templateHtml));
-    }
-
-    protected function managedDrawRenderedMaterialTemplate(string $region, bool $ignoreManagedDrawMaterial = false): string
-    {
-        $region = $this->normalizeManagedDrawMaterialRegion($region);
-        $latestDraw = $this->app->prediction()->latestHomepageDraw($region);
-        $renderedHtml = View::make($this->app, 'front/home_legacy', array(
-            'region' => $region,
-            'user' => array(),
-            'latestDraw' => is_array($latestDraw) ? $latestDraw : null,
-            'ignoreManagedDrawMaterial' => $ignoreManagedDrawMaterial,
-            'ignoreManagedDrawComponents' => true,
-            'incrementManagedDrawAdViews' => false,
-        ));
-
-        $renderedHtml = (string) preg_replace('/\s*<script id="legacy-home-data"[\s\S]*?<\/script>\s*$/u', '', $renderedHtml, 1);
-
-        if (preg_match('/(<section id="section-home"[\s\S]*?)(?=\s*<nav class="bottom-float-nav"[\s\S]*?<\/nav>)/', $renderedHtml, $matches)) {
-            return $this->moveManagedDrawLiveBlockBelowHomeSection(trim((string) ($matches[1] ?? '')));
-        }
-
-        return $this->moveManagedDrawLiveBlockBelowHomeSection(trim($renderedHtml));
+        return $this->ensureManagedDrawLiveBadgeHtml($this->moveManagedDrawLiveBlockBelowHomeSection(trim($templateHtml)));
     }
 
     protected function managedDrawProtectedMaterialTemplate(string $region): string
     {
-        $renderedHtml = $this->managedDrawRenderedMaterialTemplate($region, true);
-        if ($renderedHtml !== '') {
-            return $renderedHtml;
-        }
-
         return $this->managedDrawDefaultMaterialTemplate($region);
     }
 
@@ -13971,40 +14363,19 @@ class AdminService extends Service
         return implode('; ', $normalized);
     }
 
-    protected function appendManagedDrawEditorExpertTitleSegments(\DOMDocument $document, \DOMElement $titleNode, array $post, string $fallbackTitleText): void
+    protected function appendManagedDrawEditorExpertTitleSegments(\DOMDocument $document, \DOMElement $titleNode, array $displayTitle, string $fallbackTitleText): void
     {
-        $segments = $this->app->posts()->displayTitleSegments($post);
-        $colors = $this->app->posts()->displayExpertTitleSegmentColors($post);
-        $titleStyle = $this->app->posts()->displayTitleTextStyle($post);
-        $hasText = false;
+        $bodyHtml = trim((string) ($displayTitle['body_html'] ?? ''));
+        if ($bodyHtml !== '') {
+            $fragment = $document->createDocumentFragment();
+            if ($fragment->appendXML($bodyHtml)) {
+                $titleNode->appendChild($fragment);
 
-        foreach (array('prefix', 'middle', 'author') as $segmentKey) {
-            $segmentText = trim((string) ($segments[$segmentKey] ?? ''));
-            if ($segmentText === '') {
-                continue;
+                return;
             }
-
-            $segmentNode = $document->createElement('span');
-            $style = '';
-            $color = trim((string) ($colors[$segmentKey] ?? ''));
-            if ($color !== '') {
-                $style .= 'color:' . $color . ';';
-            }
-            if ($titleStyle !== '') {
-                $style .= $titleStyle;
-            }
-            if ($style !== '') {
-                $segmentNode->setAttribute('style', $style);
-            }
-
-            $segmentNode->appendChild($document->createTextNode($segmentText));
-            $titleNode->appendChild($segmentNode);
-            $hasText = true;
         }
 
-        if (!$hasText) {
-            $titleNode->appendChild($document->createTextNode($fallbackTitleText));
-        }
+        $titleNode->appendChild($document->createTextNode($fallbackTitleText));
     }
 
     protected function managedDrawEditorExpertLinkNode(\DOMDocument $document, \DOMNode $itemNode, string $href): \DOMNode
@@ -14145,13 +14516,8 @@ class AdminService extends Service
     protected function managedDrawEditorCurrentIssuePrefixText(string $region): string
     {
         $snapshot = $this->managedIssuePrefixSnapshotByRegion($region);
-        $issueTail = trim((string) ($snapshot['issue_prefix_tail'] ?? ''));
 
-        if ($issueTail === '') {
-            return '';
-        }
-
-        return $issueTail . '期：';
+        return $this->app->posts()->formatIssuePrefixText((string) ($snapshot['issue_prefix_tail'] ?? ''));
     }
 
     protected function rebuildManagedDrawEditorExpertItem(\DOMDocument $document, \DOMNode $itemNode, array $post, int $index, string $region, string $titleText, ?int $colorIndex = null): ?\DOMElement
@@ -14167,6 +14533,8 @@ class AdminService extends Service
             ? max(0, (int) $post['display_view_count'])
             : max(0, (int) $this->app->posts()->currentDisplayedViewCount($postId));
         $preset = $this->managedDrawEditorExpertResultPreset($index, $colorIndex, $post);
+        $displayTitle = $this->app->posts()->displayTitleHtml($post);
+        $titleTextStyle = trim((string) ($displayTitle['text_style'] ?? ''));
 
         while ($itemNode->firstChild) {
             $itemNode->removeChild($itemNode->firstChild);
@@ -14192,15 +14560,14 @@ class AdminService extends Service
         if ($issuePrefixText !== '') {
             $issuePrefixNode->appendChild($document->createTextNode($issuePrefixText));
         }
-        $titleTextStyle = $this->app->posts()->displayTitleTextStyle($post);
-        if (preg_match('/(?:^|;)font-size\s*:\s*(\d+)px\s*;/i', $titleTextStyle, $fontSizeMatch)) {
-            $issuePrefixNode->setAttribute('style', 'font-size:' . (int) $fontSizeMatch[1] . 'px;');
+        if ($titleTextStyle !== '') {
+            $issuePrefixNode->setAttribute('style', $titleTextStyle);
         }
         $mainNode->appendChild($issuePrefixNode);
 
         $titleNode = $document->createElement('span');
         $titleNode->setAttribute('class', 'expert-item-title');
-        $this->appendManagedDrawEditorExpertTitleSegments($document, $titleNode, $post, $titleText);
+        $this->appendManagedDrawEditorExpertTitleSegments($document, $titleNode, $displayTitle, $titleText);
         $mainNode->appendChild($titleNode);
 
         $linkNode->appendChild($mainNode);
@@ -15206,6 +15573,16 @@ class AdminService extends Service
         return trim($contentHtml);
     }
 
+    public function linkManagedDrawExpertLinks(string $region, string $contentHtml): string
+    {
+        $region = $this->normalizeManagedDrawMaterialRegion($region);
+        $contentHtml = $this->linkManagedDrawEditorExpertSections($region, $contentHtml);
+        $contentHtml = $this->repairManagedDrawMaterialCalendarPanelClosers($contentHtml);
+        $contentHtml = $this->repairManagedDrawMaterialOrphanSectionClosers($contentHtml);
+
+        return trim($contentHtml);
+    }
+
     public function syncManagedDrawExpertLinks(string $region, string $contentHtml, bool $incrementAdViews = false): string
     {
         $region = $this->normalizeManagedDrawMaterialRegion($region);
@@ -15225,6 +15602,9 @@ class AdminService extends Service
             $this->persistManagedDrawEditorExpertAdViewState($region);
         }
 
+        $contentHtml = $this->repairManagedDrawMaterialCalendarPanelClosers($contentHtml);
+        $contentHtml = $this->repairManagedDrawMaterialOrphanSectionClosers($contentHtml);
+
         return $contentHtml;
     }
 
@@ -15234,6 +15614,8 @@ class AdminService extends Service
         if ($contentHtml === '') {
             return $contentHtml;
         }
+        $contentHadEditableMaterial = $this->managedDrawMaterialEditableHtmlLooksComplete($contentHtml);
+        $contentHtml = $this->repairManagedDrawMaterialOrphanSectionClosers($contentHtml);
 
         $previousUseInternalErrors = libxml_use_internal_errors(true);
         $document = new \DOMDocument('1.0', 'UTF-8');
@@ -15278,10 +15660,9 @@ class AdminService extends Service
         $adIssuePrefixText = '';
         if (in_array($region, array('macau', 'hongkong'), true)) {
             $snapshot = $this->managedIssuePrefixSnapshotByRegion($region);
-            $issueTail = trim((string) ($snapshot['issue_prefix_tail'] ?? ''));
-            if ($issueTail !== '') {
-                $adIssuePrefixText = $issueTail . '期：';
-            }
+            $adIssuePrefixText = $this->app->posts()->formatIssuePrefixText(
+                (string) ($snapshot['issue_prefix_tail'] ?? '')
+            );
         }
 
         if ($adIssuePrefixText !== '') {
@@ -15302,8 +15683,15 @@ class AdminService extends Service
         foreach ($rootNode->childNodes as $childNode) {
             $resultHtml .= $document->saveHTML($childNode);
         }
+        $resultHtml = trim($resultHtml);
+        $resultHtml = $this->repairManagedDrawMaterialCalendarPanelClosers($resultHtml);
+        $resultHtml = $this->repairManagedDrawMaterialOrphanSectionClosers($resultHtml);
 
-        return trim($resultHtml) !== '' ? trim($resultHtml) : $contentHtml;
+        if ($contentHadEditableMaterial && !$this->managedDrawMaterialEditableHtmlLooksComplete($resultHtml)) {
+            return $contentHtml;
+        }
+
+        return $resultHtml !== '' ? $resultHtml : $contentHtml;
     }
 
     public function syncManagedDrawAdLinks(string $contentHtml, string $region = ''): string
@@ -15312,7 +15700,11 @@ class AdminService extends Service
             ? $this->normalizeManagedDrawMaterialRegion($region)
             : '';
 
-        return $this->linkManagedDrawAdItems($contentHtml, $region);
+        $contentHtml = $this->linkManagedDrawAdItems($contentHtml, $region);
+        $contentHtml = $this->repairManagedDrawMaterialCalendarPanelClosers($contentHtml);
+        $contentHtml = $this->repairManagedDrawMaterialOrphanSectionClosers($contentHtml);
+
+        return $contentHtml;
     }
 
     protected function managedDrawLiveBlockPatterns(): array
@@ -15323,8 +15715,68 @@ class AdminService extends Service
         );
     }
 
+    protected function managedDrawMarqueeBlockPattern(): string
+    {
+        return '/<div\b[^>]*\bclass=["\'][^"\']*\bmarquee\b[^"\']*["\'][^>]*>[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/iu';
+    }
+
+    protected function managedDrawCalendarBlockPattern(): string
+    {
+        return '/<section\b[^>]*\bclass=["\'][^"\']*\bcalendar-panel\b[^"\']*["\'][^>]*>[\s\S]*?<\/section>/iu';
+    }
+
+    protected function managedDrawLiveBlockRange(string $html): array
+    {
+        if (!preg_match('/<div\b[^>]*\bid=(["\'])section-live\1[^>]*>/iu', $html, $matches, PREG_OFFSET_CAPTURE)) {
+            return array();
+        }
+
+        $start = (int) ($matches[0][1] ?? -1);
+        $openTag = (string) ($matches[0][0] ?? '');
+        if ($start < 0 || $openTag === '') {
+            return array();
+        }
+
+        $offset = $start + strlen($openTag);
+        $depth = 1;
+        if (!preg_match_all('/<div\b[^>]*>|<\/div>/iu', $html, $tagMatches, PREG_OFFSET_CAPTURE, $offset)) {
+            return array();
+        }
+
+        foreach ($tagMatches[0] as $tagMatch) {
+            $tag = (string) ($tagMatch[0] ?? '');
+            $tagOffset = (int) ($tagMatch[1] ?? -1);
+            if ($tagOffset < 0 || $tag === '') {
+                continue;
+            }
+
+            if (stripos($tag, '</div') === 0) {
+                $depth--;
+            } else {
+                $depth++;
+            }
+
+            if ($depth === 0) {
+                $end = $tagOffset + strlen($tag);
+
+                return array(
+                    'offset' => $start,
+                    'length' => $end - $start,
+                    'html' => substr($html, $start, $end - $start),
+                );
+            }
+        }
+
+        return array();
+    }
+
     protected function extractManagedDrawLiveBlock(string $html): string
     {
+        $range = $this->managedDrawLiveBlockRange($html);
+        if ($range !== array()) {
+            return trim((string) ($range['html'] ?? ''));
+        }
+
         foreach ($this->managedDrawLiveBlockPatterns() as $pattern) {
             if (preg_match($pattern, $html, $matches)) {
                 return trim((string) ($matches[0] ?? ''));
@@ -15336,10 +15788,45 @@ class AdminService extends Service
 
     protected function removeManagedDrawLiveBlock(string $html): string
     {
+        $range = $this->managedDrawLiveBlockRange($html);
+        if ($range !== array()) {
+            return trim(substr($html, 0, (int) $range['offset']) . substr($html, (int) $range['offset'] + (int) $range['length']));
+        }
+
         foreach ($this->managedDrawLiveBlockPatterns() as $pattern) {
             if (preg_match($pattern, $html)) {
                 return trim((string) preg_replace($pattern, '', $html, 1));
             }
+        }
+
+        return trim($html);
+    }
+
+    protected function replaceManagedDrawLiveBlock(string $html, string $replacement): string
+    {
+        $replacement = trim($replacement);
+        if ($replacement === '') {
+            return trim($html);
+        }
+
+        $range = $this->managedDrawLiveBlockRange($html);
+        if ($range !== array()) {
+            return trim(substr($html, 0, (int) $range['offset']) . "\n" . $replacement . "\n" . substr($html, (int) $range['offset'] + (int) $range['length']));
+        }
+
+        foreach ($this->managedDrawLiveBlockPatterns() as $pattern) {
+            if (!preg_match($pattern, $html)) {
+                continue;
+            }
+
+            return trim((string) preg_replace_callback(
+                $pattern,
+                static function () use ($replacement) {
+                    return "\n" . $replacement . "\n";
+                },
+                $html,
+                1
+            ));
         }
 
         return trim($html);
@@ -15369,6 +15856,126 @@ class AdminService extends Service
         ));
     }
 
+    public function ensureManagedDrawMarqueeBlock(string $html, string $fallbackHtml): string
+    {
+        $html = trim($html);
+        $fallbackHtml = trim($fallbackHtml);
+        if ($html === '' || $fallbackHtml === '' || preg_match($this->managedDrawMarqueeBlockPattern(), $html)) {
+            return $html;
+        }
+
+        $marqueeBlock = $this->extractManagedDrawMaterialBlock($fallbackHtml, $this->managedDrawMarqueeBlockPattern());
+        if ($marqueeBlock === '') {
+            return $html;
+        }
+
+        $liveRange = $this->managedDrawLiveBlockRange($html);
+        if ($liveRange !== array()) {
+            $insertOffset = (int) $liveRange['offset'] + (int) $liveRange['length'];
+
+            return trim(substr($html, 0, $insertOffset) . "\n" . $marqueeBlock . "\n" . substr($html, $insertOffset));
+        }
+
+        return trim($this->insertManagedDrawMaterialBlockAfter(
+            $html,
+            '/<section\b[^>]*\bid=["\']section-home["\'][^>]*>[\s\S]*?<\/section>/iu',
+            $marqueeBlock
+        ));
+    }
+
+    public function ensureManagedDrawLiveBadgeHtml(string $html): string
+    {
+        $html = trim($html);
+        if ($html === '' || stripos($html, 'section-live') === false || stripos($html, 'hero-result-period') === false) {
+            return $html;
+        }
+
+        $liveBlock = $this->extractManagedDrawLiveBlock($html);
+        if ($liveBlock === '' || stripos($liveBlock, 'hero-live-badge') !== false) {
+            return $html;
+        }
+
+        $badgeHtml = '<button id="hero-mode-badge" type="button" class="hero-live-badge" aria-live="polite" title="点击查看开奖记录"><i id="hero-mode-icon" class="fa-solid fa-clock-rotate-left"></i><span id="hero-mode-label">开奖记录</span></button>';
+        $updatedLiveBlock = (string) preg_replace(
+            '/(<div\b(?=[^>]*\bclass=(["\'])[^"\']*\bhero-live-left\b[^"\']*\2)[^>]*>\s*)(?=<span\b[^>]*\bid=(["\'])hero-result-period\3)/iu',
+            '$1' . $badgeHtml . ' ',
+            $liveBlock,
+            1,
+            $replaceCount
+        );
+
+        if ((int) $replaceCount <= 0) {
+            $updatedLiveBlock = (string) preg_replace(
+                '/(?=<span\b[^>]*\bid=(["\'])hero-result-period\1)/iu',
+                $badgeHtml . ' ',
+                $liveBlock,
+                1,
+                $replaceCount
+            );
+        }
+
+        if ((int) $replaceCount <= 0 || $updatedLiveBlock === $liveBlock) {
+            return $html;
+        }
+
+        return $this->replaceManagedDrawLiveBlock($html, $updatedLiveBlock);
+    }
+
+    public function normalizeManagedDrawProtectedHeaderBlocks(string $html, string $fallbackHtml): string
+    {
+        $html = trim($html);
+        $fallbackHtml = trim($fallbackHtml);
+        if ($html === '') {
+            return '';
+        }
+
+        $homeSectionPattern = '/<section\b[^>]*\bid=["\']section-home["\'][^>]*>[\s\S]*?<\/section>/iu';
+        $homeBlock = $this->extractManagedDrawMaterialBlock($html, $homeSectionPattern);
+        if ($homeBlock === '') {
+            return $this->ensureManagedDrawMarqueeBlock($this->moveManagedDrawLiveBlockBelowHomeSection($html), $fallbackHtml);
+        }
+
+        $liveBlock = $this->extractManagedDrawLiveBlock($html);
+        if ($liveBlock === '' && $fallbackHtml !== '') {
+            $liveBlock = $this->extractManagedDrawLiveBlock($fallbackHtml);
+        }
+        if ($liveBlock !== '') {
+            $liveBlock = $this->ensureManagedDrawLiveBadgeHtml($liveBlock);
+        }
+
+        $marqueeBlock = $this->extractManagedDrawMaterialBlock($html, $this->managedDrawMarqueeBlockPattern());
+        if ($marqueeBlock === '' && $fallbackHtml !== '') {
+            $marqueeBlock = $this->extractManagedDrawMaterialBlock($fallbackHtml, $this->managedDrawMarqueeBlockPattern());
+        }
+
+        $calendarBlock = $this->extractManagedDrawMaterialBlock($html, $this->managedDrawCalendarBlockPattern());
+        if ($calendarBlock === '' && $fallbackHtml !== '') {
+            $calendarBlock = $this->extractManagedDrawMaterialBlock($fallbackHtml, $this->managedDrawCalendarBlockPattern());
+        }
+
+        $contentHtml = $this->replaceManagedDrawMaterialBlock($html, $homeSectionPattern, '');
+        $contentHtml = $this->removeManagedDrawLiveBlock($contentHtml);
+        $contentHtml = (string) preg_replace($this->managedDrawMarqueeBlockPattern(), '', $contentHtml);
+        $contentHtml = (string) preg_replace($this->managedDrawCalendarBlockPattern(), '', $contentHtml);
+        $contentHtml = (string) preg_replace('~^\s*(?:</div>\s*</section>|</section>|</div>)+\s*~iu', '', $contentHtml);
+
+        $blocks = array($homeBlock);
+        if ($liveBlock !== '') {
+            $blocks[] = $liveBlock;
+        }
+        if ($marqueeBlock !== '') {
+            $blocks[] = $marqueeBlock;
+        }
+        if ($calendarBlock !== '') {
+            $blocks[] = $calendarBlock;
+        }
+        if (trim($contentHtml) !== '') {
+            $blocks[] = trim($contentHtml);
+        }
+
+        return trim(implode("\n", $blocks));
+    }
+
     public function stripManagedDrawHeroCopy(string $html): string
     {
         $html = trim($html);
@@ -15391,12 +15998,10 @@ class AdminService extends Service
     protected function managedDrawMaterialProtectedBlockPatterns(): array
     {
         return array_merge(array(
-            '/<section id="section-home"[\s\S]*?<\/section>/',
+            '/<section\b[^>]*\bid=["\']section-home["\'][^>]*>[\s\S]*?<\/section>/iu',
         ), $this->managedDrawLiveBlockPatterns(), array(
-            '/<div class="marquee\b[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/',
-            '/<section class="calendar-panel[\s\S]*?<\/section>/',
-            '/<section id="section-data"[\s\S]*?<\/section>/',
-            '/<section id="section-ad"[\s\S]*?<\/section>/',
+            $this->managedDrawMarqueeBlockPattern(),
+            $this->managedDrawCalendarBlockPattern(),
         ));
     }
 
@@ -15484,7 +16089,6 @@ class AdminService extends Service
                 if ($styleValue !== '') {
                     $attributes .= ' style="' . htmlspecialchars($styleValue, ENT_QUOTES, 'UTF-8') . '"';
                 }
-
                 if ($locked) {
                     $attributes .= ' data-section-edit-locked="1"';
                 }
@@ -15498,24 +16102,25 @@ class AdminService extends Service
 
     protected function normalizeManagedDrawHomeSection(string $contentHtml, string $baseHtml): string
     {
-        $currentSection = $this->extractManagedDrawMaterialBlock($contentHtml, '/<section id="section-home"[\s\S]*?<\/section>/');
-        $baseSection = $this->extractManagedDrawMaterialBlock($baseHtml, '/<section id="section-home"[\s\S]*?<\/section>/');
+        $homeSectionPattern = '/<section\b[^>]*\bid=["\']section-home["\'][^>]*>[\s\S]*?<\/section>/iu';
+        $currentSection = $this->extractManagedDrawMaterialBlock($contentHtml, $homeSectionPattern);
+        $baseSection = $this->extractManagedDrawMaterialBlock($baseHtml, $homeSectionPattern);
         if ($currentSection === '' || $baseSection === '') {
             return $contentHtml;
         }
 
         $styleValue = $this->managedDrawValidHomeSectionStyle($currentSection);
-        $locked = $this->managedDrawHomeSectionRootAttribute($currentSection, 'data-section-edit-locked') === '1';
+        $locked = trim($this->managedDrawHomeSectionRootAttribute($currentSection, 'data-section-edit-locked')) === '1';
         $replacement = $this->replaceManagedDrawHomeSectionRootAttributes($currentSection, $styleValue, $locked);
 
-        return $this->replaceManagedDrawMaterialBlock($contentHtml, '/<section id="section-home"[\s\S]*?<\/section>/', $replacement);
+        return $this->replaceManagedDrawMaterialBlock($contentHtml, $homeSectionPattern, $replacement);
     }
 
     protected function isManagedDrawMaterialFullHtml(string $html): bool
     {
         $html = trim($html);
 
-        return $html !== '' && stripos($html, '<section id="section-home"') !== false;
+        return $html !== '' && preg_match('/<section\b[^>]*\bid=["\']section-home["\']/iu', $html) === 1;
     }
 
     protected function hasManagedDrawMaterialDuplicatedShell(string $html): bool
@@ -15525,7 +16130,7 @@ class AdminService extends Service
             return false;
         }
 
-        return substr_count($html, '<section id="section-home"') > 1;
+        return preg_match_all('/<section\b[^>]*\bid=["\']section-home["\']/iu', $html) > 1;
     }
 
     protected function extractManagedDrawMaterialEditableHtml(string $html): string
@@ -15598,6 +16203,54 @@ class AdminService extends Service
         return trim($prefixHtml . "\n" . $editableHtml);
     }
 
+    protected function ensureManagedDrawMaterialEditableHtml(string $region, string $html, string $primaryFallbackHtml = '', string $secondaryFallbackHtml = ''): string
+    {
+        $html = trim($html);
+        if ($html === '') {
+            return $html;
+        }
+
+        foreach (array($primaryFallbackHtml, $secondaryFallbackHtml) as $fallbackHtml) {
+            $fallbackHtml = trim((string) $fallbackHtml);
+            if ($fallbackHtml === '') {
+                continue;
+            }
+
+            $fallbackHtml = $this->sanitizeManagedDrawMaterialHtml($fallbackHtml);
+            $fallbackHtml = $this->stripManagedDrawHeroCopy($fallbackHtml);
+            $fallbackHtml = $this->removeManagedDrawMaterialSectionSpacerParagraphs($fallbackHtml);
+            $backfilledHtml = $this->backfillManagedDrawMaterialStaticSections($html, $fallbackHtml);
+            if ($backfilledHtml !== $html) {
+                $html = $this->moveManagedDrawLiveBlockBelowHomeSection($backfilledHtml);
+                $html = $this->syncManagedDrawExpertLinks($region, $html);
+                $html = $this->removeManagedDrawMaterialSectionSpacerParagraphs($html);
+                $html = $this->normalizeManagedDrawZodiacReferenceHeads($html);
+            }
+
+            if ($this->managedDrawMaterialEditableHtmlLooksComplete($html)) {
+                return $html;
+            }
+
+            if (!$this->managedDrawMaterialEditableHtmlLooksComplete($fallbackHtml)) {
+                continue;
+            }
+
+            $editableHtml = $this->removeManagedDrawMaterialProtectedBlocks($fallbackHtml);
+            if (!$this->managedDrawMaterialEditableHtmlLooksComplete($editableHtml)) {
+                continue;
+            }
+
+            $mergedHtml = $this->mergeManagedDrawMaterialHtml($html, $editableHtml);
+            $mergedHtml = $this->moveManagedDrawLiveBlockBelowHomeSection($mergedHtml);
+            $mergedHtml = $this->syncManagedDrawExpertLinks($region, $mergedHtml);
+            $mergedHtml = $this->removeManagedDrawMaterialSectionSpacerParagraphs($mergedHtml);
+
+            return $this->normalizeManagedDrawZodiacReferenceHeads($mergedHtml);
+        }
+
+        return $html;
+    }
+
     protected function extractManagedDrawMaterialBlock(string $html, string $pattern): string
     {
         if (!preg_match($pattern, $html, $matches)) {
@@ -15631,6 +16284,92 @@ class AdminService extends Service
         );
     }
 
+    protected function extractManagedDrawMaterialSectionContaining(string $html, string $marker): string
+    {
+        $html = trim($html);
+        $marker = trim($marker);
+        if ($html === '' || $marker === '' || strpos($html, $marker) === false) {
+            return '';
+        }
+
+        if (!preg_match_all('/<section\b[^>]*>[\s\S]*?<\/section>/iu', $html, $matches)) {
+            return '';
+        }
+
+        foreach ($matches[0] as $sectionHtml) {
+            $sectionHtml = trim((string) $sectionHtml);
+            if ($sectionHtml !== '' && strpos($sectionHtml, $marker) !== false) {
+                return $sectionHtml;
+            }
+        }
+
+        return '';
+    }
+
+    protected function insertManagedDrawMaterialSectionBeforeMarker(string $html, string $marker, string $blockHtml): string
+    {
+        $html = trim($html);
+        $marker = trim($marker);
+        $blockHtml = trim($blockHtml);
+        if ($html === '' || $blockHtml === '') {
+            return $html;
+        }
+
+        if ($marker !== '' && strpos($html, $marker) !== false && preg_match_all('/<section\b[^>]*>[\s\S]*?<\/section>/iu', $html, $matches, PREG_OFFSET_CAPTURE)) {
+            foreach ($matches[0] as $match) {
+                $sectionHtml = (string) ($match[0] ?? '');
+                $offset = (int) ($match[1] ?? -1);
+                if ($offset >= 0 && strpos($sectionHtml, $marker) !== false) {
+                    return trim(substr($html, 0, $offset) . $blockHtml . "\n" . substr($html, $offset));
+                }
+            }
+        }
+
+        if (preg_match('/\s*<nav\b[^>]*class="[^"]*\bbottom-float-nav\b[^"]*"[\s\S]*$/iu', $html, $navMatch, PREG_OFFSET_CAPTURE)) {
+            $offset = (int) ($navMatch[0][1] ?? -1);
+            if ($offset >= 0) {
+                return trim(substr($html, 0, $offset) . "\n" . $blockHtml . substr($html, $offset));
+            }
+        }
+
+        return trim($html . "\n" . $blockHtml);
+    }
+
+    protected function backfillManagedDrawMaterialStaticSections(string $html, string $fallbackHtml): string
+    {
+        $html = trim($html);
+        $fallbackHtml = trim($fallbackHtml);
+        if ($html === '' || $fallbackHtml === '') {
+            return $html;
+        }
+
+        $staticSections = array(
+            array('marker' => 'home-vip-title', 'insert_before' => 'section-zodiac'),
+            array('marker' => 'section-zodiac', 'insert_before' => '版权信息'),
+            array('marker' => '版权信息', 'insert_before' => ''),
+        );
+
+        foreach ($staticSections as $section) {
+            $marker = (string) ($section['marker'] ?? '');
+            if ($marker === '' || strpos($html, $marker) !== false) {
+                continue;
+            }
+
+            $blockHtml = $this->extractManagedDrawMaterialSectionContaining($fallbackHtml, $marker);
+            if ($blockHtml === '') {
+                continue;
+            }
+
+            $html = $this->insertManagedDrawMaterialSectionBeforeMarker(
+                $html,
+                (string) ($section['insert_before'] ?? ''),
+                $blockHtml
+            );
+        }
+
+        return trim($html);
+    }
+
     protected function normalizeManagedDrawEditorClassList(string $classList): string
     {
         $tokens = preg_split('/\s+/', trim($classList)) ?: array();
@@ -15661,6 +16400,52 @@ class AdminService extends Service
         }
 
         return implode(' ', array_keys($filtered));
+    }
+
+    protected function repairManagedDrawMaterialOrphanSectionClosers(string $html): string
+    {
+        $html = trim($html);
+        if ($html === '') {
+            return '';
+        }
+
+        do {
+            $previousHtml = $html;
+            $html = (string) preg_replace(
+                '~(</section>)\s*</div>\s*</section>(?=\s*<section\b)~iu',
+                '$1',
+                $html
+            );
+            $html = (string) preg_replace(
+                '~(<div\b(?=[^>]*\bclass=["\'][^"\']*\bmarquee\b)[^>]*>[\s\S]*?</div>\s*</div>\s*</div>)\s*</div>\s*</section>(?=\s*<section\b)~iu',
+                '$1',
+                $html
+            );
+            $liveRange = $this->managedDrawLiveBlockRange($html);
+            if ($liveRange !== array()) {
+                $afterOffset = (int) $liveRange['offset'] + (int) $liveRange['length'];
+                $afterHtml = substr($html, $afterOffset);
+                if (preg_match('~^\s*</div>\s*</section>(?=\s*<section\b)~iu', $afterHtml, $matches)) {
+                    $html = substr($html, 0, $afterOffset) . substr($afterHtml, strlen((string) ($matches[0] ?? '')));
+                }
+            }
+        } while ($html !== $previousHtml);
+
+        return trim($html);
+    }
+
+    protected function repairManagedDrawMaterialCalendarPanelClosers(string $html): string
+    {
+        $html = trim($html);
+        if ($html === '' || stripos($html, 'calendar-panel') === false || stripos($html, 'calendar-grid') === false) {
+            return $html;
+        }
+
+        return trim((string) preg_replace(
+            '~(<section\b(?=[^>]*\bclass=["\'][^"\']*\bcalendar-panel\b)[^>]*>\s*<div\b(?=[^>]*\bclass=["\'][^"\']*\bcalendar-grid\b)[^>]*>[\s\S]*?<div\b[^>]*\bid=["\']lunar-date["\'][^>]*>[\s\S]*?</div>\s*<div\b(?=[^>]*\bclass=["\'][^"\']*\bcalendar-lunar-meta\b)[^>]*>[\s\S]*?</div>\s*</div>)\s*(?=<section\b)~iu',
+            "$1\n</div>\n</section>\n",
+            $html
+        ));
     }
 
     protected function normalizeManagedDrawInlineStyle(string $styleValue, array $removedProperties = array()): string
@@ -15766,6 +16551,78 @@ class AdminService extends Service
         );
     }
 
+    protected function normalizeManagedDrawHeroBannerBackgroundStyle(string $styleValue): string
+    {
+        $styleValue = $this->normalizeManagedDrawInlineStyle($styleValue);
+        if ($styleValue === '') {
+            return 'background-color: #0f172a';
+        }
+
+        $imageUrl = '';
+        if (preg_match('/url\(\s*([\'"]?)(.*?)\1\s*\)/iu', $styleValue, $matches)) {
+            $imageUrl = trim((string) ($matches[2] ?? ''));
+        }
+
+        $declarations = preg_split('/\s*;\s*/', $styleValue) ?: array();
+        $keptDeclarations = array();
+        foreach ($declarations as $declaration) {
+            $parts = explode(':', (string) $declaration, 2);
+            $property = isset($parts[0]) ? strtolower(trim((string) $parts[0])) : '';
+            if ($property === '' || strpos($property, 'background') === 0) {
+                continue;
+            }
+
+            $keptDeclarations[] = trim((string) $declaration);
+        }
+
+        if ($imageUrl !== '') {
+            array_unshift($keptDeclarations, 'background: #0f172a url(' . $imageUrl . ') center/100% 100% no-repeat');
+        } else {
+            array_unshift($keptDeclarations, 'background-color: #0f172a');
+        }
+
+        return implode('; ', array_values(array_filter($keptDeclarations, static function ($declaration) {
+            return trim((string) $declaration) !== '';
+        })));
+    }
+
+    protected function normalizeManagedDrawHeroBannerBackgroundHtml(string $html): string
+    {
+        if ($html === '' || stripos($html, 'section-home') === false || stripos($html, 'hero-banner') === false) {
+            return $html;
+        }
+
+        return (string) preg_replace_callback(
+            '/<section\b(?=[^>]*\bid=(["\'])section-home\1)(?=[^>]*\bclass=(["\'])[^"\']*\bhero-banner\b[^"\']*\2)([^>]*)>/iu',
+            function ($matches) {
+                $attributes = (string) ($matches[3] ?? '');
+                if (!preg_match('/\sstyle\s*=\s*("([^"]*)"|\'([^\']*)\'|[^\s>]+)/iu', $attributes, $styleMatches)) {
+                    return (string) ($matches[0] ?? '');
+                }
+
+                $styleValue = '';
+                if (isset($styleMatches[2])) {
+                    $styleValue = (string) $styleMatches[2];
+                } elseif (isset($styleMatches[3])) {
+                    $styleValue = (string) $styleMatches[3];
+                } elseif (isset($styleMatches[1])) {
+                    $styleValue = trim((string) $styleMatches[1], '"\'');
+                }
+
+                $normalizedStyle = $this->normalizeManagedDrawHeroBannerBackgroundStyle($styleValue);
+                $tagHtml = (string) ($matches[0] ?? '');
+
+                return (string) preg_replace(
+                    '/\sstyle\s*=\s*("([^"]*)"|\'([^\']*)\'|[^\s>]+)/iu',
+                    ' style="' . htmlspecialchars($normalizedStyle, ENT_QUOTES, 'UTF-8') . '"',
+                    $tagHtml,
+                    1
+                );
+            },
+            $html
+        );
+    }
+
     protected function removeManagedDrawEditorControlElements(string $html): string
     {
         $html = trim($html);
@@ -15795,16 +16652,210 @@ class AdminService extends Service
         return trim($html);
     }
 
+    public function stripManagedDrawEditorControlResidues(string $html): string
+    {
+        $html = trim($html);
+        if ($html === '') {
+            return '';
+        }
+
+        $span = static function (string $textPattern): string {
+            return '\s*<span\b(?![^>]*\b(?:class|data-section-editor-control)\s*=)[^>]*>\s*' . $textPattern . '\s*<\/span>';
+        };
+        $handleText = '(?:⋮⋮|&#8942;&#8942;|&#x22ee;&#x22ee;|&vellip;&vellip;)';
+        $controlClusterPattern = '~'
+            . $span($handleText)
+            . $span('拖拽')
+            . $span('编辑')
+            . $span('源码')
+            . $span('(?:隐藏|显示)')
+            . $span('删除')
+            . '~iu';
+
+        do {
+            $previousHtml = $html;
+            $html = (string) preg_replace($controlClusterPattern, '', $html);
+        } while ($html !== $previousHtml);
+
+        return trim($html);
+    }
+
+    protected function normalizeManagedDrawEditorLockAttributes(string $html): string
+    {
+        $html = trim($html);
+        if ($html === '') {
+            return '';
+        }
+
+        return trim((string) preg_replace_callback(
+            '/\sdata-section-edit-locked\s*=\s*("([^"]*)"|\'([^\']*)\'|([^\s>]+))/iu',
+            static function ($matches) {
+                $value = '';
+                if (isset($matches[2])) {
+                    $value = (string) $matches[2];
+                } elseif (isset($matches[3])) {
+                    $value = (string) $matches[3];
+                } elseif (isset($matches[4])) {
+                    $value = (string) $matches[4];
+                }
+
+                return trim(html_entity_decode($value, ENT_QUOTES, 'UTF-8')) === '1'
+                    ? ' data-section-edit-locked="1"'
+                    : '';
+            },
+            $html
+        ));
+    }
+
+    protected function managedDrawTagAttributeValue(string $tagHtml, string $attribute): string
+    {
+        if ($tagHtml === '' || $attribute === '') {
+            return '';
+        }
+
+        if (!preg_match('/\s' . preg_quote($attribute, '/') . '\s*=\s*("([^"]*)"|\'([^\']*)\'|([^\s>]+))/iu', $tagHtml, $matches)) {
+            return '';
+        }
+
+        if (isset($matches[2])) {
+            return html_entity_decode((string) $matches[2], ENT_QUOTES, 'UTF-8');
+        }
+
+        if (isset($matches[3])) {
+            return html_entity_decode((string) $matches[3], ENT_QUOTES, 'UTF-8');
+        }
+
+        if (isset($matches[4])) {
+            return html_entity_decode((string) $matches[4], ENT_QUOTES, 'UTF-8');
+        }
+
+        return '';
+    }
+
+    protected function managedDrawInlineStylePropertyValue(string $styleValue, string $property): string
+    {
+        $property = strtolower(trim($property));
+        if ($styleValue === '' || $property === '') {
+            return '';
+        }
+
+        $declarations = preg_split('/\s*;\s*/', html_entity_decode(trim($styleValue), ENT_QUOTES, 'UTF-8')) ?: array();
+        foreach ($declarations as $declaration) {
+            $parts = explode(':', (string) $declaration, 2);
+            $propertyName = isset($parts[0]) ? strtolower(trim((string) $parts[0])) : '';
+            $propertyValue = isset($parts[1]) ? trim((string) $parts[1]) : '';
+
+            if ($propertyName === $property) {
+                return $propertyValue;
+            }
+        }
+
+        return '';
+    }
+
+    protected function withManagedDrawTagDisplayNone(string $tagHtml): string
+    {
+        $styleValue = '';
+
+        if (!preg_match('/\sstyle\s*=\s*("([^"]*)"|\'([^\']*)\'|[^\s>]+)/iu', $tagHtml, $styleMatches)) {
+            return (string) preg_replace(
+                '/\s*(\/?)>$/u',
+                ' style="display: none"$1>',
+                $tagHtml,
+                1
+            );
+        }
+
+        if (isset($styleMatches[2])) {
+            $styleValue = (string) $styleMatches[2];
+        } elseif (isset($styleMatches[3])) {
+            $styleValue = (string) $styleMatches[3];
+        } elseif (isset($styleMatches[1])) {
+            $styleValue = trim((string) $styleMatches[1], '"\'');
+        }
+
+        $styleValue = $this->normalizeManagedDrawInlineStyle($styleValue, array('display'));
+        $styleValue = 'display: none' . ($styleValue !== '' ? '; ' . $styleValue : '');
+
+        return (string) preg_replace(
+            '/\sstyle\s*=\s*("([^"]*)"|\'([^\']*)\'|[^\s>]+)/iu',
+            ' style="' . htmlspecialchars($styleValue, ENT_QUOTES, 'UTF-8') . '"',
+            $tagHtml,
+            1
+        );
+    }
+
+    protected function applyManagedDrawEditorHiddenDisplayState(string $html): string
+    {
+        $html = trim($html);
+        if ($html === '') {
+            return '';
+        }
+
+        return trim((string) preg_replace_callback(
+            '/<([a-z][a-z0-9:-]*)\b(?=[^>]*\sdata-section-(?:hidden|display)\s*=)[^>]*>/iu',
+            function ($matches) {
+                $tagHtml = (string) ($matches[0] ?? '');
+                $hiddenState = trim($this->managedDrawTagAttributeValue($tagHtml, 'data-section-hidden'));
+
+                if ($hiddenState !== '1') {
+                    return $tagHtml;
+                }
+
+                return $this->withManagedDrawTagDisplayNone($tagHtml);
+            },
+            $html
+        ));
+    }
+
+    protected function applyManagedDrawHiddenTopSpacerState(string $html): string
+    {
+        $html = trim($html);
+        if ($html === '' || stripos($html, 'top-bar-spacer') === false) {
+            return $html;
+        }
+
+        return trim((string) preg_replace_callback(
+            '/(<header\b(?=[^>]*\bclass\s*=\s*(["\'])[^"\']*\btop-bar\b[^"\']*\2)(?=[^>]*\bstyle\s*=\s*(["\'])[^"\']*display\s*:\s*none\b[^"\']*\3)[^>]*>[\s\S]*?<\/header>\s*)(<div\b(?=[^>]*\bclass\s*=\s*(["\'])[^"\']*\btop-bar-spacer\b[^"\']*\5)[^>]*>)/iu',
+            function ($matches) {
+                return (string) ($matches[1] ?? '') . $this->withManagedDrawTagDisplayNone((string) ($matches[4] ?? ''));
+            },
+            $html
+        ));
+    }
+
+    public function stripManagedDrawEditorFrontendState(string $html): string
+    {
+        $html = $this->removeManagedDrawEditorControlElements($html);
+        $html = $this->stripManagedDrawEditorControlResidues($html);
+        if ($html === '') {
+            return '';
+        }
+
+        $html = $this->applyManagedDrawEditorHiddenDisplayState($html);
+        $html = $this->applyManagedDrawHiddenTopSpacerState($html);
+        $html = (string) preg_replace('/\scontenteditable\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/iu', '', $html);
+        $html = (string) preg_replace('/\sdraggable\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/iu', '', $html);
+        $html = (string) preg_replace('/\sdata-section-(?:editor-[a-z0-9_-]+|edit-locked|hidden|display)\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/iu', '', $html);
+        $html = (string) preg_replace('/\sdata-mce-[a-z0-9_-]+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/iu', '', $html);
+
+        return trim($html);
+    }
+
     protected function sanitizeManagedDrawComponentHtml(string $html): string
     {
         $html = $this->removeManagedDrawEditorControlElements($this->normalizeManagedDrawEditorResourceReferences($html));
+        $html = $this->stripManagedDrawEditorControlResidues($html);
+        $html = $this->applyManagedDrawEditorHiddenDisplayState($html);
+        $html = $this->applyManagedDrawHiddenTopSpacerState($html);
         if ($html === '') {
             return '';
         }
 
         $html = (string) preg_replace('/\scontenteditable\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/iu', '', $html);
         $html = (string) preg_replace('/\sdraggable\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/iu', '', $html);
-        $html = (string) preg_replace('/\sdata-section-(?:editor-[a-z0-9_-]+|edit-locked|hidden|display)\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/iu', '', $html);
+        $html = (string) preg_replace('/\sdata-section-(?:editor-[a-z0-9_-]+|hidden|display)\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/iu', '', $html);
+        $html = $this->normalizeManagedDrawEditorLockAttributes($html);
         $html = (string) preg_replace('/\sdata-mce-[a-z0-9_-]+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/iu', '', $html);
         $html = (string) preg_replace('/<\s*(script|iframe|object|embed|link|meta|base|form|input|button|textarea|select|option)\b[\s\S]*?<\s*\/\s*\1\s*>/iu', '', $html);
         $html = (string) preg_replace('/<\s*(script|iframe|object|embed|link|meta|base|form|input|button|textarea|select|option)\b[^>]*\/?\s*>/iu', '', $html);
@@ -15870,21 +16921,81 @@ class AdminService extends Service
             $html
         );
         $html = (string) preg_replace('/\sstyle=""/i', '', $html);
+        $html = $this->removeManagedDrawComponentRootEditorDisplayState($html);
 
         return trim($html);
     }
 
-    protected function sanitizeManagedDrawMaterialHtml(string $html): string
+    protected function removeManagedDrawComponentRootEditorDisplayState(string $html): string
     {
-        $html = $this->normalizeManagedDrawEditorResourceReferences($html);
+        $html = trim($html);
         if ($html === '') {
             return '';
         }
 
-        $html = (string) preg_replace('/\scontenteditable="[^"]*"/i', '', $html);
-        $html = (string) preg_replace('/\sdata-section-editor-active="[^"]*"/i', '', $html);
-        $html = (string) preg_replace('/\sdata-section-editor-control="[^"]*"/i', '', $html);
-        $html = (string) preg_replace('/\sdata-mce-[a-z0-9_-]+="[^"]*"/i', '', $html);
+        return trim((string) preg_replace_callback(
+            '/<(header|nav)\b(?=[^>]*\bclass\s*=\s*(["\'])[^"\']*\b(?:top-bar|bottom-float-nav)\b[^"\']*\2)([^>]*)>/iu',
+            function ($matches) {
+                $tagName = strtolower((string) ($matches[1] ?? ''));
+                $tagHtml = (string) ($matches[0] ?? '');
+
+                if ($tagName !== 'header' && $tagName !== 'nav') {
+                    return $tagHtml;
+                }
+
+                if (!preg_match('/\sstyle\s*=\s*("([^"]*)"|\'([^\']*)\'|[^\s>]+)/iu', $tagHtml, $styleMatches)) {
+                    return $tagHtml;
+                }
+
+                $styleValue = '';
+                if (isset($styleMatches[2])) {
+                    $styleValue = (string) $styleMatches[2];
+                } elseif (isset($styleMatches[3])) {
+                    $styleValue = (string) $styleMatches[3];
+                } elseif (isset($styleMatches[1])) {
+                    $styleValue = trim((string) $styleMatches[1], '"\'');
+                }
+
+                $displayValue = strtolower((string) preg_replace(
+                    '/[\x00-\x20]+/',
+                    '',
+                    html_entity_decode($this->managedDrawInlineStylePropertyValue($styleValue, 'display'), ENT_QUOTES, 'UTF-8')
+                ));
+                $styleValue = $this->normalizeManagedDrawInlineStyle(
+                    $styleValue,
+                    $displayValue === 'none' ? array() : array('display')
+                );
+                if ($styleValue === '') {
+                    return (string) preg_replace('/\sstyle\s*=\s*("([^"]*)"|\'([^\']*)\'|[^\s>]+)/iu', '', $tagHtml, 1);
+                }
+
+                return (string) preg_replace(
+                    '/\sstyle\s*=\s*("([^"]*)"|\'([^\']*)\'|[^\s>]+)/iu',
+                    ' style="' . htmlspecialchars($styleValue, ENT_QUOTES, 'UTF-8') . '"',
+                    $tagHtml,
+                    1
+                );
+            },
+            $html
+        ));
+    }
+
+    protected function sanitizeManagedDrawMaterialHtml(string $html): string
+    {
+        $html = $this->removeManagedDrawEditorControlElements($this->normalizeManagedDrawEditorResourceReferences($html));
+        $html = $this->stripManagedDrawEditorControlResidues($html);
+        $html = $this->applyManagedDrawEditorHiddenDisplayState($html);
+        $html = $this->repairManagedDrawMaterialOrphanSectionClosers($html);
+        $html = $this->repairManagedDrawMaterialCalendarPanelClosers($html);
+        if ($html === '') {
+            return '';
+        }
+
+        $html = (string) preg_replace('/\scontenteditable\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/iu', '', $html);
+        $html = (string) preg_replace('/\sdraggable\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/iu', '', $html);
+        $html = (string) preg_replace('/\sdata-section-(?:editor-[a-z0-9_-]+|hidden|display)\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/iu', '', $html);
+        $html = $this->normalizeManagedDrawEditorLockAttributes($html);
+        $html = (string) preg_replace('/\sdata-mce-[a-z0-9_-]+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/iu', '', $html);
         $html = (string) preg_replace('/<\s*(script|iframe|object|embed|link|meta|base|form|input|button|textarea|select|option)\b[\s\S]*?<\s*\/\s*\1\s*>/iu', '', $html);
         $html = (string) preg_replace('/<\s*(script|iframe|object|embed|link|meta|base|form|input|button|textarea|select|option)\b[^>]*\/?\s*>/iu', '', $html);
         $html = (string) preg_replace('/\s+on[a-z0-9_-]+\s*=\s*(".*?"|\'.*?\'|[^\s>]+)/iu', '', $html);
@@ -15982,6 +17093,7 @@ class AdminService extends Service
         );
 
         $html = (string) preg_replace('/\sstyle=""/i', '', $html);
+        $html = $this->normalizeManagedDrawHeroBannerBackgroundHtml($html);
 
         return trim($html);
     }
@@ -16097,53 +17209,66 @@ class AdminService extends Service
             return $contentHtml;
         }
         $baseHtml = $this->moveManagedDrawLiveBlockBelowHomeSection($baseHtml);
+        $baseHtml = $this->ensureManagedDrawLiveBadgeHtml($baseHtml);
 
         if (!$this->isManagedDrawMaterialFullHtml($contentHtml)) {
             $mergedHtml = $this->removeManagedDrawMaterialSectionSpacerParagraphs($this->mergeManagedDrawMaterialHtml($baseHtml, $contentHtml));
             $normalizedHtml = $this->normalizeManagedDrawZodiacReferenceHeads($this->moveManagedDrawLiveBlockBelowHomeSection($this->removeManagedDrawMaterialSectionSpacerParagraphs($this->syncManagedDrawExpertLinks($region, $mergedHtml))));
+            $normalizedHtml = $this->ensureManagedDrawLiveBadgeHtml($normalizedHtml);
 
             return $this->ensureManagedDrawMaterialEditableHtml($region, $normalizedHtml, $fallbackHtml, $baseHtml);
         }
 
         if ($this->hasManagedDrawMaterialDuplicatedShell($contentHtml)) {
-            $lastShellOffset = strripos($contentHtml, '<section id="section-home"');
-            if ($lastShellOffset !== false) {
-                $contentHtml = (string) substr($contentHtml, $lastShellOffset);
+            if (preg_match_all('/<section\b[^>]*\bid=["\']section-home["\']/iu', $contentHtml, $shellMatches, PREG_OFFSET_CAPTURE)) {
+                $lastShell = end($shellMatches[0]);
+                $lastShellOffset = is_array($lastShell) ? (int) ($lastShell[1] ?? -1) : -1;
+                if ($lastShellOffset >= 0) {
+                    $contentHtml = (string) substr($contentHtml, $lastShellOffset);
+                }
             }
         }
 
         $normalizedHtml = (string) preg_replace('/\s*<script id="legacy-home-data"[\s\S]*?<\/script>\s*$/', '', $contentHtml, 1);
-        $normalizedHtml = $this->moveManagedDrawLiveBlockBelowHomeSection($normalizedHtml);
         $normalizedHtml = $this->normalizeManagedDrawHomeSection($normalizedHtml, $baseHtml);
-        $calendarPattern = '/<section class="calendar-panel[\s\S]*?<\/section>/';
+        $homeSectionPattern = '/<section\b[^>]*\bid=["\']section-home["\'][^>]*>[\s\S]*?<\/section>/iu';
+        $marqueePattern = $this->managedDrawMarqueeBlockPattern();
+        $calendarPattern = $this->managedDrawCalendarBlockPattern();
         $liveBlock = $this->extractManagedDrawLiveBlock($baseHtml);
         $calendarBlock = $this->extractManagedDrawMaterialBlock($baseHtml, $calendarPattern);
         if ($liveBlock !== '') {
-            $normalizedHtml = $this->insertManagedDrawMaterialBlockAfter(
-                $this->removeManagedDrawLiveBlock($normalizedHtml),
-                '/<section id="section-home"[\s\S]*?<\/section>/',
-                $liveBlock
-            );
+            if ($this->extractManagedDrawLiveBlock($normalizedHtml) !== '') {
+                $normalizedHtml = $this->replaceManagedDrawLiveBlock($normalizedHtml, $liveBlock);
+            } else {
+                $normalizedHtml = $this->insertManagedDrawMaterialBlockAfter(
+                    $normalizedHtml,
+                    $homeSectionPattern,
+                    $liveBlock
+                );
+            }
         }
+        $normalizedHtml = $this->ensureManagedDrawMarqueeBlock($normalizedHtml, $baseHtml);
 
         if ($calendarBlock !== '') {
             if (preg_match($calendarPattern, $normalizedHtml)) {
                 $normalizedHtml = $this->replaceManagedDrawMaterialBlock($normalizedHtml, $calendarPattern, $calendarBlock);
-            } elseif (preg_match('/<div class="marquee\b[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/', $normalizedHtml)) {
+            } elseif (preg_match($marqueePattern, $normalizedHtml)) {
                 $normalizedHtml = $this->insertManagedDrawMaterialBlockAfter(
                     $normalizedHtml,
-                    '/<div class="marquee\b[\s\S]*?<\/div>\s*<\/div>\s*<\/div>/',
+                    $marqueePattern,
                     $calendarBlock
                 );
             } else {
                 $normalizedHtml = $this->insertManagedDrawMaterialBlockAfter(
                     $normalizedHtml,
-                    '/<section id="section-home"[\s\S]*?<\/section>/',
+                    $homeSectionPattern,
                     $calendarBlock
                 );
             }
         }
+        $normalizedHtml = $this->normalizeManagedDrawProtectedHeaderBlocks($normalizedHtml, $baseHtml);
 
+        $normalizedHtml = $this->ensureManagedDrawLiveBadgeHtml($normalizedHtml);
         $normalizedHtml = $this->syncManagedDrawExpertLinks($region, $normalizedHtml);
         $normalizedHtml = $this->removeManagedDrawMaterialSectionSpacerParagraphs($normalizedHtml);
         $normalizedHtml = $this->normalizeManagedDrawZodiacReferenceHeads($normalizedHtml);
@@ -16152,40 +17277,46 @@ class AdminService extends Service
         return trim($normalizedHtml);
     }
 
-    protected function ensureManagedDrawMaterialEditableHtml(string $region, string $html, string $primaryFallbackHtml = '', string $secondaryFallbackHtml = ''): string
+    protected function normalizeManagedDrawMaterialEditorSourceHtml(string $region, string $contentHtml, string $fallbackHtml = ''): string
     {
-        $html = trim($html);
-        if ($html === '' || $this->managedDrawMaterialEditableHtmlLooksComplete($html)) {
-            return $html;
+        $region = $this->normalizeManagedDrawMaterialRegion($region);
+        $contentHtml = $this->sanitizeManagedDrawMaterialHtml($contentHtml);
+        $contentHtml = $this->stripManagedDrawHeroCopy($contentHtml);
+        $contentHtml = $this->removeManagedDrawMaterialSectionSpacerParagraphs($contentHtml);
+        if ($contentHtml === '') {
+            return '';
         }
 
-        foreach (array($primaryFallbackHtml, $secondaryFallbackHtml) as $fallbackHtml) {
-            $fallbackHtml = trim((string) $fallbackHtml);
-            if ($fallbackHtml === '') {
-                continue;
+        if (!$this->isManagedDrawMaterialFullHtml($contentHtml)) {
+            $baseHtml = trim($fallbackHtml);
+            if ($baseHtml === '') {
+                $baseHtml = $this->managedDrawProtectedMaterialTemplate($region);
             }
-
-            $fallbackHtml = $this->sanitizeManagedDrawMaterialHtml($fallbackHtml);
-            $fallbackHtml = $this->stripManagedDrawHeroCopy($fallbackHtml);
-            $fallbackHtml = $this->removeManagedDrawMaterialSectionSpacerParagraphs($fallbackHtml);
-            if (!$this->managedDrawMaterialEditableHtmlLooksComplete($fallbackHtml)) {
-                continue;
+            if ($baseHtml !== '') {
+                $contentHtml = $this->removeManagedDrawMaterialSectionSpacerParagraphs(
+                    $this->mergeManagedDrawMaterialHtml($baseHtml, $contentHtml)
+                );
             }
-
-            $editableHtml = $this->removeManagedDrawMaterialProtectedBlocks($fallbackHtml);
-            if (!$this->managedDrawMaterialEditableHtmlLooksComplete($editableHtml)) {
-                continue;
-            }
-
-            $mergedHtml = $this->mergeManagedDrawMaterialHtml($html, $editableHtml);
-            $mergedHtml = $this->moveManagedDrawLiveBlockBelowHomeSection($mergedHtml);
-            $mergedHtml = $this->syncManagedDrawExpertLinks($region, $mergedHtml);
-            $mergedHtml = $this->removeManagedDrawMaterialSectionSpacerParagraphs($mergedHtml);
-
-            return $this->normalizeManagedDrawZodiacReferenceHeads($mergedHtml);
         }
 
-        return $html;
+        if ($this->hasManagedDrawMaterialDuplicatedShell($contentHtml)) {
+            if (preg_match_all('/<section\b[^>]*\bid=["\']section-home["\']/iu', $contentHtml, $shellMatches, PREG_OFFSET_CAPTURE)) {
+                $lastShell = end($shellMatches[0]);
+                $lastShellOffset = is_array($lastShell) ? (int) ($lastShell[1] ?? -1) : -1;
+                if ($lastShellOffset >= 0) {
+                    $contentHtml = (string) substr($contentHtml, $lastShellOffset);
+                }
+            }
+        }
+
+        $contentHtml = (string) preg_replace('/\s*<script id="legacy-home-data"[\s\S]*?<\/script>\s*$/', '', $contentHtml, 1);
+        $contentHtml = $this->repairManagedDrawMaterialCalendarPanelClosers($contentHtml);
+        $contentHtml = $this->repairManagedDrawMaterialOrphanSectionClosers($contentHtml);
+        $contentHtml = $this->removeManagedDrawMaterialSectionSpacerParagraphs($contentHtml);
+        $contentHtml = $this->normalizeManagedDrawZodiacReferenceHeads($contentHtml);
+        $contentHtml = $this->ensureManagedDrawLiveBadgeHtml($contentHtml);
+
+        return trim($contentHtml);
     }
 
     protected function removeManagedDrawMaterialSectionSpacerParagraphs(string $html): string
@@ -16231,7 +17362,7 @@ class AdminService extends Service
             return $storedContentHtml;
         }
 
-        $normalizedContentHtml = $this->normalizeManagedDrawMaterialHtml($region, $storedContentHtml);
+        $normalizedContentHtml = $this->normalizeManagedDrawMaterialEditorSourceHtml($region, $storedContentHtml);
 
         if ($normalizedContentHtml !== $storedContentHtml) {
             $this->db()->execute(
@@ -16342,6 +17473,12 @@ class AdminService extends Service
             'issue_no' => (string) ($snapshot['issue_no'] ?? ''),
             'issue_prefix_tail' => (string) ($snapshot['issue_prefix_tail'] ?? ''),
             'expert_version' => $this->managedDrawMaterialEditorExpertVersion($region),
+            'editor_source_of_truth' => 'settings-or-default-v2',
+            'editor_control_residue_strip' => 'v1',
+            'editor_lock_persistence' => 'v1',
+            'editor_hidden_persistence' => 'v2',
+            'editor_expert_runtime_hydration' => 'v1',
+            'editor_live_badge_repair' => 'v1',
         );
         $cacheKey = 'admin_draw_material_editor_html_' . $region . '_' . md5(json_encode($cacheSource));
         $cachedHtml = $this->app->cache()->get($cacheKey, null, 20);
@@ -16349,7 +17486,8 @@ class AdminService extends Service
             return $cachedHtml;
         }
 
-        $normalizedHtml = $this->normalizeManagedDrawMaterialHtml($region, $storedContentHtml);
+        $normalizedHtml = $this->normalizeManagedDrawMaterialEditorSourceHtml($region, $storedContentHtml);
+        $normalizedHtml = $this->syncManagedDrawExpertLinks($region, $normalizedHtml, false);
         $this->app->cache()->put($cacheKey, $normalizedHtml);
 
         return $normalizedHtml;
@@ -16372,11 +17510,13 @@ class AdminService extends Service
             'issue_no' => (string) ($snapshot['issue_no'] ?? ''),
             'issue_prefix_tail' => (string) ($snapshot['issue_prefix_tail'] ?? ''),
             'expert_version' => $this->managedDrawMaterialEditorExpertVersion($region),
+            'editor_source_of_truth' => 'settings-or-default-v2',
+            'editor_control_residue_strip' => 'v1',
+            'editor_lock_persistence' => 'v1',
+            'editor_hidden_persistence' => 'v2',
+            'editor_expert_runtime_hydration' => 'v1',
+            'editor_live_badge_repair' => 'v1',
         );
-        if (!$hasCustomized) {
-            $latestDraw = $this->app->prediction()->latestHomepageDraw($region);
-            $cacheSource['latest_draw_hash'] = md5(json_encode(is_array($latestDraw) ? $latestDraw : array()));
-        }
         $cacheKey = 'admin_draw_material_editor_' . $region . '_' . md5(json_encode($cacheSource));
         if (isset($this->managedDrawMaterialEditorRequestCache[$cacheKey])) {
             return $this->managedDrawMaterialEditorRequestCache[$cacheKey];
@@ -16391,7 +17531,7 @@ class AdminService extends Service
 
         $resolvedContentHtml = $hasCustomized
             ? $this->normalizeManagedDrawMaterialHtmlForEditor($region, $storedContentHtml)
-            : $this->managedDrawRenderedMaterialTemplate($region, true);
+            : $this->normalizeManagedDrawMaterialHtmlForEditor($region, $this->managedDrawDefaultMaterialTemplate($region));
 
         $editor = array(
             'region' => $region,
@@ -16420,7 +17560,7 @@ class AdminService extends Service
         $updatedBy = isset($actor['username']) ? (string) $actor['username'] : '';
 
         $settings = array(
-            'draws.material_html.' . $region => $this->normalizeManagedDrawMaterialHtml(
+            'draws.material_html.' . $region => $this->normalizeManagedDrawMaterialEditorSourceHtml(
                 $region,
                 $contentHtml,
                 $storedContentHtml
@@ -16601,7 +17741,8 @@ class AdminService extends Service
         $bottomUpdatedBy = (string) $this->app->settings()->get($component['updated_by_keys']['bottom_float'], '');
         $cacheSource = array(
             'component_key' => $componentKey,
-            'fallback_version' => 6,
+            'fallback_version' => 9,
+            'editor_hidden_persistence' => 'v2',
             'top_html_hash' => md5($topStoredHtml),
             'bottom_html_hash' => md5($bottomStoredHtml),
             'top_updated_at' => $topUpdatedAt,
@@ -18843,6 +19984,7 @@ class AdminService extends Service
         $requestPath = function_exists('mb_substr')
             ? mb_substr($requestPath, 0, 150, 'UTF-8')
             : substr($requestPath, 0, 150);
+        $requestData = $this->operationLogRequestData($_POST);
 
         $this->db()->execute(
             'INSERT INTO admin_operation_logs (admin_id, module, action, target_type, target_id, summary, request_method, request_path, request_data, ip, created_at)
@@ -18856,11 +19998,42 @@ class AdminService extends Service
                 'summary' => $summary,
                 'request_method' => isset($_SERVER['REQUEST_METHOD']) ? (string) $_SERVER['REQUEST_METHOD'] : 'CLI',
                 'request_path' => $requestPath,
-                'request_data' => json_encode($_POST, JSON_UNESCAPED_UNICODE),
+                'request_data' => $requestData,
                 'ip' => Security::ipAddress(),
                 'created_at' => $this->now(),
             )
         );
+    }
+
+    protected function operationLogRequestData(array $payload): string
+    {
+        $snapshot = $this->compactOperationLogPayload($payload);
+        $json = json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        return is_string($json) && $json !== '' ? $json : '{}';
+    }
+
+    protected function compactOperationLogPayload(array $payload): array
+    {
+        $snapshot = array();
+
+        foreach ($payload as $key => $value) {
+            $keyText = is_int($key) ? (string) $key : (string) $key;
+
+            if (is_array($value)) {
+                $snapshot[$key] = $this->compactOperationLogPayload($value);
+                continue;
+            }
+
+            if ($keyText === 'content_html') {
+                $snapshot[$key] = '[content_html omitted, bytes=' . strlen((string) $value) . ']';
+                continue;
+            }
+
+            $snapshot[$key] = $value;
+        }
+
+        return $snapshot;
     }
 
     protected function recordInstall(Database $database, array $payload)
