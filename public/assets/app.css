@@ -660,10 +660,6 @@ body.admin-page-draws .admin-content-shell > section:first-of-type {
     margin-top: 0;
 }
 
-body.admin-body:not(.admin-page-draws) .admin-content-shell > section:first-of-type {
-    margin-top: 8px;
-}
-
 .admin-frame-btn {
     display: inline-flex;
     align-items: center;
@@ -3738,12 +3734,6 @@ body.admin-page-posts #post-generator-card .admin-posts-generator-mode-slider {
     background: #ffffff;
     box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18);
     transition: transform 0.18s ease;
-}
-
-body.admin-page-posts #post-generator-card .admin-posts-generator-mode-pill--switch:has(input:checked) .admin-posts-generator-mode-check {
-    border-color: rgba(255, 255, 255, 0.78);
-    background: #16a34a;
-    color: #ffffff;
 }
 
 body.admin-page-posts #post-generator-card .admin-posts-generator-mode-pill--switch:has(input:checked) .admin-posts-generator-mode-slider {
@@ -11096,10 +11086,6 @@ body.admin-section-editor-open {
     background: #fbfdff;
 }
 
-:where(body.admin-body) .admin-table tbody tr:hover td {
-    background: #f4f8ff;
-}
-
 :where(body.admin-body) .admin-table td .admin-button {
     min-height: 36px;
     padding: 0 14px;
@@ -11174,10 +11160,6 @@ body.admin-section-editor-open {
     width: 12px;
     height: 12px;
     box-shadow: 0 0 0 5px rgba(248, 209, 97, 0.15);
-}
-
-:where(body.admin-body) .admin-section {
-    margin-top: 14px;
 }
 
 :where(body.admin-body) .admin-card {
@@ -26705,18 +26687,9 @@ body.admin-body.admin-page-posts .admin-pagination {
         margin-bottom: 6px !important;
     }
 
-    body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-posts-nav-table {
-        grid-template-columns: minmax(0, 1fr) !important;
-        gap: 5px !important;
-    }
-
     body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-posts-region-switch,
     body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-posts-action-group {
         width: 100% !important;
-    }
-
-    body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-posts-region-switch {
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     }
 
     body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-posts-action-group {
@@ -27722,11 +27695,6 @@ body.admin-body.admin-page-posts .admin-posts-classic-filter-control [data-resul
         min-height: 0 !important;
         max-height: none !important;
         overflow: visible !important;
-    }
-
-    body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-posts-nav-table {
-        grid-template-columns: minmax(0, 1fr) !important;
-        gap: 5px !important;
     }
 
     body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-posts-region-switch {

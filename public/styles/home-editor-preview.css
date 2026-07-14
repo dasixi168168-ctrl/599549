@@ -446,7 +446,6 @@ body.admin-draw-preview:not(.page-frame) > #section-home.hero-banner #section-li
     background-image: linear-gradient(to right, var(--tw-gradient-from, transparent), var(--tw-gradient-to, transparent));
 }
 [class~="from-yellow-400"] { --tw-gradient-from: #facc15; }
-[class~="from-amber-500"] { --tw-gradient-from: #f59e0b; }
 [class~="from-purple-600"] { --tw-gradient-from: #9333ea; }
 [class~="from-amber-500"] { --tw-gradient-from: #f59e0b; }
 [class~="from-blue-600"] { --tw-gradient-from: #2563eb; }

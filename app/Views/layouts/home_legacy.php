@@ -419,13 +419,7 @@
         </style>
         <link rel="stylesheet" href="<?php echo $fontAwesomeCssUrl; ?>">
     <?php endif; ?>
-    <?php if ($isFrontHomeContent): ?>
-        <link rel="stylesheet" href="<?php echo $frontStyleUrl; ?>">
-    <?php elseif ($isFrontForecastContent): ?>
-        <link rel="stylesheet" href="<?php echo $frontStyleUrl; ?>">
-    <?php else: ?>
-        <link rel="stylesheet" href="<?php echo $frontStyleUrl; ?>">
-    <?php endif; ?>
+    <link rel="stylesheet" href="<?php echo $frontStyleUrl; ?>">
     <?php if ($needsFrontServiceStyle): ?>
         <link rel="stylesheet" href="<?php echo $frontServiceStyleUrl; ?>">
     <?php endif; ?>

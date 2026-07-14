@@ -20440,10 +20440,6 @@ body:not(.forecast-panel-page) .page-frame > #section-live.hero-live-box .hero-b
         align-content: center !important;
     }
 
-    body:not(.forecast-panel-page) .page-frame > #section-live.hero-live-box .hero-ball-item {
-        gap: 1px !important;
-    }
-
     body:not(.forecast-panel-page) .page-frame > #section-live.hero-live-box .hero-live-numbers .result-jl-code {
         font-weight: 700 !important;
     }
