@@ -333,11 +333,78 @@ try {
             if (!$customerServiceAgent) {
                 $customerServiceAgentLoginResponse();
             }
-            app()->posts()->updatePostContentByCustomerService((int) input('post_id', 0), $_POST, $customerServiceAgent);
+            $customerServicePostId = (int) input('post_id', 0);
+            $customerServiceSaveTarget = trim((string) input('save_target', 'combined'));
+            $customerServiceSaveMessage = '帖子资料已更新。';
+            $customerServiceReload = true;
+
+            if ($customerServiceSaveTarget === 'content') {
+                $customerServicePost = app()->posts()->findPost($customerServicePostId);
+                if (!$customerServicePost) {
+                    throw new RuntimeException('帖子不存在或不可编辑。');
+                }
+                $customerServiceContentPayload = $_POST;
+                $customerServiceContentPayload['price'] = (string) max(0, (int) ($customerServicePost['price'] ?? 0));
+                app()->posts()->updatePostContentByCustomerService(
+                    $customerServicePostId,
+                    $customerServiceContentPayload,
+                    $customerServiceAgent
+                );
+                $customerServiceSaveMessage = '当前期数资料内容已保存。';
+            } elseif ($customerServiceSaveTarget === 'price') {
+                app()->posts()->updatePostPriceByCustomerService(
+                    $customerServicePostId,
+                    input('price', ''),
+                    $customerServiceAgent
+                );
+                $customerServiceSaveMessage = '出售积分已保存。';
+                $customerServiceReload = false;
+            } elseif ($customerServiceSaveTarget === 'waiting_display') {
+                $customerServicePost = app()->posts()->findPost($customerServicePostId);
+                if (!$customerServicePost) {
+                    throw new RuntimeException('帖子不存在或不可编辑。');
+                }
+                $customerServiceWaitingDisplayContent = str_replace(
+                    array("\r\n", "\r"),
+                    "\n",
+                    trim((string) input('waiting_display_content', ''))
+                );
+                if ($customerServiceWaitingDisplayContent === '') {
+                    throw new RuntimeException('资料内容更新状态正文不能为空。');
+                }
+                $customerServiceWaitingDisplayLength = function_exists('mb_strlen')
+                    ? mb_strlen($customerServiceWaitingDisplayContent, 'UTF-8')
+                    : strlen($customerServiceWaitingDisplayContent);
+                if ($customerServiceWaitingDisplayLength > 300) {
+                    throw new RuntimeException('资料内容更新状态正文不能超过 300 个字符。');
+                }
+                $customerServicePostRegion = (string) ($customerServicePost['region'] ?? 'macau') === 'hongkong'
+                    ? 'hongkong'
+                    : 'macau';
+                app()->admins()->saveManagedPostWaitingDisplayContent(
+                    $customerServicePostRegion,
+                    $customerServiceWaitingDisplayContent
+                );
+                app()->logs()->system('post', '在线客服保存资料更新状态正文', 'info', array(
+                    'post_id' => $customerServicePostId,
+                    'region' => $customerServicePostRegion,
+                    'agent_id' => (int) ($customerServiceAgent['id'] ?? 0),
+                ));
+                $customerServiceSaveMessage = '资料内容更新状态正文已保存。';
+                $customerServiceReload = false;
+            } elseif ($customerServiceSaveTarget === 'combined' || $customerServiceSaveTarget === '') {
+                app()->posts()->updatePostContentByCustomerService(
+                    $customerServicePostId,
+                    $_POST,
+                    $customerServiceAgent
+                );
+            } else {
+                throw new RuntimeException('帖子资料保存目标无效。');
+            }
             json_response(array(
                 'success' => true,
-                'message' => '帖子资料已更新。',
-                'reload' => true,
+                'message' => $customerServiceSaveMessage,
+                'reload' => $customerServiceReload,
             ));
             break;
 

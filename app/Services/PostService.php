@@ -714,7 +714,8 @@ class PostService extends Service
         }
         $content = is_array($record) ? (string) $record['prediction'] : $currentContent;
         $historicalPredictionLayout = array();
-        if (is_array($record)) {
+        $isWaiting = mb_strpos($currentContent, '资料等待更新中', 0, 'UTF-8') !== false;
+        if ($isWaiting && is_array($record)) {
             $typeText = trim((string) ($record['type'] ?? ''));
             $predictionText = trim((string) ($record['prediction'] ?? ''));
             $historicalPredictionLayout = $this->forecastPredictionTemplateLayout(
@@ -730,7 +731,7 @@ class PostService extends Service
                 $content = $quantityTemplate;
             }
         }
-        if (is_array($record) && mb_strpos($content, '资料等待更新中', 0, 'UTF-8') !== false) {
+        if ($isWaiting && is_array($record) && mb_strpos($content, '资料等待更新中', 0, 'UTF-8') !== false) {
             $predictionBracketPairs = array(
                 array('【', '】'),
                 array('〖', '〗'),
@@ -2990,6 +2991,66 @@ class PostService extends Service
         $this->app->logs()->admin('posts', 'create', '发布帖子：' . $post['title'], 'post', (string) $post['id'], $actor['id']);
 
         return $post;
+    }
+
+    public function updatePostPriceByCustomerService($postId, $price, array $actor)
+    {
+        $postId = (int) $postId;
+        $actorId = (int) ($actor['id'] ?? 0);
+        if ($postId <= 0 || $actorId <= 0) {
+            throw new RuntimeException('帖子不存在或不可编辑。');
+        }
+
+        $post = $this->findPost($postId);
+        if (!$post) {
+            throw new RuntimeException('帖子不存在或不可编辑。');
+        }
+
+        $priceText = trim((string) $price);
+        if (!preg_match('/^\d{1,9}$/', $priceText)) {
+            throw new RuntimeException('帖子出售价格必须是 0 到 999999999 的整数。');
+        }
+
+        $priceValue = (int) $priceText;
+        $previousPrice = max(0, (int) ($post['price'] ?? 0));
+        $now = $this->now();
+        $this->db()->execute(
+            'UPDATE posts
+             SET price = :price,
+                 updated_at = CASE
+                     WHEN price <> :price_for_update THEN :updated_at
+                     ELSE updated_at
+                 END
+             WHERE id = :id',
+            array(
+                'price' => $priceValue,
+                'price_for_update' => $priceValue,
+                'updated_at' => $now,
+                'id' => $postId,
+            )
+        );
+
+        if ($previousPrice !== $priceValue && $this->tableExists('post_manage_meta')) {
+            $this->db()->execute(
+                'UPDATE post_manage_meta
+                 SET updated_at = :updated_at
+                 WHERE post_id = :post_id',
+                array(
+                    'updated_at' => $now,
+                    'post_id' => $postId,
+                )
+            );
+        }
+
+        $this->app->logs()->system('post', '在线客服保存帖子出售积分', 'info', array(
+            'post_id' => $postId,
+            'region' => (string) ($post['region'] ?? 'macau') === 'hongkong' ? 'hongkong' : 'macau',
+            'agent_id' => $actorId,
+            'previous_price' => $previousPrice,
+            'price' => $priceValue,
+        ));
+
+        return $this->findPost($postId);
     }
 
     public function updatePostContentByCustomerService($postId, array $payload, array $actor, $actorType = 'customer_service')

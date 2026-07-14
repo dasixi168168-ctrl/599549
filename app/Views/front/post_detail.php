@@ -2477,6 +2477,25 @@
             array('〘', '〙'),
             array('〚', '〛'),
         );
+        $customerServiceEditRegionLabel = $region === 'hongkong' ? '香港论坛' : '澳门论坛';
+        $customerServiceEditStatusLabel = (string) ($post['status'] ?? '') === 'published' ? '已发布' : '未发布';
+        $customerServiceEditTimeText = format_datetime($post['created_at'] ?? null);
+        $customerServiceEditMetaText = implode(' · ', array_filter(array(
+            $customerServiceEditRegionLabel,
+            $customerServiceEditStatusLabel,
+            $customerServiceEditTimeText,
+        ), static function ($part) {
+            return trim((string) $part) !== '';
+        }));
+        $customerServiceEditRecordIssue = trim((string) ($customerServiceEditIssueText ?? ''));
+        $customerServiceEditRecordTitle = trim(
+            (string) ($frontTitleSegments['prefix'] ?? '')
+            . (string) ($frontTitleSegments['author'] ?? '')
+        );
+        if ($customerServiceEditRecordTitle === '') {
+            $customerServiceEditRecordTitle = trim((string) ($post['title'] ?? ''));
+        }
+        $customerServiceEditRecordType = trim((string) ($frontForecastDisplayTypeText ?? ''));
         ?>
         <div class="front-post-login-modal front-post-customer-service-edit-modal front-standard-modal" data-front-post-customer-service-edit-modal hidden role="dialog" aria-modal="true" aria-labelledby="front-post-customer-service-edit-title">
             <div class="front-post-login-backdrop front-standard-modal-backdrop" data-front-post-customer-service-edit-close></div>
@@ -2486,38 +2505,75 @@
                 <input type="hidden" name="post_id" value="<?php echo e($post['id']); ?>">
                 <div class="front-post-customer-service-edit-head front-standard-modal-head">
                     <div class="front-post-customer-service-edit-title">
-                        <h2 id="front-post-customer-service-edit-title">编辑资料</h2>
-                        <p><?php echo isset($displayTitleHtml) && $displayTitleHtml !== '' ? $displayTitleHtml : e(isset($displayTitle) ? (string) $displayTitle : (string) ($post['title'] ?? '')); ?></p>
+                        <h2 id="front-post-customer-service-edit-title"><?php echo isset($displayTitleHtml) && $displayTitleHtml !== '' ? $displayTitleHtml : e(isset($displayTitle) ? (string) $displayTitle : (string) ($post['title'] ?? '')); ?></h2>
                     </div>
                     <button type="button" data-front-post-customer-service-edit-close aria-label="关闭编辑窗口">
                         <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                     </button>
                 </div>
-                <div class="front-post-customer-service-edit-brackets" aria-label="资料内容括号快捷插入">
-                    <?php foreach ($customerServiceEditBracketPairs as $customerServiceEditBracketPair): ?>
-                        <?php
-                        $customerServiceEditBracketLeft = (string) ($customerServiceEditBracketPair[0] ?? '');
-                        $customerServiceEditBracketRight = (string) ($customerServiceEditBracketPair[1] ?? '');
-                        ?>
-                        <button
-                            type="button"
-                            data-front-post-customer-service-edit-bracket
-                            data-front-post-customer-service-edit-bracket-left="<?php echo e($customerServiceEditBracketLeft); ?>"
-                            data-front-post-customer-service-edit-bracket-right="<?php echo e($customerServiceEditBracketRight); ?>"
-                            aria-label="<?php echo e('插入' . $customerServiceEditBracketLeft . $customerServiceEditBracketRight); ?>"
-                        ><?php echo e($customerServiceEditBracketLeft . $customerServiceEditBracketRight); ?></button>
-                    <?php endforeach; ?>
-                </div>
-                <label class="front-post-customer-service-edit-field" for="front-post-customer-service-edit-content">
-                    <textarea id="front-post-customer-service-edit-content" name="full_content" rows="3"><?php echo e((string) ($customerServiceEditContent ?? '')); ?></textarea>
-                </label>
-                <div class="front-post-customer-service-edit-error" data-front-post-customer-service-edit-error hidden></div>
-                <div class="front-post-customer-service-edit-foot">
-                    <label class="front-post-customer-service-edit-field is-price" for="front-post-customer-service-edit-price">
-                        <span>出售价格</span>
-                        <input id="front-post-customer-service-edit-price" type="number" name="price" min="0" step="1" value="<?php echo e((string) max(0, (int) ($post['price'] ?? 0))); ?>">
-                    </label>
-                    <button type="submit">保存</button>
+                <div class="front-post-customer-service-edit-body front-standard-modal-body">
+                    <section class="front-post-customer-service-edit-reader">
+                        <div class="front-post-customer-service-edit-section-head">
+                            <span class="front-post-customer-service-edit-section-meta"><?php echo e($customerServiceEditMetaText); ?></span>
+                            <span class="front-post-customer-service-edit-mode">手动维护</span>
+                        </div>
+                        <div class="front-post-customer-service-edit-scroll" tabindex="0">
+                            <section class="front-post-customer-service-edit-editor">
+                                <div class="front-post-customer-service-edit-record-head">
+                                    <?php if ($customerServiceEditRecordIssue !== ''): ?>
+                                        <span class="front-post-customer-service-edit-record-issue"><?php echo e($customerServiceEditRecordIssue); ?></span>
+                                    <?php endif; ?>
+                                    <span class="front-post-customer-service-edit-record-title"><?php echo e($customerServiceEditRecordTitle); ?></span>
+                                    <?php if ($customerServiceEditRecordType !== ''): ?>
+                                        <span class="front-post-customer-service-edit-record-type"><?php echo e($customerServiceEditRecordType); ?></span>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="front-post-customer-service-edit-control-head">
+                                    <div class="front-post-customer-service-edit-section-title">当前期资料内容</div>
+                                    <button class="front-post-customer-service-edit-save" type="submit" data-front-post-customer-service-save-target="content">保存资料</button>
+                                </div>
+                                <div class="front-post-customer-service-edit-brackets" aria-label="资料内容括号快捷插入">
+                                    <?php foreach ($customerServiceEditBracketPairs as $customerServiceEditBracketPair): ?>
+                                        <?php
+                                        $customerServiceEditBracketLeft = (string) ($customerServiceEditBracketPair[0] ?? '');
+                                        $customerServiceEditBracketRight = (string) ($customerServiceEditBracketPair[1] ?? '');
+                                        ?>
+                                        <button
+                                            type="button"
+                                            data-front-post-customer-service-edit-bracket
+                                            data-front-post-customer-service-edit-bracket-left="<?php echo e($customerServiceEditBracketLeft); ?>"
+                                            data-front-post-customer-service-edit-bracket-right="<?php echo e($customerServiceEditBracketRight); ?>"
+                                            aria-label="<?php echo e('插入' . $customerServiceEditBracketLeft . $customerServiceEditBracketRight); ?>"
+                                        ><?php echo e($customerServiceEditBracketLeft . $customerServiceEditBracketRight); ?></button>
+                                    <?php endforeach; ?>
+                                </div>
+                                <label class="front-post-customer-service-edit-field" for="front-post-customer-service-edit-content">
+                                    <textarea id="front-post-customer-service-edit-content" name="full_content" rows="3" aria-label="当前期资料内容"><?php echo e((string) ($customerServiceEditContent ?? '')); ?></textarea>
+                                </label>
+                                <div class="front-post-customer-service-edit-error" data-front-post-customer-service-edit-error hidden></div>
+                                <div class="front-post-customer-service-edit-foot">
+                                    <label class="front-post-customer-service-edit-field is-price" for="front-post-customer-service-edit-price">
+                                        <span>出售积分</span>
+                                        <input id="front-post-customer-service-edit-price" type="number" name="price" min="0" step="1" value="<?php echo e((string) max(0, (int) ($post['price'] ?? 0))); ?>">
+                                    </label>
+                                    <button class="front-post-customer-service-edit-save" type="button" data-front-post-customer-service-save-target="price">保存积分</button>
+                                </div>
+                            </section>
+                            <div class="front-post-customer-service-edit-update-state">
+                                <div class="front-post-customer-service-edit-update-head">
+                                    <div class="front-post-customer-service-edit-update-title">资料内容更新状态正文</div>
+                                    <button class="front-post-customer-service-edit-save" type="button" data-front-post-customer-service-save-target="waiting_display">保存正文</button>
+                                </div>
+                                <textarea
+                                    class="front-post-customer-service-edit-update-content"
+                                    name="waiting_display_content"
+                                    maxlength="300"
+                                    data-front-post-customer-service-waiting-display
+                                    aria-label="资料内容更新状态正文"
+                                ><?php echo e((string) ($frontNoMaterialWaitingDisplayContent ?? '')); ?></textarea>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </form>
         </div>
@@ -2873,7 +2929,11 @@
     var modal = document.querySelector('[data-front-post-customer-service-edit-modal]');
     var form = modal ? modal.querySelector('[data-front-post-customer-service-edit-form]') : null;
     var textarea = form ? form.querySelector('textarea[name="full_content"]') : null;
+    var priceInput = form ? form.querySelector('input[name="price"]') : null;
+    var waitingDisplayTextarea = form ? form.querySelector('[data-front-post-customer-service-waiting-display]') : null;
+    var saveButtons = form ? form.querySelectorAll('[data-front-post-customer-service-save-target]') : [];
     var endpoint = form ? String(form.getAttribute('action') || './api.php') : './api.php';
+    var saveInProgress = false;
 
     if (!modal || !form || !window.fetch || !window.FormData) {
         return;
@@ -3002,24 +3062,109 @@
         });
     }
 
-    form.addEventListener('submit', function (event) {
-        var button = form.querySelector('[type="submit"]');
-        var payload = new FormData(form);
+    function valueLength(value) {
+        value = String(value || '');
+        return window.Array && typeof window.Array.from === 'function'
+            ? window.Array.from(value).length
+            : value.length;
+    }
 
-        event.preventDefault();
-        event.stopPropagation();
-        setError('');
+    function setSavingState(sourceButton, isSaving) {
+        Array.prototype.forEach.call(saveButtons, function (button) {
+            button.disabled = !!isSaving;
+        });
 
-        if (button) {
-            button.disabled = true;
+        if (!sourceButton) {
+            return;
         }
+
+        if (isSaving) {
+            sourceButton.setAttribute('data-front-post-customer-service-save-label', sourceButton.textContent || '保存');
+            sourceButton.textContent = '保存中...';
+            return;
+        }
+
+        sourceButton.textContent = sourceButton.getAttribute('data-front-post-customer-service-save-label') || sourceButton.textContent;
+        sourceButton.removeAttribute('data-front-post-customer-service-save-label');
+    }
+
+    function submitSaveTarget(saveTarget, sourceButton) {
+        var payload = new FormData(form);
+        var priceValue = priceInput ? String(priceInput.value || '').trim() : '';
+        var waitingDisplayValue = waitingDisplayTextarea
+            ? String(waitingDisplayTextarea.value || '').replace(/\r\n?/g, '\n').trim()
+            : '';
+
+        if (saveInProgress) {
+            return;
+        }
+
+        if (saveTarget === 'content' && (!textarea || String(textarea.value || '').trim() === '')) {
+            setError('当前期数资料内容不能为空。');
+            if (textarea) {
+                textarea.focus();
+            }
+            return;
+        }
+        if (saveTarget === 'price' && !/^\d{1,9}$/.test(priceValue)) {
+            setError('帖子出售价格必须是 0 到 999999999 的整数。');
+            if (priceInput) {
+                priceInput.focus();
+            }
+            return;
+        }
+        if (saveTarget === 'waiting_display') {
+            if (waitingDisplayValue === '') {
+                setError('资料内容更新状态正文不能为空。');
+                if (waitingDisplayTextarea) {
+                    waitingDisplayTextarea.focus();
+                }
+                return;
+            }
+            if (valueLength(waitingDisplayValue) > 300) {
+                setError('资料内容更新状态正文不能超过 300 个字符。');
+                if (waitingDisplayTextarea) {
+                    waitingDisplayTextarea.focus();
+                }
+                return;
+            }
+        }
+
+        setError('');
+        payload.set('save_target', saveTarget);
+        if (saveTarget === 'content') {
+            payload.delete('price');
+            payload.delete('waiting_display_content');
+        } else if (saveTarget === 'price') {
+            payload.set('price', priceValue);
+            payload.delete('full_content');
+            payload.delete('waiting_display_content');
+        } else if (saveTarget === 'waiting_display') {
+            payload.set('waiting_display_content', waitingDisplayValue);
+            payload.delete('full_content');
+            payload.delete('price');
+        }
+        saveInProgress = true;
+        setSavingState(sourceButton, true);
 
         fetch(endpoint, {
             method: 'POST',
             body: payload,
             credentials: 'same-origin'
         }).then(function (response) {
-            return response.json();
+            return response.text().then(function (responseText) {
+                var result;
+
+                try {
+                    result = JSON.parse(responseText || '{}');
+                } catch (parseError) {
+                    throw new Error('保存失败，服务器返回格式异常。');
+                }
+                if (!response.ok && (!result || !result.message)) {
+                    throw new Error('保存失败，请重试。');
+                }
+                return result;
+            });
         }).then(function (result) {
             if (!result || !result.success) {
                 throw new Error((result && result.message) || '保存失败，请重试。');
@@ -3030,17 +3175,51 @@
                 window.setTimeout(function () {
                     window.location.reload();
                 }, 360);
-            } else {
-                setOpen(false);
             }
         }).catch(function (error) {
             setError(error.message || '保存失败，请重试。');
             showToast(error.message || '保存失败，请重试。', 'error');
         }).finally(function () {
-            if (button) {
-                button.disabled = false;
-            }
+            saveInProgress = false;
+            setSavingState(sourceButton, false);
         });
+    }
+
+    Array.prototype.forEach.call(saveButtons, function (button) {
+        if (String(button.getAttribute('type') || '').toLowerCase() === 'submit') {
+            return;
+        }
+
+        button.addEventListener('click', function (event) {
+            event.preventDefault();
+            submitSaveTarget(button.getAttribute('data-front-post-customer-service-save-target') || 'content', button);
+        });
+    });
+
+    if (priceInput) {
+        priceInput.addEventListener('keydown', function (event) {
+            var priceSaveButton;
+
+            if (event.key !== 'Enter') {
+                return;
+            }
+            event.preventDefault();
+            priceSaveButton = form.querySelector('[data-front-post-customer-service-save-target="price"]');
+            submitSaveTarget('price', priceSaveButton);
+        });
+    }
+
+    form.addEventListener('submit', function (event) {
+        var sourceButton = event.submitter && event.submitter.getAttribute
+            ? event.submitter
+            : form.querySelector('[data-front-post-customer-service-save-target="content"]');
+
+        event.preventDefault();
+        event.stopPropagation();
+        submitSaveTarget(
+            sourceButton ? sourceButton.getAttribute('data-front-post-customer-service-save-target') || 'content' : 'content',
+            sourceButton
+        );
     });
 }());
 

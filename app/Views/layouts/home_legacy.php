@@ -12,7 +12,7 @@
     <title><?php echo e(isset($pageTitle) ? $pageTitle : browser_title_setting(app()->config('app', 'site_name', '六合彩票论坛首页'))); ?></title>
     <meta name="description" content="<?php echo e(isset($pageDescription) ? $pageDescription : '澳门与香港六合彩论坛网站'); ?>">
     <?php
-    $frontStyleUrl = '/public/styles/style.css?v=20260714-forecast-result-balance-04';
+    $frontStyleUrl = '/public/styles/style.css?v=20260714-customer-service-post-editor-actions-01';
     $postTitleStyleUrl = asset('post-title.css?v=20260713-post-title-source-01');
     $frontServiceStyleUrl = '/public/styles/front-service.css?v=20260709-upload-file-control-01';
     $frontFloatingStyleUrl = '/public/styles/front-floating.css?v=20260706-front-float-contract-clean-02';
