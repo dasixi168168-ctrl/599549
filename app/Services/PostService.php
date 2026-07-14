@@ -653,18 +653,6 @@ class PostService extends Service
         );
     }
 
-    public function managedPostReaderSource(array $post)
-    {
-        foreach (array('full_content', 'manage_manual_material', 'manage_auto_update_content', 'excerpt') as $field) {
-            $content = (string) ($post[$field] ?? '');
-            if ($content !== '') {
-                return $content;
-            }
-        }
-
-        return '';
-    }
-
     public function currentIssueEditorPayload(array $post, $targetIssueText = '')
     {
         $issueText = trim((string) $targetIssueText);

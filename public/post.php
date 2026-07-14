@@ -72,25 +72,8 @@ $customerServiceAgentViewer = (
 ) && $canCustomerServiceEditPost;
 $customerServiceAgentFreeAccess = $customerServiceAgentViewer
     && isset($_SESSION['customer_service_agent_free_post_access'][$postId]);
-if ($customerServiceAgentViewer) {
-    $customerServiceReaderPost = null;
-    try {
-        $customerServiceReaderPost = app()->admins()->managedForumPostById($postId);
-    } catch (Throwable $exception) {
-        $customerServiceReaderPost = null;
-    }
-    if (
-        !is_array($customerServiceReaderPost)
-        || (int) ($customerServiceReaderPost['id'] ?? 0) !== $postId
-        || (string) ($customerServiceReaderPost['region'] ?? '') !== $region
-    ) {
-        $customerServiceReaderPost = $post;
-    }
-    if ((int) $post['price'] <= 0 || $hasFullAccess || $customerServiceAgentFreeAccess) {
-        $displayContent = app()->posts()->managedPostReaderSource($customerServiceReaderPost);
-    }
-}
 if ($customerServiceAgentFreeAccess) {
+    $displayContent = (string) ($post['full_content'] ?? '');
     $hasFullAccess = true;
     $salePostOpenedForPublic = (int) $post['price'] > 0;
     $purchaseNeeded = false;

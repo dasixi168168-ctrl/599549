@@ -1382,7 +1382,16 @@ $generatorTopBadgeClass = static function (array $option) {
                                 if ($authorDisplayText !== '' && mb_strpos($titleText, $authorDisplayText, 0, 'UTF-8') === false) {
                                     $titleText .= $authorDisplayText;
                                 }
-                                $currentContentSource = app()->posts()->managedPostReaderSource($row);
+                                $currentContentSource = (string) ($row['full_content'] ?? '');
+                                if ($currentContentSource === '') {
+                                    $currentContentSource = (string) ($row['manage_manual_material'] ?? '');
+                                }
+                                if ($currentContentSource === '') {
+                                    $currentContentSource = (string) ($row['manage_auto_update_content'] ?? '');
+                                }
+                                if ($currentContentSource === '') {
+                                    $currentContentSource = (string) ($row['excerpt'] ?? '');
+                                }
                                 $currentContentText = preg_replace('/<\s*(br|\/p|\/div|\/li|\/tr)\b[^>]*>/iu', "\n", $currentContentSource);
                                 $currentContentText = str_replace(array("\r\n", "\r"), "\n", strip_tags((string) $currentContentText));
                                 $currentContentText = trim((string) preg_replace('/[^\S\n]+/u', ' ', $currentContentText));
