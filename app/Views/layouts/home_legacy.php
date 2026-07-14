@@ -18,7 +18,7 @@
     $frontFloatingStyleUrl = '/public/styles/front-floating.css?v=20260706-front-float-contract-clean-02';
     $fontAwesomeCssUrl = asset('vendor/fontawesome/css/all.min.css?v=20260621-front-fa-sync-01');
     $homeLegacyScriptUrl = asset('home-legacy.js?v=20260713-issue-prefix-source-01');
-    $frontAppScriptUrl = asset('app.js?v=20260713-issue-prefix-source-01');
+    $frontAppScriptUrl = asset('app.js?v=20260714-forecast-csrf-retry-01');
     $needsFrontServiceStyle = !empty($needsFrontServiceStyle);
     $frontContent = isset($content) ? (string) $content : '';
     $layoutBodyClass = isset($bodyClass) ? (string) $bodyClass : '';

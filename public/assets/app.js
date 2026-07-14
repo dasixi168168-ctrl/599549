@@ -9568,6 +9568,51 @@
         });
     }
 
+    function refreshForecastFormCsrfToken(form) {
+        var currentTokenInput = form ? form.querySelector('input[name="_token"]') : null;
+        var refreshUrl;
+
+        if (!currentTokenInput || !window.fetch || !window.DOMParser || !window.URL) {
+            return Promise.reject(new Error('表单令牌刷新失败，请刷新页面后重试。'));
+        }
+
+        try {
+            refreshUrl = new URL(window.location.href);
+            refreshUrl.hash = '';
+            refreshUrl.searchParams.set('_csrf_refresh', String(Date.now ? Date.now() : (new Date()).getTime()));
+        } catch (error) {
+            return Promise.reject(new Error('表单令牌刷新失败，请刷新页面后重试。'));
+        }
+
+        return fetch(refreshUrl.href, {
+            method: 'GET',
+            credentials: 'same-origin',
+            cache: 'no-store',
+            headers: {
+                'Accept': 'text/html',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        }).then(function (response) {
+            if (!response || !response.ok) {
+                throw new Error('表单令牌刷新失败，请刷新页面后重试。');
+            }
+
+            return response.text();
+        }).then(function (html) {
+            var parsed = new window.DOMParser().parseFromString(html, 'text/html');
+            var freshTokenInput = parsed.querySelector('#forecast-generate-form input[name="_token"]');
+            var freshToken = freshTokenInput ? String(freshTokenInput.value || '').trim() : '';
+
+            if (!freshToken) {
+                throw new Error('表单令牌刷新失败，请刷新页面后重试。');
+            }
+
+            currentTokenInput.value = freshToken;
+
+            return freshToken;
+        });
+    }
+
     document.addEventListener('submit', function (event) {
         var form = event.target;
         var formData;
@@ -9581,6 +9626,9 @@
         var forecastProgress;
         var submitAjaxForm;
         var isAuthForm;
+        var requestAjaxPayload;
+        var resolveAjaxPayload;
+        var forecastCsrfRetryAttempted = false;
 
         if (!form.matches('[data-ajax-form]')) {
             return;
@@ -9616,20 +9664,50 @@
             }
             forecastProgress = startForecastProgress(form);
 
-            fetch(endpoint, {
-                method: 'POST',
-                body: formData,
-                credentials: 'same-origin',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+            requestAjaxPayload = function () {
+                return fetch(endpoint, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                }).then(function (response) {
+                    return toJson(response).then(function (payload) {
+                        if (payload && typeof payload === 'object') {
+                            payload.__httpStatus = Number(response.status || 0);
+                        }
+
+                        return payload;
+                    });
+                });
+            };
+
+            resolveAjaxPayload = function (payload) {
+                if (payload && payload.success) {
+                    return payload;
                 }
-            }).then(function (response) {
-                return toJson(response);
-            }).then(function (payload) {
-                if (!payload.success) {
-                    throw payloadError(payload, '操作失败。');
+
+                if (
+                    form.matches('[data-forecast-progress-form]')
+                    && !forecastCsrfRetryAttempted
+                    && payload
+                    && Number(payload.__httpStatus || 0) === 419
+                ) {
+                    forecastCsrfRetryAttempted = true;
+
+                    return refreshForecastFormCsrfToken(form).then(function (freshToken) {
+                        formData.set('_token', freshToken);
+
+                        return requestAjaxPayload();
+                    }).then(resolveAjaxPayload);
                 }
+
+                throw payloadError(payload, '操作失败。');
+            };
+
+            requestAjaxPayload().then(resolveAjaxPayload).then(function (payload) {
 
                 if (isAuthForm) {
                     markFrontAuthChanged();

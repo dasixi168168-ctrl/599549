@@ -12678,7 +12678,7 @@ body.forecast-panel-page .forecast-result-scroll {
 }
 
 body.forecast-panel-page .forecast-result-scroll:has(> .forecast-result-blessing-card) {
-    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-rows: minmax(min-content, 1fr) auto;
 }
 
 body.forecast-panel-page .forecast-result-summary:has(> .forecast-result-summary-line.is-unselected:nth-child(4):last-child) {
