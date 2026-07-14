@@ -5288,319 +5288,6 @@ body.admin-page-posts #post-generator-card .admin-posts-generator-settings-board
     }
 }
 
-.admin-posts-legacy-card {
-    padding: 18px 20px 18px;
-    border-radius: 20px;
-    border-color: #dfe6f1;
-    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
-}
-
-.admin-posts-legacy-card .admin-card-title {
-    font-size: 24px;
-}
-
-.admin-posts-legacy-card .admin-card-subtitle {
-    margin-top: 10px;
-    max-width: 960px;
-    color: #55657f;
-    line-height: 1.75;
-}
-
-.admin-posts-legacy-summary {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 18px;
-    flex-wrap: wrap;
-    color: #475569;
-    font-size: 13px;
-    font-weight: 700;
-}
-
-.admin-posts-legacy-summary-item {
-    white-space: nowrap;
-}
-
-.admin-posts-legacy-summary-item.is-strong {
-    color: #0f172a;
-    font-size: 14px;
-    font-weight: 900;
-}
-
-.admin-posts-legacy-toolbar {
-    margin-top: 12px !important;
-    padding: 10px 12px;
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    background: #f8fbff;
-}
-
-.admin-posts-legacy-toolbar-row {
-    display: flex;
-    align-items: flex-end;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.admin-posts-legacy-field {
-    display: grid;
-    gap: 4px;
-    min-width: 0;
-}
-
-.admin-posts-legacy-field-label {
-    color: #334155;
-    font-size: 12px;
-    font-weight: 800;
-    line-height: 1;
-}
-
-.admin-posts-legacy-field .admin-input,
-.admin-posts-legacy-field .admin-select {
-    min-height: 40px;
-    padding: 9px 12px;
-    border-radius: 12px;
-    font-size: 14px;
-}
-
-.admin-posts-legacy-field:not(.admin-posts-legacy-field--keyword) {
-    flex: 0 0 150px;
-}
-
-.admin-posts-legacy-field--keyword {
-    flex: 1 1 320px;
-}
-
-.admin-posts-legacy-search,
-.admin-posts-legacy-reset {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 40px;
-    padding: 0 18px;
-    border-radius: 12px;
-    border: 1px solid #d1dbe8;
-    font-size: 13px;
-    font-weight: 800;
-    cursor: pointer;
-    transition: transform 0.16s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
-}
-
-.admin-posts-legacy-search {
-    background: linear-gradient(135deg, #2d7dff 0%, #1d4ed8 100%);
-    border-color: transparent;
-    color: #ffffff;
-    box-shadow: 0 10px 20px rgba(37, 99, 235, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.16);
-}
-
-.admin-posts-legacy-reset {
-    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-    color: #334155;
-    box-shadow: 0 8px 16px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.9);
-}
-
-.admin-posts-legacy-bulk-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.admin-posts-legacy-bulk-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 34px;
-    padding: 0 12px;
-    border-radius: 10px;
-    border: 1px solid #d1dbe8;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-    color: #1e3a5f;
-    font-size: 13px;
-    font-weight: 800;
-    cursor: pointer;
-    box-shadow: 0 8px 14px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.88);
-    transition: transform 0.16s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
-}
-
-.admin-posts-legacy-bulk-bar .admin-posts-legacy-bulk-btn.is-danger {
-    border-color: #fca5a5;
-    background: linear-gradient(135deg, #ff5d68 0%, #ef4444 100%);
-    color: #ffffff;
-    box-shadow: 0 10px 18px rgba(239, 68, 68, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.14);
-}
-
-.admin-posts-legacy-statusline {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 14px;
-    flex-wrap: wrap;
-    margin-top: 10px;
-    color: #64748b;
-    font-size: 12px;
-    font-weight: 700;
-}
-
-.admin-posts-legacy-table-wrap {
-    overflow: auto;
-    border: 1px solid #e4ebf4;
-    border-radius: 18px;
-    background: #ffffff;
-}
-
-.admin-posts-legacy-table {
-    min-width: 1180px;
-    font-size: 13px;
-}
-
-.admin-posts-legacy-table thead th {
-    padding: 11px 10px;
-    border-bottom: 1px solid #dfe7f2;
-    background: #f8fafc;
-    color: #0f172a;
-    font-size: 13px;
-    font-weight: 800;
-    white-space: nowrap;
-}
-
-.admin-posts-legacy-table tbody td {
-    padding: 14px 10px;
-    border-bottom: 1px solid #e8eef7;
-    vertical-align: top;
-    background: #ffffff;
-}
-
-.admin-posts-legacy-table tbody tr:hover td {
-    background: #fcfdff;
-}
-
-.admin-posts-legacy-table tbody td:nth-child(1),
-.admin-posts-legacy-table tbody td:nth-child(2),
-.admin-posts-legacy-table tbody td:nth-child(4),
-.admin-posts-legacy-table tbody td:nth-child(5),
-.admin-posts-legacy-table tbody td:nth-child(6),
-.admin-posts-legacy-table tbody td:nth-child(7) {
-    background: #ffe7e7;
-}
-
-.admin-posts-legacy-table tbody td:nth-child(8) {
-    background: #fffdfd;
-}
-
-.admin-posts-legacy-table input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-}
-
-.admin-posts-legacy-seq {
-    min-width: 88px;
-    color: #0f172a;
-    font-size: 14px;
-    font-weight: 800;
-    line-height: 1.6;
-    text-align: center;
-}
-
-.admin-posts-legacy-title-cell {
-    min-width: 500px;
-}
-
-.admin-posts-legacy-meta {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-    margin-bottom: 8px;
-}
-
-.admin-posts-legacy-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 22px;
-    padding: 0 8px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 800;
-    line-height: 1;
-    white-space: nowrap;
-}
-
-.admin-posts-legacy-badge.is-link {
-    background: #eff6ff;
-    color: #2563eb;
-}
-
-.admin-posts-legacy-badge.is-region {
-    background: #fff7ed;
-    color: #d97706;
-}
-
-.admin-posts-legacy-badge.is-top {
-    background: #fee2e2;
-    color: #dc2626;
-}
-
-.admin-posts-legacy-badge.is-color {
-    background: #ecfccb;
-    color: #65a30d;
-}
-
-.admin-posts-legacy-badge.is-price {
-    background: #eef2ff;
-    color: #4f46e5;
-}
-
-.admin-posts-legacy-title {
-    color: #dc2626;
-    font-size: 17px;
-    font-weight: 900;
-    line-height: 1.55;
-    word-break: break-word;
-}
-
-.admin-posts-legacy-body-cell,
-.admin-posts-legacy-preview-cell {
-    min-width: 170px;
-    color: #0f172a;
-    line-height: 1.75;
-}
-
-.admin-posts-legacy-preview-cell {
-    min-width: 190px;
-}
-
-.admin-posts-legacy-number {
-    color: #0f172a;
-    font-size: 18px;
-    font-weight: 900;
-    text-align: center;
-    white-space: nowrap;
-}
-
-.admin-posts-legacy-actions-cell {
-    min-width: 226px;
-}
-
-.admin-posts-legacy-actions {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
-}
-
-.admin-posts-legacy-actions .admin-badge,
-.admin-posts-legacy-actions .admin-button {
-    min-height: 28px;
-    padding: 0 10px;
-    border-radius: 8px;
-    font-size: 12px;
-}
-
-.admin-posts-legacy-actions .admin-button {
-    min-height: 30px;
-}
 
 .admin-posts-classic-card {
     padding: 14px 14px 16px;
@@ -7444,19 +7131,6 @@ body.admin-page-posts .admin-posts-classic-toolbar-row--generator-settings .admi
     min-width: 112px !important;
 }
 
-body.admin-page-posts .admin-posts-classic-toolbar-row--generator-settings .admin-posts-generator-preset-card:nth-child(4),
-body.admin-page-posts .admin-posts-classic-toolbar-row--generator-settings .admin-posts-generator-preset-card:nth-child(6) {
-    flex-basis: 120px !important;
-    width: 120px !important;
-    min-width: 120px !important;
-}
-
-body.admin-page-posts .admin-posts-classic-toolbar-row--generator-settings .admin-posts-generator-preset-card:nth-child(5) {
-    flex-basis: 94px !important;
-    width: 94px !important;
-    min-width: 94px !important;
-}
-
 body.admin-page-posts .admin-posts-classic-toolbar-row--generator-settings .admin-posts-generator-preset-card:nth-child(7),
 body.admin-page-posts .admin-posts-classic-toolbar-row--generator-settings .admin-posts-generator-preset-card:nth-child(8) {
     flex-basis: 112px !important;
@@ -7526,12 +7200,6 @@ body.admin-page-posts .admin-posts-classic-toolbar-row--generator-settings .admi
     flex-basis: 108px !important;
     width: 108px !important;
     min-width: 108px !important;
-}
-
-body.admin-page-posts .admin-posts-classic-toolbar-row--generator-settings .admin-posts-generator-preset-card:nth-child(8) {
-    flex-basis: 112px !important;
-    width: 112px !important;
-    min-width: 112px !important;
 }
 
 body.admin-page-posts .admin-posts-classic-toolbar-row--generator-settings .admin-posts-generator-preset-card:nth-child(9) {
@@ -9869,9 +9537,6 @@ body.admin-page-posts .admin-posts-nav-shell .admin-posts-action-group .admin-fi
 .admin-nav-link:hover,
 .admin-button:hover,
 .admin-posts-classic-query:hover,
-.admin-posts-legacy-search:hover,
-.admin-posts-legacy-reset:hover,
-.admin-posts-legacy-bulk-btn:hover,
 .admin-posts-classic-toolbar-btn:hover,
 .admin-posts-classic-row-btn:hover,
 .admin-filter-chip:hover {
@@ -9882,9 +9547,6 @@ body.admin-page-posts .admin-posts-nav-shell .admin-posts-action-group .admin-fi
 .admin-nav-link:active,
 .admin-button:active,
 .admin-posts-classic-query:active,
-.admin-posts-legacy-search:active,
-.admin-posts-legacy-reset:active,
-.admin-posts-legacy-bulk-btn:active,
 .admin-posts-classic-toolbar-btn:active,
 .admin-posts-classic-row-btn:active,
 .admin-filter-chip:active {
@@ -9896,9 +9558,6 @@ body.admin-page-posts .admin-posts-nav-shell .admin-posts-action-group .admin-fi
 .admin-nav-link:focus-visible,
 .admin-button:focus-visible,
 .admin-posts-classic-query:focus-visible,
-.admin-posts-legacy-search:focus-visible,
-.admin-posts-legacy-reset:focus-visible,
-.admin-posts-legacy-bulk-btn:focus-visible,
 .admin-posts-classic-toolbar-btn:focus-visible,
 .admin-posts-classic-row-btn:focus-visible,
 .admin-filter-chip:focus-visible {
@@ -11340,10 +10999,6 @@ body.admin-page-draws .admin-editor-boot-placeholder::before {
     gap: 10px;
 }
 
-:where(body.admin-body) .admin-card-head-actions {
-    gap: 8px;
-}
-
 :where(body.admin-body) .admin-form-grid,
 :where(body.admin-body) .admin-form-grid-3,
 :where(body.admin-body) .admin-form-grid-4,
@@ -12646,21 +12301,6 @@ body.admin-page-draws .admin-editor-boot-placeholder::before {
 
     .admin-posts-action-group {
         grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .admin-posts-legacy-summary,
-    .admin-posts-legacy-statusline {
-        justify-content: flex-start;
-    }
-
-    .admin-posts-legacy-toolbar-row {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .admin-posts-legacy-field,
-    .admin-posts-legacy-field--keyword {
-        flex: 1 1 auto;
     }
 
     .stat-card {
@@ -18016,8 +17656,7 @@ body.admin-body .admin-filter-grid,
 body.admin-page-users .member-filter-bar,
 body.admin-page-users .member-form,
 body.admin-body .support-filter-strip,
-body.admin-body .support-filter-strip.is-compact,
-body.admin-page-posts .admin-posts-legacy-filter {
+body.admin-body .support-filter-strip.is-compact {
     border: 1px solid var(--admin-ui-border);
     border-radius: var(--admin-ui-radius);
     background: var(--admin-ui-surface);
@@ -18124,9 +17763,6 @@ body.admin-page-users .member-row-actions form button,
 body.admin-page-users .member-reset-list button,
 body.admin-page-users .member-search-field button,
 body.admin-page-posts .admin-posts-classic-query,
-body.admin-page-posts .admin-posts-legacy-search,
-body.admin-page-posts .admin-posts-legacy-reset,
-body.admin-page-posts .admin-posts-legacy-bulk-btn,
 body.admin-page-posts .admin-posts-classic-toolbar-btn,
 body.admin-page-settings .settings-command-actions a {
     display: inline-flex;
@@ -18154,8 +17790,6 @@ body.admin-page-users .member-row-actions form button,
 body.admin-page-users .member-reset-list button,
 body.admin-page-users .member-search-field button,
 body.admin-page-posts .admin-posts-classic-query,
-body.admin-page-posts .admin-posts-legacy-search,
-body.admin-page-posts .admin-posts-legacy-bulk-btn,
 body.admin-page-posts .admin-posts-classic-toolbar-btn {
     border: 1px solid var(--admin-ui-blue);
     background: linear-gradient(135deg, #2f7cff 0%, #1d4ed8 100%);
@@ -18172,7 +17806,6 @@ body.admin-page-users .member-form-actions a,
 body.admin-page-users .member-form-actions button.is-light,
 body.admin-page-users .member-edit-actions button.is-light,
 body.admin-page-users .member-row-actions a,
-body.admin-page-posts .admin-posts-legacy-reset,
 body.admin-page-posts .admin-posts-classic-row-btn,
 body.admin-page-settings .settings-command-actions a {
     border: 1px solid var(--admin-ui-border-strong);
@@ -18261,7 +17894,6 @@ body.admin-page-users .member-console-pill.is-red {
 body.admin-body .admin-table-wrap,
 body.admin-page-users .member-table-wrap,
 body.admin-page-posts .admin-posts-classic-table-wrap,
-body.admin-page-posts .admin-posts-legacy-table-wrap,
 body.admin-body .support-session-overview-list,
 body.admin-body .support-agent-table,
 body.admin-body .support-ticket-list,
@@ -18274,15 +17906,13 @@ body.admin-body .support-message-stream {
 
 body.admin-body .admin-table,
 body.admin-page-users .member-table,
-body.admin-page-posts .admin-posts-classic-table,
-body.admin-page-posts .admin-posts-legacy-table {
+body.admin-page-posts .admin-posts-classic-table {
     color: var(--admin-ui-text);
     font-size: 13px;
 }
 
 body.admin-body .admin-table th,
-body.admin-page-users .member-table th,
-body.admin-page-posts .admin-posts-legacy-table th {
+body.admin-page-users .member-table th {
     height: 36px;
     padding: 8px 10px;
     background: #eef4fb;
@@ -18304,8 +17934,7 @@ body.admin-page-posts .admin-posts-classic-table:not(.is-recycle-table) th {
 }
 
 body.admin-body .admin-table td,
-body.admin-page-users .member-table td,
-body.admin-page-posts .admin-posts-legacy-table td {
+body.admin-page-users .member-table td {
     padding: 8px 10px;
     border-color: #e4ecf5;
     background: #ffffff;
@@ -18322,15 +17951,13 @@ body.admin-page-posts .admin-posts-classic-table:not(.is-recycle-table) td {
 }
 
 body.admin-body .admin-table tbody tr:nth-child(even) td,
-body.admin-page-posts .admin-posts-classic-table tbody tr:nth-child(even) td,
-body.admin-page-posts .admin-posts-legacy-table tbody tr:nth-child(even) td {
+body.admin-page-posts .admin-posts-classic-table tbody tr:nth-child(even) td {
     background: #f8fafc;
 }
 
 body.admin-body .admin-table tbody tr:hover td,
 body.admin-page-users .member-table tbody tr:hover td,
-body.admin-page-posts .admin-posts-classic-table tbody tr:hover td,
-body.admin-page-posts .admin-posts-legacy-table tbody tr:hover td {
+body.admin-page-posts .admin-posts-classic-table tbody tr:hover td {
     background: #eff6ff;
 }
 
@@ -19023,9 +18650,6 @@ body.admin-page-users .member-row-actions form button:hover,
 body.admin-page-users .member-reset-list button:hover,
 body.admin-page-users .member-search-field button:hover,
 body.admin-page-posts .admin-posts-classic-query:hover,
-body.admin-page-posts .admin-posts-legacy-search:hover,
-body.admin-page-posts .admin-posts-legacy-reset:hover,
-body.admin-page-posts .admin-posts-legacy-bulk-btn:hover,
 body.admin-page-posts .admin-posts-classic-toolbar-btn:hover,
 body.admin-page-posts .admin-posts-classic-row-btn:hover,
 body.admin-page-settings .settings-command-actions a:hover {
@@ -19051,9 +18675,6 @@ body.admin-page-users .member-row-actions form button:focus-visible,
 body.admin-page-users .member-reset-list button:focus-visible,
 body.admin-page-users .member-search-field button:focus-visible,
 body.admin-page-posts .admin-posts-classic-query:focus-visible,
-body.admin-page-posts .admin-posts-legacy-search:focus-visible,
-body.admin-page-posts .admin-posts-legacy-reset:focus-visible,
-body.admin-page-posts .admin-posts-legacy-bulk-btn:focus-visible,
 body.admin-page-posts .admin-posts-classic-toolbar-btn:focus-visible,
 body.admin-page-posts .admin-posts-classic-row-btn:focus-visible,
 body.admin-page-settings .settings-command-actions a:focus-visible {
@@ -21781,7 +21402,6 @@ body.admin-body .admin-table-wrap,
 body.admin-page-users .member-table-wrap,
 body.admin-page-users .member-consumption-wrap,
 body.admin-page-posts .admin-posts-classic-table-wrap,
-body.admin-page-posts .admin-posts-legacy-table-wrap,
 body.admin-body .support-agent-table,
 body.admin-body .support-ticket-list {
     box-sizing: border-box !important;
@@ -21799,8 +21419,7 @@ body.admin-body .support-ticket-list {
 body.admin-body .admin-table,
 body.admin-page-users .member-table,
 body.admin-page-users .member-consumption-table,
-body.admin-page-posts .admin-posts-classic-table,
-body.admin-page-posts .admin-posts-legacy-table {
+body.admin-page-posts .admin-posts-classic-table {
     color: var(--admin-text-main) !important;
     font-size: var(--admin-body-text-size) !important;
     line-height: 1.4 !important;
@@ -21809,8 +21428,7 @@ body.admin-page-posts .admin-posts-legacy-table {
 body.admin-body .admin-table th,
 body.admin-page-users .member-table th,
 body.admin-page-users .member-consumption-table th,
-body.admin-page-posts .admin-posts-classic-table th,
-body.admin-page-posts .admin-posts-legacy-table th {
+body.admin-page-posts .admin-posts-classic-table th {
     height: var(--admin-table-head-height) !important;
     padding: var(--admin-table-cell-y) var(--admin-table-cell-x) !important;
     background: #eef4fb !important;
@@ -21823,8 +21441,7 @@ body.admin-page-posts .admin-posts-legacy-table th {
 body.admin-body .admin-table td,
 body.admin-page-users .member-table td,
 body.admin-page-users .member-consumption-table td,
-body.admin-page-posts .admin-posts-classic-table td,
-body.admin-page-posts .admin-posts-legacy-table td {
+body.admin-page-posts .admin-posts-classic-table td {
     padding: var(--admin-table-cell-y) var(--admin-table-cell-x) !important;
     border-color: #e4ecf5 !important;
     font-size: var(--admin-body-text-size) !important;
@@ -21991,8 +21608,7 @@ body.draw-editor-is-fullscreen-pending .admin-sidebar {
 :where(body.admin-body) .ui-admin-table-wrap th,
 :where(body.admin-body) .admin-table-wrap th,
 :where(body.admin-page-users) .member-table-wrap th,
-:where(body.admin-page-posts) .admin-posts-classic-table-wrap th,
-:where(body.admin-page-posts) .admin-posts-legacy-table-wrap th {
+:where(body.admin-page-posts) .admin-posts-classic-table-wrap th {
     top: 0 !important;
     z-index: 2 !important;
 }
@@ -26635,7 +26251,7 @@ body.admin-body.admin-page-posts .admin-posts-classic-table-wrap {
     box-shadow: none !important;
 }
 
-body.admin-body.admin-page-posts :is(.admin-posts-classic-table th, .admin-posts-legacy-table th) {
+body.admin-body.admin-page-posts .admin-posts-classic-table th {
     height: 32px !important;
     padding: 6px 7px !important;
     font-size: var(--admin-posts-head-font-size) !important;
@@ -26643,7 +26259,7 @@ body.admin-body.admin-page-posts :is(.admin-posts-classic-table th, .admin-posts
     line-height: 1.22 !important;
 }
 
-body.admin-body.admin-page-posts :is(.admin-posts-classic-table td, .admin-posts-legacy-table td) {
+body.admin-body.admin-page-posts .admin-posts-classic-table td {
     padding: 6px 7px !important;
     font-size: 12.5px !important;
     font-weight: var(--admin-body-text-weight, 500) !important;
@@ -27520,10 +27136,6 @@ body.admin-body.admin-page-posts .admin-posts-classic-filter-control :is(.admin-
 }
 
 /* Admin posts navigation and search filters: keep tabs in one row and filters as cards. */
-body.admin-body.admin-page-posts .admin-posts-common-nav-frame .admin-posts-action-group {
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-}
-
 body.admin-body.admin-page-posts .admin-posts-classic-filter-frame {
     --admin-posts-filter-gap: 6px;
     --admin-posts-filter-card-radius: 8px;

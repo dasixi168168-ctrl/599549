@@ -2836,9 +2836,6 @@ body.customer-service-body .customer-service-input {
         min-height: 54px !important;
     }
 
-    body.customer-service-body.customer-service-compose-keyboard-active .customer-service-tools {
-        display: none !important;
-    }
 }
 
 /* Desktop agent console stability: no mobile tabs, no input/nav reflow. */
