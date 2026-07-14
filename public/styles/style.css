@@ -10884,9 +10884,58 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
 }
 
 .forecast-page {
-    --forecast-card-gap: 4px;
+    --forecast-vertical-gap: 2px;
+    --forecast-card-gap: var(--forecast-vertical-gap);
     --forecast-card-side-padding: 8px;
     --forecast-card-y-padding: 6px;
+    --forecast-result-card-padding-x: 12px;
+    --forecast-result-card-padding-y: 6px;
+    --forecast-result-title-gap: 6px;
+    --forecast-result-badge-gap: 5px;
+    --forecast-result-badge-padding-y: 2px;
+    --forecast-result-badge-padding-start: 4px;
+    --forecast-result-badge-padding-end: 9px;
+    --forecast-result-mark-size: 24px;
+    --forecast-result-mark-font-size: 13px;
+    --forecast-result-issue-font-size: 14px;
+    --forecast-result-title-font-size: 19px;
+    --forecast-result-price-height: 30px;
+    --forecast-result-price-min-width: 86px;
+    --forecast-result-price-padding-x: 10px;
+    --forecast-result-price-label-font-size: 12.4px;
+    --forecast-result-price-value-font-size: 13.8px;
+    --forecast-result-price-discount-font-size: 12.8px;
+    --forecast-result-summary-gap: 3px;
+    --forecast-result-row-padding-y: 3px;
+    --forecast-result-layout-left-col: 76px;
+    --forecast-result-layout-tag-width: 58px;
+    --forecast-result-layout-pingte-gap: 9px;
+    --forecast-result-unselected-label-width: 70px;
+    --forecast-result-unselected-line-height: 22px;
+    --forecast-result-label-font-size: 14px;
+    --forecast-result-value-font-size: 14px;
+    --forecast-result-value-min-height: 24px;
+    --forecast-result-placeholder-font-size: 13px;
+    --forecast-result-placeholder-emoji-size: 13.5px;
+    --forecast-result-type-chip-height: 25px;
+    --forecast-result-type-chip-font-size: 13px;
+    --forecast-result-chip-min-width: 28px;
+    --forecast-result-chip-height: 25px;
+    --forecast-result-chip-font-size: 15px;
+    --forecast-result-confidence-min-width: 58px;
+    --forecast-result-confidence-height: 26px;
+    --forecast-result-confidence-font-size: 14px;
+    --forecast-result-pingte-font-size: 16px;
+    --forecast-result-pingte-row-height: 22px;
+    --forecast-result-pingte-bracket-track: 1.05ch;
+    --forecast-result-pingte-number-track: 2.45ch;
+    --forecast-result-pingte-separator-track: 0.9ch;
+    --forecast-result-blessing-gap: 5px;
+    --forecast-result-blessing-padding-y: 6px;
+    --forecast-result-blessing-padding-x: 10px;
+    --forecast-result-blessing-label-size: 17px;
+    --forecast-result-blessing-text-size: 14.5px;
+    --forecast-result-blessing-idiom-size: 15px;
 }
 
 .forecast-page #section-live.hero-live-box.is-floating {
@@ -10915,7 +10964,7 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
 
 @media (max-width: 390px) {
     .forecast-page {
-        --forecast-card-gap: 4px;
+        --forecast-card-gap: var(--forecast-vertical-gap);
         --forecast-card-side-padding: 7px;
         --forecast-card-y-padding: 6px;
     }
@@ -11070,22 +11119,26 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
 .forecast-result-title {
     display: flex;
     align-items: center;
-    gap: 7px;
+    gap: var(--forecast-result-title-gap, 7px);
     flex-wrap: wrap;
 }
 
 .forecast-result-scroll {
     display: grid;
-    gap: 3px;
+    gap: var(--forecast-result-summary-gap, 3px);
     min-height: 0;
 }
 
 .forecast-result-issue-badge {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: var(--forecast-result-badge-gap, 6px);
     min-width: 0;
-    padding: 4px 10px 4px 5px;
+    padding:
+        var(--forecast-result-badge-padding-y, 4px)
+        var(--forecast-result-badge-padding-end, 10px)
+        var(--forecast-result-badge-padding-y, 4px)
+        var(--forecast-result-badge-padding-start, 5px);
     border-radius: 13px;
     border: 1px solid transparent;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 4px 10px rgba(15, 23, 42, 0.08);
@@ -11105,11 +11158,11 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 25px;
-    height: 25px;
+    width: var(--forecast-result-mark-size, 25px);
+    height: var(--forecast-result-mark-size, 25px);
     border-radius: 999px;
     color: #ffffff;
-    font-size: 13.5px;
+    font-size: var(--forecast-result-mark-font-size, 13.5px);
     font-weight: 900;
     line-height: 1;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
@@ -11125,7 +11178,7 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
 
 .forecast-result-issue-text {
     color: #ffffff;
-    font-size: 14.8px;
+    font-size: var(--forecast-result-issue-font-size, 14.8px);
     font-weight: 900;
     line-height: 1;
     white-space: nowrap;
@@ -11135,7 +11188,7 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
 
 .forecast-result-title-text {
     color: #be123c;
-    font-size: 19.5px;
+    font-size: var(--forecast-result-title-font-size, 19.5px);
     font-weight: 900;
     line-height: 1.1;
     letter-spacing: 0.01em;
@@ -11163,10 +11216,10 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
     align-items: center;
     justify-content: center;
     gap: 0;
-    min-width: 86px;
-    height: 30px;
-    min-height: 30px;
-    padding: 0 10px;
+    min-width: var(--forecast-result-price-min-width, 86px);
+    height: var(--forecast-result-price-height, 30px);
+    min-height: var(--forecast-result-price-height, 30px);
+    padding: 0 var(--forecast-result-price-padding-x, 10px);
     border-radius: 9px;
     background: linear-gradient(180deg, #ff5a5f 0%, #ef4444 62%, #dc2626 100%);
     color: #ffffff;
@@ -11180,9 +11233,9 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
     align-items: center;
     height: 100%;
     color: rgba(255, 255, 255, 0.9);
-    font-size: 12.4px;
+    font-size: var(--forecast-result-price-label-font-size, 12.4px);
     font-weight: 950;
-    line-height: 30px;
+    line-height: var(--forecast-result-price-height, 30px);
 }
 
 .forecast-result-price-total b {
@@ -11190,39 +11243,42 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
     align-items: center;
     height: 100%;
     color: #ffffff;
-    font-size: 13.8px;
+    font-size: var(--forecast-result-price-value-font-size, 13.8px);
     font-weight: 950;
-    line-height: 30px;
+    line-height: var(--forecast-result-price-height, 30px);
 }
 
 .forecast-result-price-strip > em {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    height: 30px;
-    min-height: 30px;
+    height: var(--forecast-result-price-height, 30px);
+    min-height: var(--forecast-result-price-height, 30px);
     padding: 0 9px;
     border-radius: 999px;
     background: #dcfce7;
     color: #15803d;
-    font-size: 12.8px;
+    font-size: var(--forecast-result-price-discount-font-size, 12.8px);
     font-style: normal;
     font-weight: 950;
-    line-height: 30px;
+    line-height: var(--forecast-result-price-height, 30px);
     white-space: nowrap;
 }
 
 .forecast-result-summary {
     display: grid !important;
-    gap: 6px;
+    gap: var(--forecast-result-summary-gap, 6px);
 }
 
 .forecast-result-blessing-card {
     display: grid;
     justify-items: center;
-    gap: 4px;
+    align-content: center;
+    gap: var(--forecast-result-blessing-gap, 4px);
     margin-top: 8px;
-    padding: 8px 10px;
+    padding:
+        var(--forecast-result-blessing-padding-y, 8px)
+        var(--forecast-result-blessing-padding-x, 10px);
     border: 1px dashed rgba(251, 146, 60, 0.72);
     border-radius: 12px;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 247, 237, 0.78) 100%);
@@ -11245,7 +11301,7 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
     align-items: center;
     justify-content: center;
     color: #f97316;
-    font-size: 16px;
+    font-size: var(--forecast-result-blessing-label-size, 16px);
     font-weight: 900;
     line-height: 1;
     white-space: nowrap;
@@ -11255,7 +11311,7 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
     min-width: 0;
     max-width: 100%;
     color: #0f766e;
-    font-size: 13.6px;
+    font-size: var(--forecast-result-blessing-text-size, 13.6px);
     font-weight: 900;
     line-height: 1.34;
     text-align: center;
@@ -11264,19 +11320,19 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
 
 .forecast-result-blessing-text.is-idiom {
     color: #dc2626;
-    font-size: 14px;
+    font-size: var(--forecast-result-blessing-idiom-size, 14px);
     font-weight: 900;
 }
 
 .forecast-result-summary-line {
-    --forecast-result-left-col: 76px;
-    --forecast-result-tag-width: 58px;
-    --forecast-result-pingte-group-gap: 9px;
+    --forecast-result-left-col: var(--forecast-result-layout-left-col, 76px);
+    --forecast-result-tag-width: var(--forecast-result-layout-tag-width, 58px);
+    --forecast-result-pingte-group-gap: var(--forecast-result-layout-pingte-gap, 9px);
     display: grid;
     grid-template-columns: minmax(0, 1fr) max-content;
     align-items: center;
     gap: 3px 6px;
-    padding: 5px 0;
+    padding: var(--forecast-result-row-padding-y, 5px) 0;
     border-bottom: 1px dashed rgba(251, 146, 60, 0.52);
 }
 
@@ -11320,7 +11376,7 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
     justify-content: flex-start;
     width: 100%;
     color: #be123c;
-    font-size: 14.5px;
+    font-size: var(--forecast-result-label-font-size, 14.5px);
     font-weight: 900;
     line-height: 1.2;
     text-align: left;
@@ -11363,10 +11419,10 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
     gap: 3px 4px;
     width: 100%;
     color: #334155;
-    font-size: 15px;
+    font-size: var(--forecast-result-value-font-size, 15px);
     font-weight: 500;
     line-height: 1.4;
-    min-height: 24px;
+    min-height: var(--forecast-result-value-min-height, 24px);
     min-width: 0;
     text-align: left;
     white-space: normal;
@@ -11380,14 +11436,14 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
 .forecast-result-summary-confidence {
     display: inline-grid;
     place-items: center;
-    min-width: 62px;
-    min-height: 28px;
+    min-width: var(--forecast-result-confidence-min-width, 62px);
+    min-height: var(--forecast-result-confidence-height, 28px);
     padding: 0 11px;
     border-radius: 999px;
     border: 1px solid rgba(34, 197, 94, 0.26);
     background: linear-gradient(180deg, #ecfdf5 0%, #dcfce7 100%);
     color: #15803d;
-    font-size: 14.5px;
+    font-size: var(--forecast-result-confidence-font-size, 14.5px);
     font-weight: 900;
     line-height: 1;
     text-align: center;
@@ -11413,7 +11469,7 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
     width: 100%;
     column-gap: 8px;
     color: #64748b;
-    font-size: 13.5px;
+    font-size: var(--forecast-result-placeholder-font-size, 13.5px);
     font-weight: 600;
     line-height: 1.15;
     justify-content: flex-start;
@@ -11438,7 +11494,7 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
 }
 
 .forecast-result-placeholder-emoji {
-    font-size: 13.8px;
+    font-size: var(--forecast-result-placeholder-emoji-size, 13.8px);
     line-height: 1;
 }
 
@@ -11447,13 +11503,13 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
     align-items: center;
     justify-content: center;
     width: 100%;
-    min-height: 26px;
+    min-height: var(--forecast-result-type-chip-height, 26px);
     padding: 0 4px;
     border: 1px solid rgba(59, 130, 246, 0.4);
     border-radius: 10px;
     background: linear-gradient(180deg, #eff6ff 0%, #dbeafe 100%);
     color: #1d4ed8;
-    font-size: 13.6px;
+    font-size: var(--forecast-result-type-chip-font-size, 13.6px);
     font-weight: 900;
     line-height: 1;
     letter-spacing: -0.02em;
@@ -11467,7 +11523,7 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
     color: #334155;
     max-width: 100%;
     min-width: 0;
-    font-size: 16.7px;
+    font-size: var(--forecast-result-pingte-font-size, 16.7px);
     font-weight: 500;
     line-height: 1.22;
     letter-spacing: -0.02em;
@@ -11508,14 +11564,14 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 29px;
-    min-height: 26px;
+    min-width: var(--forecast-result-chip-min-width, 29px);
+    min-height: var(--forecast-result-chip-height, 26px);
     padding: 0 6px;
     border-radius: 10px;
     border: 1px solid rgba(148, 163, 184, 0.24);
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.94) 100%);
     color: #1e293b;
-    font-size: 15px;
+    font-size: var(--forecast-result-chip-font-size, 15px);
     font-weight: 600;
     line-height: 1;
     box-sizing: border-box;
@@ -11774,6 +11830,48 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
 }
 
 @media (max-width: 720px) {
+    .forecast-page {
+        --forecast-result-card-padding-x: 10px;
+        --forecast-result-title-gap: 5px;
+        --forecast-result-badge-gap: 4px;
+        --forecast-result-mark-size: 23px;
+        --forecast-result-mark-font-size: 12.5px;
+        --forecast-result-issue-font-size: 13.4px;
+        --forecast-result-title-font-size: 18px;
+        --forecast-result-price-height: 28px;
+        --forecast-result-price-min-width: 80px;
+        --forecast-result-price-padding-x: 8px;
+        --forecast-result-price-label-font-size: 11.8px;
+        --forecast-result-price-value-font-size: 13px;
+        --forecast-result-price-discount-font-size: 12px;
+        --forecast-result-layout-left-col: 68px;
+        --forecast-result-layout-tag-width: 54px;
+        --forecast-result-layout-pingte-gap: 7px;
+        --forecast-result-unselected-label-width: 66px;
+        --forecast-result-unselected-line-height: 22px;
+        --forecast-result-label-font-size: 13.5px;
+        --forecast-result-value-font-size: 13.5px;
+        --forecast-result-value-min-height: 22px;
+        --forecast-result-placeholder-font-size: 12.8px;
+        --forecast-result-placeholder-emoji-size: 13px;
+        --forecast-result-type-chip-height: 24px;
+        --forecast-result-type-chip-font-size: 12.4px;
+        --forecast-result-chip-min-width: 27px;
+        --forecast-result-chip-height: 24px;
+        --forecast-result-chip-font-size: 14px;
+        --forecast-result-confidence-min-width: 54px;
+        --forecast-result-confidence-height: 25px;
+        --forecast-result-confidence-font-size: 13.5px;
+        --forecast-result-pingte-font-size: 15.2px;
+        --forecast-result-pingte-row-height: 22px;
+        --forecast-result-blessing-gap: 4px;
+        --forecast-result-blessing-padding-y: 5px;
+        --forecast-result-blessing-padding-x: 8px;
+        --forecast-result-blessing-label-size: 16px;
+        --forecast-result-blessing-text-size: 13.8px;
+        --forecast-result-blessing-idiom-size: 14.2px;
+    }
+
     .forecast-filter-row {
         --forecast-filter-gap: 4px;
         --forecast-filter-height: 30px;
@@ -11791,61 +11889,67 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
     }
 
     .forecast-result-title {
-        gap: 6px;
+        gap: var(--forecast-result-title-gap, 6px);
     }
 
     .forecast-result-issue-badge {
-        gap: 5px;
-        padding: 3px 9px 3px 4px;
+        gap: var(--forecast-result-badge-gap, 5px);
+        padding:
+            var(--forecast-result-badge-padding-y, 3px)
+            var(--forecast-result-badge-padding-end, 9px)
+            var(--forecast-result-badge-padding-y, 3px)
+            var(--forecast-result-badge-padding-start, 4px);
     }
 
     .forecast-result-issue-mark {
-        width: 24px;
-        height: 24px;
-        font-size: 12.8px;
+        width: var(--forecast-result-mark-size, 24px);
+        height: var(--forecast-result-mark-size, 24px);
+        font-size: var(--forecast-result-mark-font-size, 12.8px);
     }
 
     .forecast-result-issue-text {
-        font-size: 13.6px;
+        font-size: var(--forecast-result-issue-font-size, 13.6px);
     }
 
     .forecast-result-title-text {
-        font-size: 18.5px;
+        font-size: var(--forecast-result-title-font-size, 18.5px);
     }
 
     .forecast-result-summary {
-        gap: 4px;
+        gap: var(--forecast-result-summary-gap, 4px);
     }
 
     .forecast-result-blessing-card {
         margin-top: 7px;
-        padding: 7px 8px;
+        padding:
+            var(--forecast-result-blessing-padding-y, 7px)
+            var(--forecast-result-blessing-padding-x, 8px);
         border-radius: 11px;
     }
 
     .forecast-result-blessing-label {
-        font-size: 15px;
+        font-size: var(--forecast-result-blessing-label-size, 15px);
     }
 
     .forecast-result-blessing-text {
-        font-size: 13px;
+        font-size: var(--forecast-result-blessing-text-size, 13px);
         line-height: 1.32;
     }
 
     .forecast-result-blessing-text.is-idiom {
-        font-size: 13.4px;
+        font-size: var(--forecast-result-blessing-idiom-size, 13.4px);
     }
 
     .forecast-result-summary-line {
-        --forecast-result-left-col: 68px;
-        --forecast-result-tag-width: 54px;
-        --forecast-result-pingte-group-gap: 7px;
+        --forecast-result-left-col: var(--forecast-result-layout-left-col, 68px);
+        --forecast-result-tag-width: var(--forecast-result-layout-tag-width, 54px);
+        --forecast-result-pingte-group-gap: var(--forecast-result-layout-pingte-gap, 7px);
         gap: 3px 5px;
-        padding: 3px 0;
+        padding: var(--forecast-result-row-padding-y, 3px) 0;
     }
 
     .forecast-result-summary-label {
-        font-size: 14px;
+        font-size: var(--forecast-result-label-font-size, 14px);
     }
 
     .forecast-result-summary-line.is-zodiac .forecast-result-summary-value {
@@ -11892,57 +11996,100 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
     }
 
     .forecast-result-pingte-text {
-        font-size: 15.5px;
+        font-size: var(--forecast-result-pingte-font-size, 15.5px);
         line-height: 1.2;
     }
 
     .forecast-result-summary-value {
-        font-size: 13.8px;
-        min-height: 22px;
+        font-size: var(--forecast-result-value-font-size, 13.8px);
+        min-height: var(--forecast-result-value-min-height, 22px);
     }
 
     .forecast-result-placeholder {
         column-gap: 7px;
-        font-size: 12.8px;
+        font-size: var(--forecast-result-placeholder-font-size, 12.8px);
     }
 
     .forecast-result-placeholder-emoji {
-        font-size: 13px;
+        font-size: var(--forecast-result-placeholder-emoji-size, 13px);
     }
 
     .forecast-result-type-chip,
     .forecast-result-zodiac-chip,
     .forecast-result-number-chip,
     .forecast-result-other-chip {
-        min-height: 22px;
+        min-height: var(--forecast-result-chip-height, 22px);
         padding: 0 6px;
-        font-size: 13.5px;
+        font-size: var(--forecast-result-chip-font-size, 13.5px);
     }
 
     .forecast-result-type-chip {
-        min-height: 25px;
+        min-height: var(--forecast-result-type-chip-height, 25px);
         padding: 0 4px;
-        font-size: 12.4px;
+        font-size: var(--forecast-result-type-chip-font-size, 12.4px);
         border-radius: 9px;
     }
 
     .forecast-result-zodiac-chip,
     .forecast-result-number-chip,
     .forecast-result-other-chip {
-        min-width: 27px;
-        min-height: 25px;
+        min-width: var(--forecast-result-chip-min-width, 27px);
+        min-height: var(--forecast-result-chip-height, 25px);
         padding: 0 5px;
     }
 
     .forecast-result-summary-confidence {
-        min-width: 56px;
-        min-height: 25px;
+        min-width: var(--forecast-result-confidence-min-width, 56px);
+        min-height: var(--forecast-result-confidence-height, 25px);
         padding: 0 8px;
-        font-size: 14px;
+        font-size: var(--forecast-result-confidence-font-size, 14px);
     }
 }
 
 @media (max-width: 390px) {
+    .forecast-page {
+        --forecast-result-card-padding-x: 9px;
+        --forecast-result-title-gap: 4px;
+        --forecast-result-badge-padding-end: 8px;
+        --forecast-result-mark-size: 22px;
+        --forecast-result-mark-font-size: 12px;
+        --forecast-result-issue-font-size: 12.8px;
+        --forecast-result-title-font-size: 17px;
+        --forecast-result-price-height: 27px;
+        --forecast-result-price-min-width: 76px;
+        --forecast-result-price-padding-x: 7px;
+        --forecast-result-price-label-font-size: 11.4px;
+        --forecast-result-price-value-font-size: 12.5px;
+        --forecast-result-price-discount-font-size: 11.6px;
+        --forecast-result-layout-left-col: 60px;
+        --forecast-result-layout-tag-width: 50px;
+        --forecast-result-layout-pingte-gap: 5px;
+        --forecast-result-unselected-label-width: 64px;
+        --forecast-result-unselected-line-height: 21px;
+        --forecast-result-label-font-size: 13px;
+        --forecast-result-value-font-size: 12.8px;
+        --forecast-result-value-min-height: 20px;
+        --forecast-result-placeholder-font-size: 12.4px;
+        --forecast-result-placeholder-emoji-size: 12.8px;
+        --forecast-result-type-chip-height: 23px;
+        --forecast-result-type-chip-font-size: 11.8px;
+        --forecast-result-chip-min-width: 25px;
+        --forecast-result-chip-height: 23px;
+        --forecast-result-chip-font-size: 13px;
+        --forecast-result-confidence-min-width: 52px;
+        --forecast-result-confidence-height: 24px;
+        --forecast-result-confidence-font-size: 13px;
+        --forecast-result-pingte-font-size: 14.5px;
+        --forecast-result-pingte-row-height: 21px;
+        --forecast-result-pingte-bracket-track: 0.9ch;
+        --forecast-result-pingte-number-track: 2.25ch;
+        --forecast-result-pingte-separator-track: 0.7ch;
+        --forecast-result-blessing-padding-x: 7px;
+        --forecast-result-blessing-label-size: 15px;
+        --forecast-result-blessing-text-size: 13px;
+        --forecast-result-blessing-idiom-size: 13.5px;
+    }
+
     .forecast-filter-row {
         --forecast-filter-height: 29px;
         --forecast-filter-padding-inline: 8px;
@@ -11953,27 +12100,33 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
     }
 
     .forecast-result-issue-badge {
-        gap: 4px;
-        padding: 3px 8px 3px 4px;
+        gap: var(--forecast-result-badge-gap, 4px);
+        padding:
+            var(--forecast-result-badge-padding-y, 3px)
+            var(--forecast-result-badge-padding-end, 8px)
+            var(--forecast-result-badge-padding-y, 3px)
+            var(--forecast-result-badge-padding-start, 4px);
     }
 
     .forecast-result-issue-mark {
-        width: 23px;
-        height: 23px;
-        font-size: 12px;
+        width: var(--forecast-result-mark-size, 23px);
+        height: var(--forecast-result-mark-size, 23px);
+        font-size: var(--forecast-result-mark-font-size, 12px);
     }
 
     .forecast-result-issue-text {
-        font-size: 12.8px;
+        font-size: var(--forecast-result-issue-font-size, 12.8px);
     }
 
     .forecast-result-title-text {
-        font-size: 17.4px;
+        font-size: var(--forecast-result-title-font-size, 17.4px);
     }
 
     .forecast-result-blessing-card {
         margin-top: 6px;
-        padding: 6px 7px;
+        padding:
+            var(--forecast-result-blessing-padding-y, 6px)
+            var(--forecast-result-blessing-padding-x, 7px);
         border-radius: 10px;
     }
 
@@ -11982,22 +12135,22 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
     }
 
     .forecast-result-blessing-label {
-        font-size: 14px;
+        font-size: var(--forecast-result-blessing-label-size, 14px);
     }
 
     .forecast-result-blessing-text {
-        font-size: 12.3px;
+        font-size: var(--forecast-result-blessing-text-size, 12.3px);
         line-height: 1.3;
     }
 
     .forecast-result-blessing-text.is-idiom {
-        font-size: 12.7px;
+        font-size: var(--forecast-result-blessing-idiom-size, 12.7px);
     }
 
     .forecast-result-summary-line {
-        --forecast-result-left-col: 60px;
-        --forecast-result-tag-width: 50px;
-        --forecast-result-pingte-group-gap: 5px;
+        --forecast-result-left-col: var(--forecast-result-layout-left-col, 60px);
+        --forecast-result-tag-width: var(--forecast-result-layout-tag-width, 50px);
+        --forecast-result-pingte-group-gap: var(--forecast-result-layout-pingte-gap, 5px);
         gap: 2px 4px;
     }
 
@@ -12006,7 +12159,7 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
     }
 
     .forecast-result-summary-label {
-        font-size: 12.5px;
+        font-size: var(--forecast-result-label-font-size, 12.5px);
     }
 
     .forecast-result-summary-body {
@@ -12067,53 +12220,53 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
     }
 
     .forecast-result-pingte-text {
-        font-size: 14.2px;
+        font-size: var(--forecast-result-pingte-font-size, 14.2px);
         line-height: 1.18;
     }
 
     .forecast-result-summary-value {
-        font-size: 12.3px;
-        min-height: 20px;
+        font-size: var(--forecast-result-value-font-size, 12.3px);
+        min-height: var(--forecast-result-value-min-height, 20px);
     }
 
     .forecast-result-placeholder {
         column-gap: 6px;
-        font-size: 12px;
+        font-size: var(--forecast-result-placeholder-font-size, 12px);
     }
 
     .forecast-result-placeholder-emoji {
-        font-size: 12.4px;
+        font-size: var(--forecast-result-placeholder-emoji-size, 12.4px);
     }
 
     .forecast-result-type-chip,
     .forecast-result-zodiac-chip,
     .forecast-result-other-chip {
-        min-height: 21px;
+        min-height: var(--forecast-result-chip-height, 21px);
         padding: 0 5px;
-        font-size: 12.5px;
+        font-size: var(--forecast-result-chip-font-size, 12.5px);
     }
 
     .forecast-result-type-chip {
-        min-height: 23px;
+        min-height: var(--forecast-result-type-chip-height, 23px);
         padding: 0 4px;
-        font-size: 11.3px;
+        font-size: var(--forecast-result-type-chip-font-size, 11.3px);
         border-radius: 8px;
     }
 
     .forecast-result-zodiac-chip,
     .forecast-result-other-chip {
-        min-width: 25px;
-        min-height: 23px;
+        min-width: var(--forecast-result-chip-min-width, 25px);
+        min-height: var(--forecast-result-chip-height, 23px);
         padding: 0 4px;
         border-radius: 8px;
-        font-size: 12px;
+        font-size: var(--forecast-result-chip-font-size, 12px);
     }
 
     .forecast-result-number-chip {
-        min-width: 25px;
-        min-height: 23px;
+        min-width: var(--forecast-result-chip-min-width, 25px);
+        min-height: var(--forecast-result-chip-height, 23px);
         padding: 0 4px;
-        font-size: 12px;
+        font-size: var(--forecast-result-chip-font-size, 12px);
     }
 
     .forecast-result-group {
@@ -12125,15 +12278,15 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
     }
 
     .forecast-result-summary-confidence {
-        min-width: 52px;
-        min-height: 23px;
+        min-width: var(--forecast-result-confidence-min-width, 52px);
+        min-height: var(--forecast-result-confidence-height, 23px);
         padding: 0 7px;
-        font-size: 12.5px;
+        font-size: var(--forecast-result-confidence-font-size, 12.5px);
     }
 }
 
 .forecast-page {
-    --forecast-card-gap: 4px !important;
+    --forecast-card-gap: var(--forecast-vertical-gap) !important;
     --forecast-card-y-padding: 6px !important;
 }
 
@@ -12149,25 +12302,26 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
 .forecast-page .forecast-generate-form-block,
 .forecast-page .forecast-stat-grid,
 .forecast-page .forecast-list-stack {
-    margin-top: 4px !important;
+    margin-top: var(--forecast-vertical-gap) !important;
 }
 
 .forecast-page .forecast-list-stack {
-    gap: 4px !important;
+    gap: var(--forecast-vertical-gap) !important;
 }
 
 .forecast-page .forecast-result-card {
-    padding-top: 6px !important;
-    padding-bottom: 6px !important;
+    padding:
+        var(--forecast-result-card-padding-y)
+        var(--forecast-result-card-padding-x) !important;
 }
 
 .forecast-page .forecast-result-summary {
-    gap: 3px !important;
+    gap: var(--forecast-result-summary-gap) !important;
 }
 
 .forecast-page .forecast-result-summary-line {
-    padding-top: 2px !important;
-    padding-bottom: 2px !important;
+    padding-top: var(--forecast-result-row-padding-y) !important;
+    padding-bottom: var(--forecast-result-row-padding-y) !important;
 }
 
 .forecast-page .forecast-result-summary-line:first-child {
@@ -12179,8 +12333,9 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
 }
 
 .forecast-page .forecast-result-blessing-card {
-    padding-top: 4px !important;
-    padding-bottom: 4px !important;
+    padding:
+        var(--forecast-result-blessing-padding-y)
+        var(--forecast-result-blessing-padding-x) !important;
 }
 
 html:has(body.forecast-panel-page) {
@@ -12257,6 +12412,8 @@ body.forecast-panel-page .forecast-result-title {
 
 body.forecast-panel-page .forecast-result-scroll {
     flex: 1 1 auto;
+    grid-template-rows: minmax(0, 1fr);
+    align-content: stretch;
     min-height: 0 !important;
     margin-top: 2px;
     padding-right: 2px;
@@ -12265,6 +12422,16 @@ body.forecast-panel-page .forecast-result-scroll {
     overscroll-behavior: contain;
     scrollbar-gutter: stable;
     -webkit-overflow-scrolling: touch;
+}
+
+body.forecast-panel-page .forecast-result-scroll:has(> .forecast-result-blessing-card) {
+    grid-template-rows: minmax(0, 1fr) auto;
+}
+
+body.forecast-panel-page .forecast-result-summary:has(> .forecast-result-summary-line.is-unselected:nth-child(4):last-child) {
+    grid-template-rows: repeat(4, minmax(0, 1fr));
+    align-content: stretch;
+    height: 100%;
 }
 
 body.forecast-panel-page .forecast-result-scroll .forecast-result-summary,
@@ -12299,7 +12466,7 @@ body.forecast-panel-page .forecast-stat-grid {
     grid-auto-rows: 56px;
     align-items: stretch;
     gap: 5px !important;
-    margin-top: 4px !important;
+    margin-top: var(--forecast-vertical-gap) !important;
 }
 
 body.forecast-panel-page .forecast-generate-form-block {
@@ -17625,7 +17792,7 @@ body.forecast-panel-page .forecast-region-switch {
     }
 
     .forecast-result-summary-line.is-pingte .forecast-result-pingte-text {
-        font-size: 15px !important;
+        font-size: var(--forecast-result-pingte-font-size, 15px) !important;
         line-height: 1.18 !important;
     }
 }
@@ -17637,6 +17804,12 @@ body.forecast-panel-page .forecast-region-switch {
     overflow: visible !important;
 }
 
+.forecast-page .forecast-result-summary-line.is-zodiac .forecast-result-summary-value,
+.forecast-page .forecast-result-summary-line.is-number .forecast-result-summary-value,
+.forecast-page .forecast-result-summary-line.is-other .forecast-result-summary-value {
+    margin-left: 0;
+}
+
 .forecast-page .forecast-result-scroll {
     overflow-x: hidden !important;
 }
@@ -17644,14 +17817,14 @@ body.forecast-panel-page .forecast-region-switch {
 .forecast-page .forecast-result-zodiac-chip,
 .forecast-page .forecast-result-number-chip,
 .forecast-page .forecast-result-other-chip {
-    font-size: 16px;
+    font-size: var(--forecast-result-chip-font-size);
 }
 
 @media (max-width: 640px) {
     .forecast-page .forecast-result-zodiac-chip,
     .forecast-page .forecast-result-number-chip,
     .forecast-page .forecast-result-other-chip {
-        font-size: 14.5px;
+        font-size: var(--forecast-result-chip-font-size);
     }
 }
 
@@ -17659,21 +17832,21 @@ body.forecast-panel-page .forecast-region-switch {
     .forecast-page .forecast-result-zodiac-chip,
     .forecast-page .forecast-result-number-chip,
     .forecast-page .forecast-result-other-chip {
-        font-size: 13px;
+        font-size: var(--forecast-result-chip-font-size);
     }
 }
 
 .forecast-page .forecast-result-blessing-label {
-    font-size: 19px;
+    font-size: var(--forecast-result-blessing-label-size);
 }
 
 .forecast-page .forecast-result-blessing-text {
-    font-size: 16.6px;
+    font-size: var(--forecast-result-blessing-text-size);
     line-height: 1.36;
 }
 
 .forecast-page .forecast-result-blessing-text.is-idiom {
-    font-size: 17px;
+    font-size: var(--forecast-result-blessing-idiom-size);
 }
 
 .forecast-page .forecast-result-summary-line.is-pingte .forecast-result-summary-body {
@@ -17702,8 +17875,8 @@ body.forecast-panel-page .forecast-region-switch {
 .forecast-page .forecast-result-summary-line.is-pingte .forecast-result-pingte-text.is-combo {
     flex-wrap: wrap !important;
     align-content: center !important;
-    min-height: 22px !important;
-    line-height: 22px !important;
+    min-height: var(--forecast-result-pingte-row-height) !important;
+    line-height: var(--forecast-result-pingte-row-height) !important;
     row-gap: 0 !important;
     column-gap: 0 !important;
     vertical-align: middle !important;
@@ -17714,20 +17887,32 @@ body.forecast-panel-page .forecast-region-switch {
     display: inline-grid !important;
     flex: 0 0 auto !important;
     justify-items: center !important;
-    height: 22px !important;
-    min-height: 22px !important;
-    line-height: 22px !important;
+    height: var(--forecast-result-pingte-row-height) !important;
+    min-height: var(--forecast-result-pingte-row-height) !important;
+    line-height: var(--forecast-result-pingte-row-height) !important;
     letter-spacing: 0 !important;
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum" 1;
 }
 
 .forecast-page .forecast-result-summary-line.is-pingte .forecast-result-pingte-text.is-group.is-size-2 {
-    grid-template-columns: 1.05ch 2.45ch 0.9ch 2.45ch 1.05ch;
+    grid-template-columns:
+        var(--forecast-result-pingte-bracket-track)
+        var(--forecast-result-pingte-number-track)
+        var(--forecast-result-pingte-separator-track)
+        var(--forecast-result-pingte-number-track)
+        var(--forecast-result-pingte-bracket-track);
 }
 
 .forecast-page .forecast-result-summary-line.is-pingte .forecast-result-pingte-text.is-group.is-size-3 {
-    grid-template-columns: 1.05ch 2.45ch 0.9ch 2.45ch 0.9ch 2.45ch 1.05ch;
+    grid-template-columns:
+        var(--forecast-result-pingte-bracket-track)
+        var(--forecast-result-pingte-number-track)
+        var(--forecast-result-pingte-separator-track)
+        var(--forecast-result-pingte-number-track)
+        var(--forecast-result-pingte-separator-track)
+        var(--forecast-result-pingte-number-track)
+        var(--forecast-result-pingte-bracket-track);
 }
 
 .forecast-page .forecast-result-summary-line.is-pingte .forecast-result-pingte-text.is-combo .forecast-result-pingte-bracket,
@@ -17739,8 +17924,8 @@ body.forecast-panel-page .forecast-region-switch {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    height: 22px;
-    min-height: 22px;
+    height: var(--forecast-result-pingte-row-height);
+    min-height: var(--forecast-result-pingte-row-height);
     letter-spacing: 0;
 }
 
@@ -19355,7 +19540,7 @@ body.forecast-panel-page .forecast-section-title {
 
 body.forecast-panel-page .forecast-section-title + .forecast-stack {
     margin-top: 0 !important;
-    padding-top: 8px !important;
+    padding-top: var(--forecast-vertical-gap) !important;
     border-top: 0 !important;
 }
 
@@ -19363,7 +19548,7 @@ body.forecast-panel-page .forecast-live-slot {
     position: relative !important;
     z-index: 1 !important;
     margin: 0 !important;
-    padding: 0 0 4px !important;
+    padding: 0 !important;
 }
 
 body.forecast-panel-page #section-live.hero-live-box,
@@ -19394,7 +19579,7 @@ body.forecast-panel-page .hero-live-box-anchor.active {
     }
 
     body.forecast-panel-page .forecast-section-title + .forecast-stack {
-        padding-top: 6px !important;
+        padding-top: var(--forecast-vertical-gap) !important;
     }
 }
 
@@ -20594,7 +20779,6 @@ body.customer-service-body.front-unified-panel-page:not(.customer-service-agent-
 
 /* Keep unselected forecast result labels, placeholder text, and idiom hints on one baseline. */
 body.forecast-panel-page .forecast-page .forecast-result-summary-line.is-unselected {
-    --forecast-result-unselected-label-width: 70px;
     grid-template-columns: var(--forecast-result-unselected-label-width) minmax(0, 1fr) !important;
     align-items: center !important;
     gap: 0 4px !important;
@@ -20604,9 +20788,9 @@ body.forecast-panel-page .forecast-page .forecast-result-summary-line.is-unselec
 body.forecast-panel-page .forecast-page .forecast-result-summary-line.is-unselected .forecast-result-summary-label {
     width: var(--forecast-result-unselected-label-width) !important;
     min-width: var(--forecast-result-unselected-label-width) !important;
-    height: 22px !important;
+    height: var(--forecast-result-unselected-line-height) !important;
     align-items: center !important;
-    line-height: 22px !important;
+    line-height: var(--forecast-result-unselected-line-height) !important;
 }
 
 body.forecast-panel-page .forecast-page .forecast-result-summary-line.is-unselected .forecast-result-summary-body,
@@ -20614,9 +20798,9 @@ body.forecast-panel-page .forecast-page .forecast-result-summary-line.is-unselec
 body.forecast-panel-page .forecast-page .forecast-result-summary-line.is-unselected .forecast-result-placeholder,
 body.forecast-panel-page .forecast-page .forecast-result-summary-line.is-unselected .forecast-result-placeholder-text,
 body.forecast-panel-page .forecast-page .forecast-result-summary-line.is-unselected .forecast-result-placeholder-idiom {
-    min-height: 22px !important;
+    min-height: var(--forecast-result-unselected-line-height) !important;
     align-items: center !important;
-    line-height: 22px !important;
+    line-height: var(--forecast-result-unselected-line-height) !important;
 }
 
 body.forecast-panel-page .forecast-page .forecast-result-summary-line.is-unselected .forecast-result-summary-value,
