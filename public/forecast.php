@@ -237,24 +237,123 @@ $normalizeDraw = function (array $item) {
     );
 };
 
-$stripLegacyHomeData = static function (string $html): string {
-    return (string) preg_replace('/\s*<script id="legacy-home-data"[\s\S]*?<\/script>\s*$/u', '', $html, 1);
-};
-
-$extractLiveBox = static function (string $html) use ($stripLegacyHomeData): string {
-    $html = $stripLegacyHomeData($html);
-    $patterns = array(
-        '/<div id="section-live"[\s\S]*?<\/div>\s*(?=<div\b[^>]*class="[^"]*\bmarquee\b)/u',
-        '/<div id="section-live"[\s\S]*?<\/div>\s*(?=<\/div>\s*<\/section>)/u',
-    );
-
-    foreach ($patterns as $pattern) {
-        if (preg_match($pattern, $html, $matches)) {
-            return trim((string) ($matches[0] ?? ''));
-        }
+$extractLiveBox = static function (string $html): string {
+    $html = trim($html);
+    if ($html === '' || !class_exists('DOMDocument')) {
+        return '';
     }
 
-    return '';
+    $previousLibxmlState = libxml_use_internal_errors(true);
+    try {
+        $document = new \DOMDocument('1.0', 'UTF-8');
+        $loaded = $document->loadHTML(
+            '<meta http-equiv="Content-Type" content="text/html; charset=utf-8">' . $html,
+            LIBXML_HTML_NODEFDTD | LIBXML_NONET
+        );
+        if (!$loaded) {
+            return '';
+        }
+
+        $xpath = new \DOMXPath($document);
+        $liveBoxes = $xpath->query(
+            '//*[@id="section-live" and contains(concat(" ", normalize-space(@class), " "), " hero-live-box ")]'
+        );
+        if (!$liveBoxes || $liveBoxes->length !== 1) {
+            return '';
+        }
+
+        $liveBox = $liveBoxes->item(0);
+        if (!$liveBox instanceof \DOMElement) {
+            return '';
+        }
+
+        $requiredSelectors = array(
+            'head' => './/*[contains(concat(" ", normalize-space(@class), " "), " hero-live-head ")]',
+            'left' => './/*[contains(concat(" ", normalize-space(@class), " "), " hero-live-left ")]',
+            'period' => './/*[@id="hero-result-period"]',
+            'time' => './/*[@id="hero-result-open-time"]',
+            'numbers' => './/*[@id="hero-result-numbers"]',
+            'meta' => './/*[contains(concat(" ", normalize-space(@class), " "), " hero-live-meta ")]',
+        );
+        $requiredNodes = array();
+        foreach ($requiredSelectors as $key => $selector) {
+            $nodes = $xpath->query($selector, $liveBox);
+            $requiredNodes[$key] = $nodes && $nodes->length === 1 ? $nodes->item(0) : null;
+            if (!$requiredNodes[$key] instanceof \DOMElement) {
+                return '';
+            }
+        }
+
+        $liveElementChildren = array();
+        foreach ($liveBox->childNodes as $childNode) {
+            if ($childNode instanceof \DOMElement) {
+                $liveElementChildren[] = $childNode;
+            }
+        }
+        if (
+            count($liveElementChildren) !== 3
+            || $liveElementChildren[0] !== $requiredNodes['head']
+            || $liveElementChildren[1] !== $requiredNodes['numbers']
+            || $liveElementChildren[2] !== $requiredNodes['meta']
+            || $requiredNodes['left']->parentNode !== $requiredNodes['head']
+            || $requiredNodes['time']->parentNode !== $requiredNodes['head']
+            || $requiredNodes['period']->parentNode !== $requiredNodes['left']
+        ) {
+            return '';
+        }
+
+        $ballNodes = $xpath->query(
+            './*[contains(concat(" ", normalize-space(@class), " "), " hero-ball-item ")]',
+            $requiredNodes['numbers']
+        );
+        $plusNodes = $xpath->query(
+            './*[contains(concat(" ", normalize-space(@class), " "), " hero-ball-plus ")]',
+            $requiredNodes['numbers']
+        );
+        if (!$ballNodes || $ballNodes->length !== 7 || !$plusNodes || $plusNodes->length !== 1) {
+            return '';
+        }
+
+        $existingBadges = $xpath->query(
+            './/*[contains(concat(" ", normalize-space(@class), " "), " hero-live-badge ")]',
+            $requiredNodes['left']
+        );
+        $badgesToRemove = array();
+        if ($existingBadges) {
+            foreach ($existingBadges as $existingBadge) {
+                $badgesToRemove[] = $existingBadge;
+            }
+        }
+        foreach ($badgesToRemove as $existingBadge) {
+            if ($existingBadge->parentNode) {
+                $existingBadge->parentNode->removeChild($existingBadge);
+            }
+        }
+
+        $badge = $document->createElement('button');
+        $badge->setAttribute('id', 'hero-mode-badge');
+        $badge->setAttribute('type', 'button');
+        $badge->setAttribute('class', 'hero-live-badge');
+        $badge->setAttribute('aria-live', 'polite');
+        $badge->setAttribute('title', '点击查看开奖记录');
+        $badgeIcon = $document->createElement('i');
+        $badgeIcon->setAttribute('id', 'hero-mode-icon');
+        $badgeIcon->setAttribute('class', 'fa-solid fa-clock-rotate-left');
+        $badgeLabel = $document->createElement('span');
+        $badgeLabel->setAttribute('id', 'hero-mode-label');
+        $badgeLabel->appendChild($document->createTextNode('开奖记录'));
+        $badge->appendChild($badgeIcon);
+        $badge->appendChild($badgeLabel);
+
+        $period = $requiredNodes['period'];
+        $left = $requiredNodes['left'];
+        $left->insertBefore($badge, $period);
+
+        return trim((string) $document->saveHTML($liveBox));
+    } finally {
+        libxml_clear_errors();
+        libxml_use_internal_errors($previousLibxmlState);
+    }
 };
 
 try {

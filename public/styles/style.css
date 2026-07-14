@@ -10610,12 +10610,28 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
 }
 
 .forecast-page #section-live.hero-live-box {
-    --forecast-live-left-width: clamp(60px, 15.8vw, 66px);
+    --forecast-live-left-width: clamp(58px, 14.8vw, 64px);
+    --forecast-live-gap: clamp(4px, 0.8vw, 5px);
+    --forecast-live-side-pad-top: 4px;
+    --forecast-live-side-pad-bottom: 3px;
+    --forecast-live-mark-top: 5px;
+    --forecast-live-mark-size: 28px;
+    --forecast-live-mark-font: 17px;
+    --forecast-live-badge-height: 29px;
+    --forecast-live-period-font: clamp(14px, 3.45vw, 15.2px);
+    --forecast-live-number-pad-top: 2px;
+    --forecast-live-number-pad-bottom: 1px;
+    --forecast-live-ball-size: clamp(1.9rem, 7.35vw, 2.06rem);
+    --forecast-live-ball-font: clamp(0.98rem, 3.6vw, 1.08rem);
+    --forecast-live-zodiac-margin: 1px;
+    --forecast-live-zodiac-font: clamp(12.8px, 3.1vw, 14px);
+    --forecast-live-plus-width: 8px;
+    --forecast-live-plus-font: clamp(1.4rem, 4.2vw, 1.64rem);
     box-sizing: border-box !important;
     display: grid !important;
     grid-template-columns: var(--forecast-live-left-width) minmax(0, 1fr) !important;
     align-items: stretch !important;
-    gap: 6px !important;
+    gap: var(--forecast-live-gap) !important;
     background: transparent !important;
     border: 0 !important;
     box-shadow: none !important;
@@ -10648,9 +10664,11 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
     justify-items: center !important;
     align-items: center !important;
     width: 100% !important;
+    height: 100% !important;
     min-width: 0 !important;
+    align-self: stretch !important;
     gap: 1px !important;
-    padding: 7px 4px 6px !important;
+    padding: var(--forecast-live-side-pad-top) 4px var(--forecast-live-side-pad-bottom) !important;
     border-radius: 13px !important;
     border: 1px solid transparent !important;
     text-align: center !important;
@@ -10669,12 +10687,12 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
 
 .forecast-page #section-live .hero-live-left::before {
     content: "" !important;
-    top: 8px !important;
+    top: var(--forecast-live-mark-top) !important;
     left: 50% !important;
     right: auto !important;
     transform: translateX(-50%) !important;
-    width: 30px !important;
-    height: 30px !important;
+    width: var(--forecast-live-mark-size) !important;
+    height: var(--forecast-live-mark-size) !important;
     background: rgba(255, 255, 255, 0.18) !important;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 3px 8px rgba(15, 23, 42, 0.12) !important;
 }
@@ -10700,14 +10718,14 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
 }
 
 .forecast-page #section-live .hero-live-left::after {
-    top: 8px !important;
+    top: var(--forecast-live-mark-top) !important;
     left: 50% !important;
     right: auto !important;
     transform: translateX(-50%) !important;
-    width: 30px !important;
-    height: 30px !important;
+    width: var(--forecast-live-mark-size) !important;
+    height: var(--forecast-live-mark-size) !important;
     color: #ffffff !important;
-    font-size: 18px !important;
+    font-size: var(--forecast-live-mark-font) !important;
     font-weight: 900 !important;
     line-height: 1 !important;
     text-shadow: 0 1px 1px rgba(15, 23, 42, 0.18) !important;
@@ -10716,7 +10734,7 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
 .forecast-page #section-live .hero-live-badge {
     width: 100% !important;
     min-width: 0 !important;
-    height: 31px !important;
+    height: var(--forecast-live-badge-height) !important;
     padding: 0 !important;
     margin: 0 !important;
     font-size: 0 !important;
@@ -10746,7 +10764,7 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
     border-radius: 0 !important;
     background: transparent !important;
     border: 0 !important;
-    font-size: clamp(14.6px, 3.7vw, 16.2px) !important;
+    font-size: var(--forecast-live-period-font) !important;
     line-height: 1 !important;
     font-weight: 900 !important;
     color: rgba(255, 255, 255, 0.98) !important;
@@ -10758,14 +10776,14 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
     box-sizing: border-box !important;
     margin-top: 0 !important;
     display: grid !important;
-    grid-template-columns: repeat(6, minmax(0, 1fr)) 8px minmax(0, 1fr) !important;
+    grid-template-columns: repeat(6, minmax(0, 1fr)) var(--forecast-live-plus-width) minmax(0, 1fr) !important;
     align-items: start !important;
     justify-items: center !important;
     justify-content: stretch !important;
     width: 100% !important;
     min-width: 0 !important;
     align-self: stretch !important;
-    padding: 3px 0 1px !important;
+    padding: var(--forecast-live-number-pad-top) 0 var(--forecast-live-number-pad-bottom) !important;
     border-radius: 13px !important;
     border-width: 1px !important;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.94), 0 4px 10px rgba(148, 163, 184, 0.08) !important;
@@ -10799,17 +10817,17 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
 
 .forecast-page #section-live .hero-live-numbers .result-jl-code {
     display: grid !important;
-    width: clamp(2.02rem, 8.14vw, 2.28rem) !important;
-    height: clamp(2.02rem, 8.14vw, 2.28rem) !important;
+    width: var(--forecast-live-ball-size) !important;
+    height: var(--forecast-live-ball-size) !important;
     border-width: 1px !important;
-    font-size: clamp(1.04rem, 4.02vw, 1.16rem) !important;
+    font-size: var(--forecast-live-ball-font) !important;
     font-weight: 700 !important;
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.94) !important;
 }
 
 .forecast-page #section-live .hero-ball-zodiac {
-    margin-top: 3px !important;
-    font-size: clamp(14.1px, 3.56vw, 15.8px) !important;
+    margin-top: var(--forecast-live-zodiac-margin) !important;
+    font-size: var(--forecast-live-zodiac-font) !important;
     line-height: 0.92 !important;
     font-weight: 800 !important;
     letter-spacing: 0 !important;
@@ -10829,14 +10847,14 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
 }
 
 .forecast-page #section-live .hero-live-numbers .hero-ball-plus {
-    width: 8px !important;
-    min-width: 8px !important;
+    width: var(--forecast-live-plus-width) !important;
+    min-width: var(--forecast-live-plus-width) !important;
     height: auto !important;
     align-self: start !important;
 }
 
 .forecast-page #section-live .hero-live-numbers .result-jl-plus {
-    font-size: clamp(1.58rem, 4.82vw, 1.92rem) !important;
+    font-size: var(--forecast-live-plus-font) !important;
     color: #475569 !important;
     text-shadow: none !important;
 }
@@ -10904,13 +10922,23 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
 }
 
 .forecast-filter-row {
+    --forecast-filter-gap: 5px;
+    --forecast-filter-height: 32px;
+    --forecast-filter-radius: 10px;
+    --forecast-filter-padding-inline: 16px;
+    --forecast-filter-font-size: 14.2px;
+    --forecast-filter-font-weight: 500;
+    --forecast-filter-arrow-size: 4px;
+    --forecast-filter-arrow-outer-offset: 10px;
+    --forecast-filter-arrow-inner-offset: 6px;
     box-sizing: border-box;
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
     align-items: center;
     justify-items: stretch;
     width: 100%;
-    gap: 5px;
+    column-gap: var(--forecast-filter-gap);
+    row-gap: 0;
     margin-top: 0;
 }
 
@@ -10929,27 +10957,27 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
     display: block;
     width: 100%;
     min-width: 0;
-    height: 34px;
-    padding: 0 18px;
+    height: var(--forecast-filter-height);
+    padding: 0 var(--forecast-filter-padding-inline);
     border: 1px solid var(--forecast-filter-border);
-    border-radius: 11px;
+    border-radius: var(--forecast-filter-radius);
     background-color: #ffffff;
     background-image:
         linear-gradient(45deg, transparent 50%, var(--forecast-filter-arrow) 50%),
         linear-gradient(135deg, var(--forecast-filter-arrow) 50%, transparent 50%),
         linear-gradient(180deg, var(--forecast-filter-bg-start) 0%, var(--forecast-filter-bg-end) 100%);
     background-position:
-        calc(100% - 11px) calc(50% - 1px),
-        calc(100% - 7px) calc(50% - 1px),
+        calc(100% - var(--forecast-filter-arrow-outer-offset)) calc(50% - 1px),
+        calc(100% - var(--forecast-filter-arrow-inner-offset)) calc(50% - 1px),
         0 0;
     background-size:
-        4px 4px,
-        4px 4px,
+        var(--forecast-filter-arrow-size) var(--forecast-filter-arrow-size),
+        var(--forecast-filter-arrow-size) var(--forecast-filter-arrow-size),
         100% 100%;
     background-repeat: no-repeat;
     color: var(--forecast-filter-text);
-    font-size: 15.6px;
-    font-weight: 700;
+    font-size: var(--forecast-filter-font-size);
+    font-weight: var(--forecast-filter-font-weight);
     line-height: 1.08;
     letter-spacing: 0;
     text-align: center;
@@ -11747,19 +11775,15 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
 
 @media (max-width: 720px) {
     .forecast-filter-row {
-        gap: 4px;
+        --forecast-filter-gap: 4px;
+        --forecast-filter-height: 30px;
+        --forecast-filter-radius: 9px;
+        --forecast-filter-padding-inline: 14px;
+        --forecast-filter-font-size: 13.8px;
+        --forecast-filter-arrow-size: 3.5px;
+        --forecast-filter-arrow-outer-offset: 9px;
+        --forecast-filter-arrow-inner-offset: 5px;
         margin-top: 8px;
-    }
-
-    .forecast-filter-select {
-        height: 32px;
-        padding: 0 16px;
-        border-radius: 10px;
-        font-size: 14.8px;
-        background-position:
-            calc(100% - 10px) calc(50% - 1px),
-            calc(100% - 6px) calc(50% - 1px),
-            0 0;
     }
 
     .forecast-generate-form-block {
@@ -11919,18 +11943,13 @@ body.front-unified-panel-page.member-recharge-modal-open:not(.customer-service-a
 }
 
 @media (max-width: 390px) {
-    .forecast-filter-select {
-        height: 31px;
-        padding: 0 15px;
-        font-size: 14.2px;
-        background-position:
-            calc(100% - 9px) calc(50% - 1px),
-            calc(100% - 5px) calc(50% - 1px),
-            0 0;
-        background-size:
-            3px 3px,
-            3px 3px,
-            100% 100%;
+    .forecast-filter-row {
+        --forecast-filter-height: 29px;
+        --forecast-filter-padding-inline: 8px;
+        --forecast-filter-font-size: 13.2px;
+        --forecast-filter-arrow-size: 3px;
+        --forecast-filter-arrow-outer-offset: 7px;
+        --forecast-filter-arrow-inner-offset: 3px;
     }
 
     .forecast-result-issue-badge {
@@ -17319,33 +17338,45 @@ body.forecast-panel-page .forecast-region-switch {
     }
 
     body.forecast-panel-page .forecast-page #section-live.hero-live-box {
-        --forecast-live-left-width: clamp(54px, 13.6vw, 60px);
-        gap: 4px !important;
+        --forecast-live-left-width: clamp(53px, 13.6vw, 58px);
+        --forecast-live-gap: 4px;
+        --forecast-live-mark-top: 4px;
+        --forecast-live-mark-size: 27px;
+        --forecast-live-mark-font: 16px;
+        --forecast-live-badge-height: 28px;
+        --forecast-live-period-font: clamp(12.8px, 3.35vw, 13.6px);
+        --forecast-live-ball-size: clamp(1.72rem, 6.35vw, 1.9rem);
+        --forecast-live-ball-font: clamp(0.9rem, 3.24vw, 1rem);
+        --forecast-live-zodiac-margin: 1px;
+        --forecast-live-zodiac-font: clamp(11.6px, 2.75vw, 12.8px);
+        --forecast-live-plus-width: 7px;
+        --forecast-live-plus-font: clamp(1.28rem, 4.15vw, 1.48rem);
+        gap: var(--forecast-live-gap) !important;
         padding: 0 !important;
     }
 
     body.forecast-panel-page .forecast-page #section-live .hero-live-numbers {
-        grid-template-columns: repeat(6, minmax(0, 1fr)) 7px minmax(0, 1fr) !important;
-        padding: 3px 1px 1px !important;
+        grid-template-columns: repeat(6, minmax(0, 1fr)) var(--forecast-live-plus-width) minmax(0, 1fr) !important;
+        padding: var(--forecast-live-number-pad-top) 1px var(--forecast-live-number-pad-bottom) !important;
     }
 
     body.forecast-panel-page .forecast-page #section-live .hero-live-numbers .result-jl-code {
-        width: clamp(1.72rem, 6.35vw, 1.9rem) !important;
-        height: clamp(1.72rem, 6.35vw, 1.9rem) !important;
-        font-size: clamp(0.9rem, 3.24vw, 1rem) !important;
+        width: var(--forecast-live-ball-size) !important;
+        height: var(--forecast-live-ball-size) !important;
+        font-size: var(--forecast-live-ball-font) !important;
     }
 
     body.forecast-panel-page .forecast-page #section-live .hero-ball-zodiac {
-        font-size: clamp(11.6px, 2.75vw, 12.8px) !important;
+        font-size: var(--forecast-live-zodiac-font) !important;
     }
 
     body.forecast-panel-page .forecast-page #section-live .hero-live-numbers .hero-ball-plus {
-        width: 7px !important;
-        min-width: 7px !important;
+        width: var(--forecast-live-plus-width) !important;
+        min-width: var(--forecast-live-plus-width) !important;
     }
 
     body.forecast-panel-page .forecast-page #section-live .hero-live-numbers .result-jl-plus {
-        font-size: clamp(1.28rem, 4.15vw, 1.48rem) !important;
+        font-size: var(--forecast-live-plus-font) !important;
     }
 }
 
@@ -20606,8 +20637,8 @@ body.forecast-panel-page .forecast-page .forecast-result-summary-line.is-unselec
 
 /* Soften only the text inside the four forecast filter capsules. */
 body.forecast-panel-page .forecast-page .forecast-filter-row > .forecast-filter-select {
-    font-size: 14.2px !important;
-    font-weight: 500 !important;
+    font-size: var(--forecast-filter-font-size) !important;
+    font-weight: var(--forecast-filter-font-weight) !important;
 }
 
 /* Front auth and modal standard contract. */
